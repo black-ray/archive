@@ -561,6 +561,8 @@ export class HeaderComponent implements OnInit {
 
 ## 脏值检测
 
+### 脏值检测基本概念
+
 - ##### 什么是脏值检测
 
   当数据改变时更新视图(DOM)
@@ -577,13 +579,23 @@ export class HeaderComponent implements OnInit {
 
 - ##### 脏值检测执行顺序
 
-  检查的方向是单向的。检查是同步的操作
+  检查的方向是**单向**的。会从根组件开始，逐一检测每一个组件。
+
+  检测基于组件树的单向数据流，组件树+单项数据流使Angular在检测每一个组件时不需要考虑当前组件会修改父组件的数据
+
+  检查是同步的操作。
 
   <img src="Angular.assets/image-20220107151758583.png" alt="image-20220107151758583" style="zoom:50%;" /> <img src="Angular.assets/image-20220107163530024.png" alt="image-20220107163530024" style="zoom:50%;" /> 
 
-  正常情况下**脏值检测会进行两遍**，在脏值检测之后会进行AfterViewChecked和AfterViewInit生命周期方法。
+- ##### 开发模式下脏值检测会进行两遍
 
-  在更新视图之后的生命周期方法里，是不能改变属性值(绑定的属性)的，因为会再次引起新的一轮脏值检测。会带来无限循环的问题。
+  在开发模式下，Angular 会有意的进行两次脏值检测，目的是提示开发者：开发的代码违背了单向数据流的策略。
+
+  在脏值检测之后会进行**AfterViewChecked**和**AfterViewInit**生命周期方法。
+
+  在**更新视图**之后的生命周期方法里，是不能改变属性值(绑定的属性)的，因为会再次引起新的一轮脏值检测。会带来无限循环问题。
+
+  这种做法是不符合单向数据流的，因为父组件已经被检测过。虽然界面也会正常的被修改，但是会打印出错误。
 
   进行两次脏值检测是就为了防止无限检测的问题，第一遍脏值检测结束以后，会马上进行第二遍的检测，检测这次的值和上一次的值是否是一致。如果不一致会抛出异常。
 
@@ -611,84 +623,168 @@ export class HeaderComponent implements OnInit {
   }
   ```
   
-  - 使用NgZone解决异常
+
+- ##### 使用NgZone改变属性值
+
+  ```typescript
+  import {NgZone} from '@angular/core';
+  export class ChildComponent {
+      _title;
+      public get time(): number {
+  		/**如果写成下面的代码就会出现异常
+      	 * 这是由于脏值检测是一个单向的同步的检测过程，而且会进行两次检查
+      	 * 这会导致下面的结果在两次检查中值是不一样的，所以会抛出异常 */
+      	// return Date.now();
+          return this._time;
+      }
+      constructor(ngZone: NgZone) { }
+      ngAfterViewChecked() {
+          // zone.js 提供了在一个浏览器应用中使用不同的运行时上下文的能力
+          ngZone.runOutsideAngular(() => {
+              // 异步改变值
+              setInterval(() => {
+           		this._time = Date.now();
+         		}, 1);
+          });
+      }
+  }
+  ```
+
+- ##### 使用DOM避免脏值检测的无限循环
+
+  ```html
+  <!--
+  <span [textContent]="time | date: 'HH:mm:ss:SSS'"></span>
+  -->
+  <span #timeRef></span>
+  ```
+
+  ```typescript
+  export class ChildComponent {
+      @ViewChild('timeRef') timeRef: ElementRef;
+      constructor(rd: Renderer2) {
+       	/* 引发脏值检测的无限循环，当然如果不是性能出现很大的问题，这样做也可以
+       	setInterval(() => {
+       	  this.time = Date.now();
+       	  cd.markForCheck();
+       	}, 100);
+       	*/
+          
+          // 如果不使用绑定，采用直接写 DOM 的形式可以解决脏值检测无限循环的带来的性能问题
+  		setInterval(() => {
+  		 rd.setProperty(
+  		   this.timeRef.nativeElement, 'innerText',
+  		   // 管道使用的变换函数也可以直接在类中使用
+  		   // 下面的 formatDate 就是 DatePipe 的变换函数
+  		   formatDate(Date.now(), 'HH:mm:ss:SSS', 'zh-Hans')
+  		 );
+  		}, 100);
+      }
+  }
+  ```
+
+
+
+### NgZone
+
+Angular 引入 Zone.js 以处理变更检测，具体来说，Zone.js 通过对所有常见的异步 API 打上了“补丁” 以追踪所有的异步操作，进而使 Angular 可以决定何时刷新 UI。
+
+- ##### 什么是 Zone
+
+  Zone 是一种用于拦截和跟踪异步工作的机制。
+
+- ##### 什么是 NgZone
+
+  Zone.js 将会对每一个异步操作创建一个 task。一个 task 运行于一个 Zone 中。通常来说， 在 Angular 应用中，每个 task 都会在 Angular Zone 中运行，这个 Zone 被称为 NgZone。一个 Angular 应用中只存在一个 Angular Zone，而变更检测只会由 运行于这个 NgZone 中的异步操作触发。
+
+- ##### runOutsideAngular
+
+  函数 `runOutsideAngular` 用于确保代码于 NgZone 之外运行，即保证 Angular 的变更检测不会因为相关代码而触发
+
+  ```typescript
+  // setInterval 定时器不会触发变更检测
+  constructor(private ngZone: NgZone) {
+    this.ngZone.runOutsideAngular(() => {
+      setInterval(() => doSomething(), 100)
+    });
+  }
+  ```
+
+- ##### run
+
+  `run` 方法的目的与 `runOutsideAngular` 正好相反，任何写在 run 里的方法，都会进入 Angular Zone 的管辖范围
+
+  ```typescript
+  // 通过 run() 方法使得在 Zone 之外的操作重新又进入了 Zone 的管辖范围
+  num = 0;
+  constructor(private zone: NgZone) {
+    this.zone.runOutsideAngular(() => {
+      let i = 0;
+      const token = setInterval(() => {
+        this.zone.run(() => {
+          this.num = ++i;
+        })
   
-    ```typescript
-    import {NgZone} from '@angular/core';
-    export class ChildComponent {
-        _title;
-        public get time(): number {
-    		/**如果写成下面的代码就会出现异常
-        	 * 这是由于脏值检测是一个单向的同步的检测过程，而且会进行两次检查
-        	 * 这会导致下面的结果在两次检查中值是不一样的，所以会抛出异常 */
-        	// return Date.now();
-            return this._time;
+        if (i == 10) {
+          clearInterval(token);
         }
-        constructor(ngZone: NgZone) { }
-        ngAfterViewChecked() {
-            // zone.js 提供了在一个浏览器应用中使用不同的运行时上下文的能力
-            ngZone.runOutsideAngular(() => {
-                // 异步改变值
-                setInterval(() => {
-             		this._time = Date.now();
-           		}, 1);
-            });
-        }
-    }
-    ```
+      }, 1000);
+    })
+  }
+  ```
+
+- ##### NgZone和rxjs结合使用，在 Zone 外创建数据流、Zone 内订阅数据流
+
+  ```typescript
+  notify$ = new Subject();
   
-  - 使用DOM避免脏值检测的无限循环
+  ngOnInit() {
+    this.notify$.subscribe(() => {
+        this.message = 'timeout';
+    })
+  }
   
-    ```html
-    <!--
-    <span [textContent]="time | date: 'HH:mm:ss:SSS'"></span>
-    -->
-    <span #timeRef></span>
-    ```
-  
-    ```typescript
-    export class ChildComponent {
-        @ViewChild('timeRef') timeRef: ElementRef;
-        constructor(rd: Renderer2) {
-         	/* 引发脏值检测的无限循环，当然如果不是性能出现很大的问题，这样做也可以
-         	setInterval(() => {
-         	  this.time = Date.now();
-         	  cd.markForCheck();
-         	}, 100);
-         	*/
-            
-            // 如果不使用绑定，采用直接写 DOM 的形式可以解决脏值检测无限循环的带来的性能问题
-    		setInterval(() => {
-    		 rd.setProperty(
-    		   this.timeRef.nativeElement, 'innerText',
-    		   // 管道使用的变换函数也可以直接在类中使用
-    		   // 下面的 formatDate 就是 DatePipe 的变换函数
-    		   formatDate(Date.now(), 'HH:mm:ss:SSS', 'zh-Hans')
-    		 );
-    		}, 100);
-        }
-    }
-    ```
-  
-- ##### OnPush策略
+  constructor(private zone: NgZone) {
+    // 将过期时间保存在 localStorage 中
+    localStorage.setItem('expiredDate', addMinutes(new Date(), 1).getTime().toString());
+    // 一旦时间过期，runOutsideAngular 中的定时器便会通知 Zone 中的 message 更新并同时清除自己
+    this.zone.runOutsideAngular(() => {
+      const i = setInterval(() => {
+        const expiredDate = +localStorage.getItem('expiredDate');
+        if (new Date().getTime() - expiredDate > 0) {
+          this.zone.run(() => {
+            this.notify$.next();
+          })
+          clearInterval(i);
+        };
+      }, 1000)
+    })
+  }
+  ```
 
-  - 默认策略
 
-    不管在任何一个地方发生了一个变化，脏值检测都会把整个树跑一遍。
 
-    不会有遗漏，但是树过大，性能降低
+###  OnPush变更检测策略
 
-  - OnPush策略
+- ##### 默认策略`ChangeDetectionStrategy.Default`
 
-    只对组件当中的有@Input注解的属性进行检测。
+  不管在任何一个地方发生了一个变化，脏值检测都会把整个树跑一遍。
 
-    这个属性发生了改变，就会引发一次脏值检测；不改变，不检测
+  不会有遗漏，但是树过大，性能降低
 
-    检测也只检查有脏值检测发生的节点和它的子组件
+- ##### 变更检测策略`ChangeDetectionStrategy.OnPush`
 
-    有时需要手动通知框架进行脏值检测
+  只对组件当中的有**@Input**注解的属性进行检测。
 
-    如果子组件设置了OnPush策略，子组件所有的状态的改变，都依赖于父组件的@Input
+  这个属性发生了改变，就会引发一次脏值检测；不改变，不检测。
+
+  如果没有检测到组件的变化，那就没有必要检测其子组件树的变化了，因为开发者说了：如果我没变，我的子组件是不会变的。
+
+  检测也只检查有脏值检测发生的节点和它的子组件。
+
+  有时需要手动通知框架进行脏值检测。
+
+  如果子组件设置了OnPush策略，**子组件所有的状态的改变，都依赖于父组件的@Input**。
 
   ```typescript
   @Component({
@@ -700,9 +796,44 @@ export class HeaderComponent implements OnInit {
   export class ParentComponent implements OnInit { }
   ```
 
+
+
+
+### ChangeDetectorRef
+
+#### 配置使用
+
+引入ChangeDetectorRef模块
+
+```typescript
+import { ChangeDetectorRef } from “angular”;
+```
+
+声明
+
+```typescript
+constructor(private cd:ChangeDetectorRef) 
+```
+
+使用
+
+```typescript
+this.cd.detectChanges();
+```
+
+
+
+#### markForCheck()
+
+通知框架执行脏值检测，忽视当前组件或是父组件中OnPush的影响
+
+<img src="Angular.assets/webp.webp" alt="img" style="zoom:33%;" /> 
+
+- ##### 手动通知框架进行脏值检测
+
   如果设置了OnPush策略，没有Input参数，但是有其他（例如路径，http获取数据等）参数会发生变化，这些变化会被系统忽略掉。
 
-  需要手动通知系统属性的变化
+  需要手动通知系统属性的变化。
 
   ```typescript
   @Component({
@@ -723,7 +854,33 @@ export class HeaderComponent implements OnInit {
   }
   ```
 
- 
+
+
+#### detectChanges()
+
+该方法会从当前组件到各个子组件开始触发一次变化检测
+
+与detach()结合，可以实现局部变更检测。
+
+<img src="Angular.assets/webp-16431272730502.webp" alt="img" style="zoom:33%;" /> 
+
+
+
+#### checkNoChanges( )
+
+该方法会从当前组件到各个子组件开始触发一次变化检测，如果有检测某个组件发生了变化，抛出异常并停止检测。
+
+<img src="Angular.assets/webp-16431274889744.webp" alt="img" style="zoom:33%;" /> 
+
+
+
+#### detach( )，reattach()
+
+手动将所在组件与其子组件分离或是重新连接
+
+<img src="Angular.assets/webp-16431828607696.webp" alt="img" style="zoom:33%;" /> 
+
+
 
 ## 组件工厂
 
