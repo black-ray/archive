@@ -401,287 +401,409 @@ export class HeaderComponent implements OnInit {
 
 @Component注解
 
-- ##### selector
+### selector
 
-  类型: string
+类型: string
 
-  css选择器名，用于在模板中标记出该指令（组件），并触发其实例化
+css选择器名，用于在模板中标记出该指令（组件），并触发其实例化
 
-  继承自@Directive装饰器
+继承自@Directive装饰器
 
-- ##### template
 
-  类型: string
 
-  组件的内联模板。如果提供了它，就不要再用 templateUrl 提供模板
+### template
 
-- ##### templateUrl
+类型: string
 
-  类型: string
+组件的内联模板。如果提供了它，就不要再用 templateUrl 提供模板
 
-  组件模板文件的 URL。如果提供了它，就不要再用 template 来提供内联模板
 
-- ##### styles
 
-  类型: string[]
+### templateUrl
 
-  组件用到的一个或多个内联的CSS 样式
+类型: string
 
-- ##### styleUrls
+组件模板文件的 URL。如果提供了它，就不要再用 template 来提供内联模板
 
-  类型: string[]
 
-  一个或多个 URL，指向组件CSS样式表的文件
 
-- ##### providers
+### styles
 
-  类型: Provider[]
+类型: string[]
 
-  使用一个令牌配置组件的注入器
+组件用到的一个或多个内联的CSS 样式
 
-  注入的服务是按组件实例化的，并且可以在组件及其子树中的所有子组件中访问
 
-  服务不是单例的，每次都会获得所提供服务的新实例，服务实例将与组件一起销毁
 
-  子组件会逐级向上寻找provider，直到找到为止，否则就会抛出错误
+### styleUrls
 
-  - @NgModule中的providers
+类型: string[]
 
-    服务将是全局单例的，即使重复声明，也不会重新创建实例，最终都会注册到根级注入器
+一个或多个 URL，指向组件CSS样式表的文件
 
-    懒加载模块中提供的服务实例会在子注入器（懒加载模块）上创建
 
-  - @Injectable的provideIn
 
-    服务的@Injectable装饰器的provideIn属性可以视为以反向方式指定依赖关系，服务本身宣布它应该提供给哪些模块使用
+### providers
 
-    申明的模块可以是 `root` 或其他任何可用模块。`root` 实际上是 `AppModule` 的别名
+类型: Provider[]
 
-    如果服务仅被注入到懒加载模块，它将捆绑在懒加载包中
+使用一个令牌配置组件的注入器
 
-    如果服务又被注入到正常模块中，它将捆绑在主包中
+注入的服务是按组件实例化的，并且可以在组件及其子树中的所有子组件中访问
 
-  继承自@Directive装饰器
+服务不是单例的，每次都会获得所提供服务的新实例，服务实例将与组件一起销毁
 
-- ##### viewProviders
+子组件会逐级向上寻找provider，直到找到为止，否则就会抛出错误
 
-  类型: Provider[]
+- @NgModule中的providers
 
-  注入的服务只能在视图的各个子节点中可用
+  服务将是全局单例的，即使重复声明，也不会重新创建实例，最终都会注册到根级注入器
 
-  viewProviders与providers的区别
+  懒加载模块中提供的服务实例会在子注入器（懒加载模块）上创建
 
-  ```typescript
-  // 服务
-  @Injectable()
-  export class MyService{
-    // 打印在哪里调用了该服务
-    testIfGetService(where){
-      console.log('Got My Service in ' + where);
-    }
+- @Injectable的provideIn
+
+  服务的@Injectable装饰器的provideIn属性可以视为以反向方式指定依赖关系，服务本身宣布它应该提供给哪些模块使用
+
+  申明的模块可以是 `root` 或其他任何可用模块。`root` 实际上是 `AppModule` 的别名
+
+  如果服务仅被注入到懒加载模块，它将捆绑在懒加载包中
+
+  如果服务又被注入到正常模块中，它将捆绑在主包中
+
+继承自@Directive装饰器
+
+
+
+### viewProviders
+
+类型: Provider[]
+
+注入的服务只能在视图的各个子节点中可用
+
+viewProviders与providers的区别
+
+```typescript
+// 服务
+@Injectable()
+export class MyService{
+  // 打印在哪里调用了该服务
+  testIfGetService(where){
+    console.log('Got My Service in ' + where);
   }
-  
-  // 投射用子组件
-  @Component({
-    selector: 'vp-child',
-    template: `<div>This is child!!!</div>`
-  })
-  export class VPChild{
-    constructor(private service: MyService) {
-      this.service.testIfGetService('child');
-    }
+}
+
+// 投射用子组件
+@Component({
+  selector: 'vp-child',
+  template: `<div>This is child!!!</div>`
+})
+export class VPChild{
+  constructor(private service: MyService) {
+    this.service.testIfGetService('child');
   }
-  
-  // 模板调用子组件
-  @Component({
-    selector: 'vp-viewchild',
-    template: `<div>This is viewChild!!!</div>`
-  })
-  export class ViewVPChild{
-    constructor(private service: MyService){
-      this.service.testIfGetService('viewChild');
-    }
+}
+
+// 模板调用子组件
+@Component({
+  selector: 'vp-viewchild',
+  template: `<div>This is viewChild!!!</div>`
+})
+export class ViewVPChild{
+  constructor(private service: MyService){
+    this.service.testIfGetService('viewChild');
   }
-  ```
+}
+```
 
-  providers形式注册服务
+providers形式注册服务
 
-  ```typescript
-  // 父组件
-  @Component({
-    selector: 'vp-parent',
-    template: `<div>This is parent!!!</div>
-    			 <ng-content></ng-content>
-    			 <vp-viewchild></vp-viewchild>`,
-    // providers形式注册服务
-    providers: [MyService]
-  })
-  export class VPParent{
-    constructor(private service: MyService){
-      this.service.testIfGetService('parent');
-    }
+```typescript
+// 父组件
+@Component({
+  selector: 'vp-parent',
+  template: `<div>This is parent!!!</div>
+  			 <ng-content></ng-content>
+  			 <vp-viewchild></vp-viewchild>`,
+  // providers形式注册服务
+  providers: [MyService]
+})
+export class VPParent{
+  constructor(private service: MyService){
+    this.service.testIfGetService('parent');
   }
-  ```
+}
+```
 
-  在父组件用使用providers注册的服务，对viewChildren和contentChildren都可见
+在父组件用使用providers注册的服务，对viewChildren和contentChildren都可见
 
-  ```html
-  <vp-parent>
-    <vp-child></vp-child>
-  </vp-parent>
-  
-  <!--
-  运行结果
-  Got My Service in parent
-  Got My Service in child
-  Got My Service in viewchild
-  -->
-  ```
+```html
+<vp-parent>
+  <vp-child></vp-child>
+</vp-parent>
 
-  viewProviders形式注册服务
+<!--
+运行结果
+Got My Service in parent
+Got My Service in child
+Got My Service in viewchild
+-->
+```
 
-  ```typescript
-  // 父组件
-  @Component({
-    selector: 'vp-parent',
-    template: `<div>This is parent!!!</div>
-    			 <ng-content></ng-content>
-    			 <vp-viewchild></vp-viewchild>`,
-    // providers形式注册服务
-    viewProviders: [MyService]
-  })
-  export class VPParent{
-    constructor(private service: MyService){
-      this.service.testIfGetService('parent');
-    }
+viewProviders形式注册服务
+
+```typescript
+// 父组件
+@Component({
+  selector: 'vp-parent',
+  template: `<div>This is parent!!!</div>
+  			 <ng-content></ng-content>
+  			 <vp-viewchild></vp-viewchild>`,
+  // providers形式注册服务
+  viewProviders: [MyService]
+})
+export class VPParent{
+  constructor(private service: MyService){
+    this.service.testIfGetService('parent');
   }
-  ```
+}
+```
 
-  在父组件用viewProviders注册的服务，对contentChildren是不可见的
+在父组件用viewProviders注册的服务，对contentChildren是不可见的
 
-  ```html
-  <vp-parent>
-    <vp-child></vp-child>
-  </vp-parent>
-  
-  <!--
-  运行结果报错
-  Error: StaticInjectError[Myservice]
-  -->
-  
-  <vp-parent>
-    <vp-child></vp-child>
-  </vp-parent>
-  <!--
-  运行结果
-  Got My Service in parent
-  Got My Service in viewchild
-  -->
-  ```
+```html
+<vp-parent>
+  <vp-child></vp-child>
+</vp-parent>
 
-- 
+<!--
+运行结果报错
+Error: StaticInjectError[Myservice]
+-->
 
+<vp-parent>
+  <vp-child></vp-child>
+</vp-parent>
+<!--
+运行结果
+Got My Service in parent
+Got My Service in viewchild
+-->
+```
 
 
 
+### exportAs
+
+类型: string
+
+定义一个名字，用于在模板中把该组件赋值给一个变量。即给组件定义一个别名。
+
+当一个组件绑定于一个元素时，那么声明的模板引用变量将会被解析为当前元素上所绑定的组件
+
+```html
+// app.component.html
+<toggle-on #toggleOn></toggle-on>
+// toggleOn is the ToggleOnComponent
+```
+
+当有多个名字时，使用逗号分隔
+
+继承自@Directive装饰器
 
 
 
+### changeDetection
+
+类型: ChangeDetectionStrategy
+
+变更检测策略
+
+当组件实例化之后，Angular会创建一个变更检测器，它负责传播组件各个绑定值的变化
+
+`ChangeDetectionStrategy.OnPush` 检测策略为CheckOnce按需
+
+`ChangeDetectionStrategy.Default` 检测策略为CheckAlways
 
 
-- ##### exportAs
 
-  类型: string
+### encapsulation
 
-  定义一个名字，用于在模板中把该组件赋值给一个变量。即给组件定义一个别名。
+类型: ViewEncapsulation
 
-  当一个组件绑定于一个元素时，那么声明的模板引用变量将会被解析为当前元素上所绑定的组件
+模板和 CSS 样式使用的样式封装策略
 
-  ```html
-  // app.component.html
-  <toggle-on #toggleOn></toggle-on>
-  // toggleOn is the ToggleOnComponent
-  ```
+- `ViewEncapsulation.ShadowDom` 
 
-  当有多个名字时，使用逗号分隔
+  使用 Shadow DOM封装样式，并为组件的宿主元素创建一个ShadowRoot
 
-  继承自@Directive装饰器
+  它只在原生支持 Shadow DOM 的平台上才能工作
 
-- ##### changeDetection
+- `ViewEncapsulation.Emulated`
 
-  类型: ChangeDetectionStrategy
+  样式有范围封装，父组件不影响子组件的样式。
 
-  变更检测策略
+  如果非要让父组件的样式覆盖子组件的样式，使用`::ng-deep`
 
-  当组件实例化之后，Angular会创建一个变更检测器，它负责传播组件各个绑定值的变化
+- `ViewEncapsulation.None`
 
-  `ChangeDetectionStrategy.OnPush` 检测策略为CheckOnce按需
+  使用全局 CSS，不做任何封装，样式直接应用到整个document
 
-  `ChangeDetectionStrategy.Default` 检测策略为CheckAlways
+  向下影响自己的子组件，向上影响自己的父组件
 
-- ##### encapsulation
+- `ViewEncapsulation.Native`
 
-  类型: ViewEncapsulation
+  在angular10.0中已经去除
 
-  模板和 CSS 样式使用的样式封装策略
+如果没有设置，该值就会从CompilerOptions中获取。默认的编译器选项是`ViewEncapsulation.Emulated`
 
-  - `ViewEncapsulation.ShadowDom` 
-
-    使用 Shadow DOM封装样式，并为组件的宿主元素创建一个ShadowRoot
-
-    它只在原生支持 Shadow DOM 的平台上才能工作
-
-  - `ViewEncapsulation.Emulated`
-
-    样式有范围封装，父组件不影响子组件的样式。
-
-    如果非要让父组件的样式覆盖子组件的样式，使用`::ng-deep`
-
-  - `ViewEncapsulation.None`
-
-    使用全局 CSS，不做任何封装，样式直接应用到整个document
-
-    向下影响自己的子组件，向上影响自己的父组件
-
-  - `ViewEncapsulation.Native`
-
-    在angular10.0中已经去除
-
-  如果没有设置，该值就会从CompilerOptions中获取。默认的编译器选项是`ViewEncapsulation.Emulated`
-
-  如果设置为`ViewEncapsulation.Emulated`，并且该组件没有指定styles或styleUrls，就会自动切换到`ViewEncapsulation.None`
-
-- ##### animations
-
-  类型: any[]
-
-  一个或多个动画 trigger() 调用，包含一些 state() 和 transition() 定义。参考[动画]目录
-
-- ##### preserveWhitespaces
-
-  类型: boolean
-
-  为 true 则保留，为 false 则从编译后的模板中移除可能多余的空白字符，默认为 false
-
-  空白字符就是指那些能在 JavaScript 正则表达式中匹配 \s 的字符
-
-- ##### interpolation
-
-  类型:[string, string]
-
-  改写默认的插值表达式起止分界符 [ '{{', '}}']
-
-  ```typescript
-  interpolation: ['~~','~~']
-  ```
-
-  ```html
-  <div>~~title~~</div>
-  ```
-
-- 
+如果设置为`ViewEncapsulation.Emulated`，并且该组件没有指定styles或styleUrls，就会自动切换到`ViewEncapsulation.None`
 
 
+
+### animations
+
+类型: any[]
+
+一个或多个动画 trigger() 调用，包含一些 state() 和 transition() 定义。参考[动画]目录
+
+
+
+### preserveWhitespaces
+
+类型: boolean
+
+为 true 则保留，为 false 则从编译后的模板中移除可能多余的空白字符，默认为 false
+
+空白字符就是指那些能在 JavaScript 正则表达式中匹配 \s 的字符
+
+
+
+### interpolation
+
+类型:[string, string]
+
+改写默认的插值表达式起止分界符 [ '{{', '}}']
+
+```typescript
+interpolation: ['~~','~~']
+```
+
+```html
+<div>~~title~~</div>
+```
+
+
+
+### entryComponents
+
+已弃用
+
+类型: Array<Type | any[]>
+
+定义动态组件，和当前组件一起编译
+
+这里列出的每个组件，Angular都会创建一个ComponentFactory并保存进ComponentFactoryResolver中
+
+
+
+### inputs
+
+类型: string[]
+
+组件的输入属性。等价于@Input属性装饰器
+
+```typescript
+@Component({
+    selector: 'my-component',
+    inputs: ['name']
+})
+class MyComponent {
+    name: string;
+    // 和@Input() name: string; 的作用一样
+}
+```
+
+继承自@Directive装饰器
+
+
+
+### outputs
+
+类型: string[]
+
+组件的输出属性。等价于@Output属性装饰器
+
+```typescript
+@Component({
+    selector: 'my-component',
+    outputs: ['newEvent']
+})
+export class MyComponent {
+    newEvent: EventEmitter<string>;
+    // 和 @Output() newEvent: EventEmitter<string>; 的作用一样
+}
+```
+
+
+
+### queries
+
+类型: {[key: string]: any}
+
+将配置查询注入到当前组件中
+
+内容查询会在调用 ngAfterContentInit 回调之前设置好。等价于@ContentChild
+
+```html
+<my-list>
+    <li *ngFor="let item of items;">{{item}}</li>
+</my-list>
+```
+
+```typescript
+@Directive({
+    selector: 'li'
+})
+export class ListItem {}
+
+@Component({
+    selector: 'my-list',
+    template: `
+        <ul>
+            <ng-content></ng-content>
+        </ul>
+    `,
+    queries: {
+        items: new ContentChild(ListItem)
+    }
+})
+export class MyListComponent {
+    items: QueryList<ListItem>;
+    // 等价于:
+    // @ContentChild(ListItem) items: QueryList<ListItem>;
+}
+```
+
+视图查询会在调用 ngAfterViewInit 回调之前设置好。等价于@ViewChild
+
+```typescript
+@Component({
+    selector: 'demo-component',
+    template: `
+        <input #theInput type='text' />
+        <div>Demo Component</div>
+    `,
+    queries: {
+        theInput: new ViewChild('theInput')
+    }
+})
+export class DemoComponent {
+    theInput: ElementRef;
+    // 等价于:
+    // @ViewChild('theInput') theInput: ElementRef;
+}
+```
 
 
 
