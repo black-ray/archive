@@ -163,9 +163,9 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 # 操作符
 
-## 建立操作符
+## 创建
 
-负责建立一个Observable对象
+负责创建一个Observable对象
 
 - ##### 常用操作符
 
@@ -201,7 +201,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 组合建立操作符
+## 组合建立
 
 可将多个Observable对象组合成一个Observable对象
 
@@ -225,7 +225,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 转换操作符
+## 转换
 
 - ##### 常用操作符
 
@@ -285,7 +285,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 过滤运算符
+## 过滤
 
 负责将Observable传入的资料过滤筛选掉
 
@@ -352,7 +352,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 组合运算符
+## 组合
 
 负责组合多个Observable。
 
@@ -378,7 +378,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 多播运算符
+## 多播
 
 负责将Observable广播给多位观察者
 
@@ -400,7 +400,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 错误处理运算符
+## 错误处理
 
 负责处理Observable观察过程中出现的例外错误
 
@@ -414,7 +414,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 工具函数操作符
+## 工具函数
 
 负责提供Observable执行过程的工具函数
 
@@ -448,7 +448,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 
 
-## 条件式与布尔操作符
+## 条件
 
 负责计算特定条件并返回布尔值的操作符
 
