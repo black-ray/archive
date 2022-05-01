@@ -1,6 +1,6 @@
-# HTML
+# 基本结构标签
 
-## 基本结构标签
+## 结构标签
 
 | 标签名          | 定义         | 说明                                                         |
 | --------------- | ------------ | ------------------------------------------------------------ |
@@ -10,18 +10,77 @@
 | <title></title> | 文档的标题   | 网页标题                                                     |
 | <body></body>   | 文档的主体   | 文档的内容，页面的内容                                       |
 
-- 视口标签
+### manifest离线缓存
 
-  ```html
-  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-  ```
+HTML5新特性，离线缓存
 
-  - `width` 设置`viewport`宽度，可以设置`device-width`特殊值
-  - `initial-scale` 初始缩放比。大于0的数字
-  - `maximum-scale` 最大缩放比。大于0的数字
-  - `minimum-scale`最小缩放比。大于0的数字
-  - `user-scalable`用户是否可以缩放。yes 或 no (1或0)
-  
+可以通过把需要离线存储在本地的文件列在一个manifest配置文件中，这样即使在离线的情况下，用户也可以正常看见网页。
+
+1. 在需要离线缓存存储的页面 加上 `manifest = "cache.manifest"`
+
+   ```html
+   <!DOCTYPE HTML>
+   <html manifest="cache.manifest">
+       ...
+   </html>
+   ```
+
+2. 在根目录 新建文件cache.manifest
+
+   ```
+   CACHE MANIFEST
+   #v0.11
+   
+   CACHE:
+   
+   js/app.js
+   css/style.css
+   
+   NETWORK:
+   resource/logo.png
+   
+   FALLBACK:
+   / /offine.html
+   ```
+
+   离线存储的manifest一般由三部分组成
+
+   1. CACHE
+
+      表示需要离线存储的资源列表，由于包含manifest文件的页面将被**自动离线存储**，所以不需要吧页面自身也列出来
+
+      会把需要离线存储的资源存在当前浏览器上
+
+   2. NETWORK
+
+      表示在它下面列出来的资源只有在在线的情况下才能访问，**不会被离线存储**，离线情况下无法使用这些资源
+
+      不过如果CACHE和NETWORK同时都有，CACHE的优先级更高
+
+   3. FALLBACK
+
+      表示如果访问第一个资源失败，那么久使用第二个资源来替换
+
+      `/ /offline.html` 意味着，如果根目录任一资源失败，就去访问offline.html
+
+   在 application 的 application cache 中可以查看被离线存储的资源
+
+
+
+
+
+## 元数据标签`<meta>`
+
+```html
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+```
+
+- **`width`** 设置`viewport`宽度，可以设置`device-width`特殊值
+- **`initial-scale`** 初始缩放比。大于0的数字
+- **`maximum-scale`** 最大缩放比。大于0的数字
+- **`minimum-scale`**最小缩放比。大于0的数字
+- **`user-scalable`**用户是否可以缩放。yes 或 no (1或0)
+
 - 当前网页使用IE浏览器最高版本的内核来渲染
 
   ```html
@@ -30,7 +89,7 @@
 
 
 
-## 常用标签
+# 常用标签
 
 ### 标题标签
 
@@ -286,7 +345,7 @@ HTML5新增，有兼容性问题。在IE9中需要将这些元素转换为块级
 
 
 
-## 元素分类
+# 元素分类
 
 - **块级元素 `block`**：独占一行，自动换行， 可设置高宽
 
@@ -302,7 +361,7 @@ HTML5新增，有兼容性问题。在IE9中需要将这些元素转换为块级
 
 
 
-## 元素嵌套关系
+# 元素嵌套关系
 
 - ##### 块级元素可以包含行内元素 
 
@@ -316,7 +375,7 @@ HTML5新增，有兼容性问题。在IE9中需要将这些元素转换为块级
 
 
 
-## 多媒体标签
+# 多媒体标签
 
 **视频**`video`
 
@@ -335,7 +394,7 @@ HTML5新增，有兼容性问题。在IE9中需要将这些元素转换为块级
 
 
 
-## 自定义属性
+# 自定义属性
 
 H5规定自定义属性data-开头做为属性名并且赋值。
 
@@ -351,7 +410,7 @@ element.setAttribute(‘data-index’, 2)
 
 
 
-## 网站favicon图标
+# 网站favicon图标
 
 目前主要浏览器都支持favicon.ico图标。
 
@@ -365,7 +424,7 @@ favicon.ico图标放到根目录
 
 
 
-## 特殊字符
+# 特殊字符
 
 | 特殊字符 | 描述     | 代码       |
 | -------- | -------- | ---------- |
@@ -385,13 +444,13 @@ favicon.ico图标放到根目录
 
 
 
-## HTML文档结构优化
+# HTML文档结构优化
 
 大纲算法工具 https://h5o.github.io/ 
 
 
 
-## SEO优化
+# SEO优化
 
 `title` `description` `keyword`三大标签
 
@@ -421,3 +480,157 @@ favicon.ico图标放到根目录
 
 
 
+# 浏览器运行原理
+
+1. ##### 构建DOM树
+
+   渲染引擎解析HTML文档，首先将**标签**转换成DOM树中的**DOM节点**（包括js生成的标签）生成**内容树**(content tree/DOM tree)
+
+2. ##### 构建渲染树
+
+   解析对应的**CSS样式**信息（包括js生成的样式，外部css文件，带有样式的HTML标签）构建**渲染树**(rendering tree)
+
+   渲染树中每个节点都有自己的style
+
+   渲染树**不包含隐藏的节点**(display: none的节点)和head节点，因为这些节点不会显现
+
+3. ##### 布局渲染树
+
+   从根节点递归调用，计算每一个元素的**大小，位置**等
+
+   给出每个节点所应该在屏幕上出现的精准**坐标**
+
+4. ##### 绘制渲染树
+
+   遍历渲染树，使用UI层来绘制每个节点
+
+
+
+# 重绘重排
+
+## 重绘
+
+当**盒子的位置**，**大小**以及其他属性，例如**颜色**，**字体大小**等都确定下来以后，浏览器会按照各自的特性绘制一遍，将内容呈现
+
+重绘是指**元素外观的改变**，触发了浏览器根据元素的新属性**重新绘制**的行为，使元素呈现新的外观
+
+**触发重绘的条件**：**改变元素外观属性**。如：color，background-color等
+
+**table**及其内部元素可能需要**多次计算才能确定**好其在渲染树中节点的属性值，比同等元素要多花两倍时间，尽量避免使用table布局
+
+
+
+## 重排
+
+重排又称为回流，重构
+
+当渲染树的一部分或全部，因为元素的**规模尺寸**，**布局**，**隐藏**等改变而需要重新构建，这称为重排
+
+每个页面至少需要一次重排，就是页面第一次加载的时候
+
+- ##### 重绘和重排的关系
+
+  在回流的时候，浏览器会使渲染树中受到影响的部分失效，并重新构建这部分的渲染树
+
+  完成回流后，浏览器会重新绘制受影响的部分到屏幕，该过程称为重绘
+
+**重排必定会引发重绘，但重绘不一定会引发重排**
+
+- ##### 触发重排的条件
+
+  任何**页面布局**和**几何属性**的改变都会触发重排
+
+  1. 页面渲染**初始化**（无法避免）
+
+  2. 添加或删除可见的**DOM元素**
+
+  3. 元素**位置改变**，或者使用**动画**
+
+  4. **元素尺寸改变**——大小，外边距，边距
+
+  5. 浏览器**窗口**尺寸的变化（resize事件发生时）
+
+  6. 填充**内容改变**，比如文本数量和图片大小改变而引起的计算值宽度和高度的改变
+
+  7. 查询读取某些元素属性
+
+     例如：offsetLeft/Top/Height/Width，clientTop/Left/Height/Width，scrollTop/Left/Width/Height，width/height，getComputedStyle()，currentStyle
+
+     当用js操作DOM的时候，浏览器并不是立马执行的，而是将操作存储在一个队列中。
+
+     当到达一定数量或者时间时，浏览器才会统一执行队列中的操作。
+
+     当查询这些属性时，浏览器就会强制刷新队列。如果不立马执行队列中的操作，有可能得到的结果是错误的。
+
+     如果之前没有改变几何元素，获取offset等属性也不会产生重排
+
+
+
+## 优化
+
+重绘重排的代价：耗时，浏览器卡慢
+
+- ##### 浏览器的优化
+
+  浏览器会维护一个队列，会把所有会引起回流、重绘的操作放入这个队列，等队列中的操作到了一定的数量或者到了一定时间后，浏览器就会自动flush队列，进行一个批处理。这样就能让多次回流、重绘变成一次回流重绘
+
+- ##### 代码的优化
+
+  要减少对渲染树的操作。可以合并多次的DOM和样式的修改。减少对style样式的请求
+
+  - 直接**改变元素的className**
+
+  - 先设置元素为display: none; 然后进行页面布局等操作
+
+    完成操作后将元素设置为display: block;
+
+    这样只会引发两次重绘和重排
+
+  - 使用cloneNode和replaceChild，引发一次回流和重绘
+
+  - 将需要多次重排的元素，**position属性设置成absolute或fixed**。元素脱离了文档流，它的变化不会影响到其他元素
+
+  - 如果需要创建多个DOM节点，可以使用DocumentFragment创建完后一次性的加入document
+
+    ```javascript
+    // 不要循环渲染，建议使用DocumentFragment
+    var fragment = document.createDocumentFragment();
+    for(let i = 0; i< 1000; i++) {
+        var li = document.createElement('li');
+        li.innerHtml = 'apple' + i;
+        fragment.appendChild(li);
+    }
+    document.getElementById('fruit').appendChild(fragement);
+    ```
+
+  - offset之类的属性读取注意顺序
+
+    ```javascript
+    // 产生了四次重排
+    var div = document.querySelector("#test");
+    div.style.left = '200px';
+    console.log(div.offsetLeft);
+    div.style.left = '100px';
+    console.log(div.offsetLeft);
+    div.style.left = '200px';
+    console.log(div.offsetLeft);
+    div.style.left = '100px';
+    console.log(div.offsetLeft);
+    ```
+
+    ```javascript
+    // 只发生了一次重排
+    var div = document.querySelector("#test");
+    div.style.left = '200px';
+    div.style.left = '100px';
+    div.style.left = '200px';
+    div.style.left = '100px';
+    console.log(div.offsetLeft);
+    console.log(div.offsetLeft);
+    console.log(div.offsetLeft);
+    console.log(div.offsetLeft);
+    ```
+
+    
+
+ 

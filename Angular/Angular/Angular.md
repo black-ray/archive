@@ -6485,11 +6485,17 @@ setTimeout(() => {
 
 
 
-## 创建操作符
+## 操作符
+
+数据流：从可观察对象内部输出的数据就是数据流，可观察对象内部可以向外部源源不断的输出数据
+
+操作符：用于操作数据流，可以将对象数据流进行转换，过滤等操作
+
+### 创建操作符
 
 负责创建一个Observable对象
 
-### from
+#### from
 
 从数组等可迭代对象(如字符串)或Promise事件等创建一个 Observable
 
@@ -6571,7 +6577,7 @@ from<T>(input: any, scheduler?: SchedulerLike): Observable<T>
 
   
 
-### fromEvent
+#### fromEvent
 
 将事件(DOM 事件 或 Node的EventEmitter事件)转换成 Observable对象
 
@@ -6585,7 +6591,7 @@ fromEvent<T>(target: FromEventTarget<T>, eventName: string, options?: EventListe
   target: DOM事件，EventEmitter事件等事件目标
   eventName: 要监听的事件名称
   options: 传递给addEventListener的参数
-  resultSelector: 传递一个函数来处理操作的结果 (不推荐使用，该方法建议移到pipe的map中)
+  resultSelector: 处理操作结果的回调函数 (不推荐使用，该方法建议移到pipe的map中)
 */
 ```
 
@@ -6603,7 +6609,7 @@ fromEvent<T>(target: FromEventTarget<T>, eventName: string, options?: EventListe
 
 
 
-### fromEventPattern
+#### fromEventPattern
 
 从一个基于 addHandler/removeHandler 方法的类事件创建 Observable
 
@@ -6618,7 +6624,7 @@ fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandle
 /*
   addHandler: 注册监听函数
   removeHandler: 移除监听函数
-  resultSelector: 传递一个函数来处理操作的结果
+  resultSelector: 处理操作结果的回调函数
 */
 ```
 
@@ -6681,7 +6687,7 @@ fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandle
 
   
 
-### interval
+#### interval
 
 创建一个Observable，定期发出自增的数字
 
@@ -6708,14 +6714,14 @@ interval(period: number = 0, scheduler: SchedulerLike = async): Observable<numbe
 
 
 
-### timer
+#### timer
 
 创建一个Observable，在初始延迟时间后，开始定期发出自增的数字，或初始延迟时间后行为终止
 
 就像是interval, 但是可以指定什么时候开始发送
 
 ```javascript
-import { timer } from 'rxjs';
+import { timer } from 'rxjs'
 
 timer(dueTime: number | Date = 0, intervalOrScheduler?: number | SchedulerLike, scheduler: SchedulerLike = asyncScheduler): Observable<number>
 /*
@@ -6763,12 +6769,12 @@ timer(dueTime: number | Date = 0, intervalOrScheduler?: number | SchedulerLike, 
 
 
 
-### of
+#### of
 
 创建一个 Observable，会依次发出提供的参数，然后完成
 
 ```javascript
-import { of } from 'rxjs';
+import { of } from 'rxjs'
 
 of<T>(...args: (SchedulerLike | T)[]): Observable<T>
 /*
@@ -6799,7 +6805,337 @@ of("a", "b", [], {}, true, 20)
 
 
 
-### range
+#### range
+
+创建一个 Observable，发出指定范围内的连续整数序列
+
+默认情况下, 不使用调度器仅仅同步的发送通知
+
+```javascript
+import { range } from 'rxjs'
+
+range(start: number, count?: number, scheduler?: SchedulerLike): Observable<number>
+/*
+  start: 序列中的第一个整数值
+  count: 要生成序列的长度
+  scheduler: 调度器
+*/
+```
+
+<img src="Angular.assets/range.png" alt="img" style="zoom:45%;" /> 
+
+- ##### 发出从1到10的数
+
+  ```javascript
+  const numbers = range(1, 10);
+  numbers.subscribe(x => console.log(x));
+  
+  // 输出: 1,2,3,4,5,6,7,8,9,10
+  ```
+
+
+
+#### throwError
+
+创建一个 Observable，不向观察者发出任何项目，立马发出错误通知
+
+可以被用来和其他 Observables 组合, 比如在mergeMap，concatMap中使用
+
+```javascript
+import { throwError } from 'rxjs';
+
+throwError(errorOrErrorFactory: any, scheduler?: SchedulerLike): Observable<never>
+/*
+  errorOrErrorFactory: 错误通知
+  scheduler: 调度器
+*/
+```
+
+<img src="Angular.assets/throw.png" alt="img" style="zoom:45%;" /> 
+
+- ##### 和其他Observables组合，抛出错误
+
+  ```javascript
+  // mergeMap:把二维的 observable 转成一维，并且能够同时处理所有的 observable
+  interval(1000).pipe(
+    mergeMap(x => x === 2
+      ? throwError('Twos are bad')
+      : of('a', 'b', 'c')
+    ),
+  ).subscribe(x => console.log(x), e => console.error(e));
+  
+  // a
+  // b
+  // c
+  // a
+  // b
+  // c
+  // Twos are bad
+  ```
+
+  ```javascript
+  const result = concat(of(7), throwError(new Error('oops!')));
+  result.subscribe(x => console.log(x), e => console.error(e));
+  
+  // 7
+  // Error: oops!
+  ```
+
+  ```javascript
+  const delays$ = of(1000, 2000, Infinity, 3000);
+  delays$.pipe(
+     concatMap(ms => {
+       if (ms < 10000) {
+         return timer(ms);
+       } else {
+         return throwError(() => new Error(`Invalid time ${ms}`));
+         // 等价于：
+         // throw new Error(`Invalid time ${ms}`);
+       }
+     })
+  ).subscribe({
+     next: console.log,
+     error: console.error
+  });
+  
+  // 0
+  // 0
+  // Error: Invalid time Infinity
+  ```
+
+
+
+#### 其他操作符
+
+ajax
+
+bindCallback
+
+bindNodeCallback
+
+defer
+
+generate
+
+iif
+
+
+
+### 组合建立操作符
+
+可将多个Observable对象组合成一个Observable对象
+
+#### combineLatest
+
+组合多个Observables来创建一个Observable，返回根据每个输入Observable的最新值计算得出的数组
+
+1. **顺序订阅**每个输入Observable
+2. 等待每个输入都**至少发出一个值后**才会发出初始值
+3. 每个输入所发出的值**只保留最新的**
+4. 某个输入不产生新数据(包含完成情况)，就反复使用**最后一次产生的数据**
+5. 任一输入发生错误，会立马返回错误状态，所有的其他输入都会被解除订阅
+6. 某个输入没有发出值就完成了，返回的Observable会立马完成
+
+```javascript
+import { combineLatest } from 'rxjs'
+
+combineLatest<O extends ObservableInput<any>, R>(...args: any[]): Observable<R> | Observable<ObservedValueOf<O>[]>
+/*
+  args: 接受一个Observables数组
+*/
+    
+combineLatest(sources: readonly any[], resultSelector: (...values: A) => R): Observable<R>
+/*
+  args: 接受一个Observables数组
+  resultSelector: 处理操作结果的回调函数
+*/
+```
+
+<img src="Angular.assets/combineLatest.png" alt="combineLatest marble diagram" style="zoom:40%;" /> 
+
+- ##### 计算多个因子的结果
+
+  ```javascript
+  const weight = of(70, 72, 76, 79, 75);
+  const height = of(1.76, 1.77, 1.78);
+  const bmi = combineLatest([weight, height]).pipe(
+    map(([w, h]) => {
+      console.log('weight:' + w + ",height:" + h);
+      return w / (h * h);
+    }),
+  );
+  // 使用回调函数的写法
+  // const bmi = combineLatest([weight, height], (w, h) => w / (h * h));
+  bmi.subscribe(x => console.log('BMI is ' + x));
+  
+  // weight值立即发出，没有延迟
+  // weight:75,height:1.76
+  // BMI is 24.212293388429753
+  // weight:75,height:1.77
+  // BMI is 23.93948099205209
+  // weight:75,height:1.78
+  // BMI is 23.671253629592222
+  ```
+
+- ##### 结合多个Observables
+
+  ```javascript
+  const firstTimer = timer(0, 1000); // 从现在开始，每隔1秒发出0, 1, 2...
+  const secondTimer = timer(500, 1000); // 0.5秒后，每隔1秒发出0, 1, 2...
+  const combinedTimers = combineLatest([firstTimer, secondTimer]);
+  combinedTimers.subscribe(value => console.log(value));
+  
+  // [0, 0] after 0.5s
+  // [1, 0] after 1s
+  // [1, 1] after 1.5s
+  // [2, 1] after 2s
+  ```
+
+  ```javascript
+  const observables = {
+    a: of(1).pipe(delay(1000), startWith(0)),
+    b: of(5).pipe(delay(5000), startWith(0)),
+    c: of(10).pipe(delay(10000), startWith(0))
+  };
+  const combined = combineLatest(observables);
+  combined.subscribe(value => console.log(value));
+  
+  // {a: 0, b: 0, c: 0} immediately
+  // {a: 1, b: 0, c: 0} after 1s
+  // {a: 1, b: 5, c: 0} after 5s
+  // {a: 1, b: 5, c: 10} after 10s
+  ```
+
+
+
+#### forkJoin
+
+将所有 Observable 对象最后发出来的最后一个数据合并成 Observable
+
+forkJoin操作符的作用类似于promise.all()，等待每个输入Observable都完成后，合并返回它们最后发出的值的列表
+
+1. 所有输入都完成后，只会触发一次，然后立即完结，合并发出每个流最后一个值
+
+2. 返回数组的长度和输入的个数一致，顺序和输入的顺序一致，对象的结构和输入的结构一致
+
+3. 任何输入发生错误，会立马返回错误状态，所有的其他输入都会被解除订阅
+4. 任一输入没有发出值就完成了，返回的Observable会立马完成
+
+一般用在只发送一个元素的流的情况，像HTTP请求或者页面加载，发起多个请求，让请求并行运行，在所有流收到响应时执行某些任务
+
+不过需要保证多个接口都能够成功返回结果，使用forkJoin不好监听具体错误
+
+```javascript
+import { forkJoin } from 'rxjs';
+
+forkJoin(...args: any[]): Observable<any>
+/*
+  args: 接受一个Observables数组
+*/
+
+forkJoin(sources: readonly any[], resultSelector: (...values: A) => R): Observable<R>
+/*
+  args: 接受一个Observables数组
+  resultSelector: 处理操作结果的回调函数
+*/
+```
+
+<img src="Angular.assets/forkJoin.png" alt="forkJoin" style="zoom:40%;" /> 
+
+- ##### 同时进行http请求
+
+  ```javascript
+  user = [];
+  account = [];
+  getSomeInfo(users, account){
+      // 执行某些任务
+  }
+  
+  forkJoin(
+    fetch("https://server/user/1"),
+    fetch("https://server/account/1")
+  ).subscribe((data) => {
+      // 返回结果将被按顺序放在一个数组中
+      if (data[0].code === ErrorCodeEnum.SUCCESS) {
+          this.user = data[0].data;
+      }
+      if (data[1].code === ErrorCodeEnum.SUCCESS) {
+          this.account = data[1].data.result;
+      }
+      this.getSomeInfo(this.user, this.account);
+  });
+  ```
+
+- ##### 结合多个Observables
+
+  ```javascript
+  // 字典对象
+  const observable = forkJoin({
+    foo: of(1, 2, 3, 4),
+    bar: Promise.resolve(8),
+    baz: timer(4000),
+  });
+  observable.subscribe({
+   next: value => console.log(value),
+   complete: () => console.log('This is how it ends!'),
+  });
+  
+  // { foo: 4, bar: 8, baz: 0 } after 4 seconds
+  // "This is how it ends!" immediately after
+  ```
+
+  ```javascript
+  // 数组
+  const observable = forkJoin([
+    of(1, 2, 3, 4),
+    Promise.resolve(8),
+    timer(4000),
+  ]);
+  observable.subscribe({
+   next: value => console.log(value),
+   complete: () => console.log('This is how it ends!'),
+  });
+  
+  // [4, 8, 0] after 4 seconds
+  // "This is how it ends!" immediately after
+  ```
+
+- ##### 异常情况处理
+
+  ```javascript
+  // 在外部处理异常
+  forkJoin(
+    //emit 'Hello' immediately
+    of('Hello'),
+    //emit 'World' after 1 second
+    of('World').pipe(delay(1000)),
+    // throw error
+    throwError('This will error')
+  ).pipe(catchError(error => of(error)))
+  .subscribe(val => console.log(val));
+  
+  // This will error
+  ```
+
+  ```javascript
+  // 在输入内部处理异常，成功获得返回值
+  forkJoin(
+    //emit 'Hello' immediately
+    of('Hello'),
+    //emit 'World' after 1 second
+    of('World').pipe(delay(1000)),
+    // throw error
+    throwError('This will error').pipe(catchError(error => of(error)))
+  ).subscribe(val => console.log(val));
+  
+  // ["Hello", "World", "This will error"]
+  ```
+
+
+
+#### zip
+
+将多个 Observable 组合以创建一个 Observable，
 
 
 
@@ -6807,7 +7143,25 @@ of("a", "b", [], {}, true, 20)
 
 
 
-### throwError
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

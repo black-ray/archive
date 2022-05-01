@@ -546,3 +546,85 @@
   ```
 
   
+
+# 移动端兼容
+
+## 判断安卓和ios
+
+```javascript
+// 获取浏览器的userAgent，转化为小写
+var ua = navigator.userAgent.toLowerCase();
+// 判断是否是苹果
+var isIos = (ua.indexOf('iphone') != -1) || (ua.indexOf('ipad') != -1);
+if(isIos){
+    // 做苹果手机兼容
+}else{
+    // 做安卓手机兼容
+}
+```
+
+## 兼容问题
+
+- ##### 禁止图片点击放大
+
+  部分安卓手机点击图片会放大。可以设置css属性，禁止放大
+
+  ```css
+  img{
+      pointer-event: none;
+  }
+  ```
+
+  这个会让img标签的点击事件失效。如果要添加点击事件，需要上面再写一层
+
+- ##### 禁止IOS识别长串数字为电话
+
+  ```html
+  <meta name="format-detecation" content="telephone=no">
+  ```
+
+- ##### 禁止复制，选中文本
+
+  ```css
+  -web-user-select:none
+  ```
+
+- ##### IOS对非可点击元素(如：lable，span)不会触发点击事件
+
+  ```css
+  /* 添加 */
+  cursor: pointer
+  ```
+
+- ##### 上下拉动滚动条卡顿
+
+  ```css
+  body {
+      -webkit-overflow-scrolling: touch;
+      overflow-scrolling: touch;
+  }
+  ```
+
+  Android3和IOS5支持css3新属性overflow-scrolling
+
+- ##### 安卓不会自动播放视频
+
+  ```javascript
+  // 安卓autoplay没效果，需要手动触发
+  window.addEventListener('touchstart', function(){
+      audio.play();
+  }, false);
+  ```
+
+- ##### 半透明的遮罩层改为全透明
+
+  ios点击链接或者通过js绑定点击事件的元素，会出现一个半透明的背景，当手指离开屏幕，灰色背景消失，出现闪屏现象
+
+  ```css
+  html, body{
+      -webkit-tap-hightlight-color: rgba(0,0,0,0);
+  }
+  ```
+
+  
+

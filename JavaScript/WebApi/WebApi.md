@@ -1,130 +1,127 @@
-# DOM
-
-## DOM 树
+# DOM 树
 
 <img src="WebApi.assets/image-20211203182322669.png" alt="image-20211203182322669" style="zoom:67%;" /> 
 
 - 文档：一个页面就是一个文档，DOM 中使用 document 表示
-- 元素：页面中的所有标签都是元素，DOM 中使用 element 表示
-- 节点：网页中的所有内容都是节点（标签、属性、文本、注释等），DOM 中使用 node 表示
+- 元素：页面中的所有**标签都是元素**，DOM 中使用 element 表示
+- 节点：网页中的**所有内容都是节点**（标签、属性、文本、注释等），DOM 中使用 node 表示
 - DOM 把以上内容都看做是对象
 
 
 
-## 元素
+# 元素
 
-### 获取页面元素
+## 获取页面元素
 
-- #####  根据ID 获取
+###  根据ID获取
 
-  `document.getElementById('id');`
+`document.getElementById('id');`
 
-  - 参数id区分大小写
-  - 返回的是一个元素对象
-  - `console.dir()` 可以打印获取的元素对象，查看对象里面的属性和方法
+- 参数id区分大小写
+- 返回的是一个元素对象
+- `console.dir()` 可以打印获取的元素对象，查看对象里面的属性和方法
 
-- ##### 根据标签名获取
+### 根据标签名获取
 
-  `document.getElementsByTagName('标签名');`
+`document.getElementsByTagName('标签名');`
 
-  - 以返回带有指定标签名的对象的集合，以伪数组的形式存储
-  - 操作里面的元素需要遍历
-  - 得到元素对象是动态的
+- 以返回带有指定标签名的对象的集合，以伪数组的形式存储
+- 操作里面的元素需要遍历
+- 得到元素对象是动态的
 
-- ##### 根据类名获取(H5)
+### 根据类名获取(H5)
 
-  `document.getElementsByClassName(‘类名’);`
+`document.getElementsByClassName(‘类名’);`
 
-- ##### 根据选择器获取第一个(H5)
+### 根据选择器获取第一个(H5)
 
-  `document.querySelector('选择器');`
+`document.querySelector('选择器');`
 
-  - 根据指定选择器返回第一个元素对象
-  - 选择器需要加符号 `#nav` `.box`
+- 根据指定选择器返回第一个元素对象
+- 选择器需要加符号 `#nav` `.box`
 
-- ##### 根据选择器获取所有(H5)
+### 根据选择器获取所有(H5)
 
-  `document.querySelectorAll('选择器');`
+`document.querySelectorAll('选择器');`
 
-  - 根据指定选择器返回所有元素对象
-  - 选择器需要加符号 `#nav` `.box`
+- 根据指定选择器返回所有元素对象
+- 选择器需要加符号 `#nav` `.box`
 
-- ##### 获取body元素
+### 获取body元素
 
-  `doucumnet.body`
+`doucumnet.body`
 
-- ##### 获取html元素
+### 获取html元素
 
-  `document.documentElement`
-
-
-
-### 设置元素内容
-
-- ##### `element.innerText`
-
-  - 从起始位置到终止位置的内容
-
-  - 不识别html 标签
-
-  - 空格和换行会去掉
-  - 可读写
-  
-- ##### `element.innerHTML`
-
-  - 起始位置到终止位置的全部内容
-  - 识别html 标签
-  - 保留空格和换行
-  - 可读写 
-  
-- ##### 修改常用元素的属性操作 
-
-  如：`element.src` 、`element.href`
-
-- ##### 修改表单元素的属性操作
-
-   如：`element.type`、`element.value`、`element.checked`、`element.selected`、`element.disabled`
-
-- ##### `element.style` 行内样式操作
-  
-  - JS 里面的样式采取驼峰命名法 比如 `this.style.fontSize`、 `this.style.backgroundColor`
-  - 修改 style 样式操作，产生的是行内样式
-  
-- ##### `element.className` 类名样式操作
-  
-  - 因为`class`是个保留字，所以用`className`来操作元素类名属性
-  - 会直接更改元素类名，覆盖原先的类名
-
-- ##### `element.insertAdjacentHTML`文本解析成HTML插入DOM中
-
-  `element.insertAdjacentHTML(position, text);`
-
-  - `position`参数
-
-    - `beforebegin` 元素自身的前面
-
-    - `afterbegin` 插入元素内部的第一个子节点之前
-    - `beforeend` 插入元素内部的最后一个子节点之后
-    - `afterend` 元素自身的后面
-
-  - ```javascript
-    let html = `<div id="two">two</div>`;
-    div.insertAdjacentHTML('beforeend', html);
-    ```
-
-    
+`document.documentElement`
 
 
 
-### 获取元素属性值
+## 设置元素内容
 
-- ##### `element.属性`
+### element.innerText
 
-  获取内置属性值（元素本身自带的属性）
+- 从起始位置到终止位置的内容
 
-- ##### `element.getAttribute('属性');`
+- 不识别html 标签
 
-  可以获取内置属性和自定义属性。主要获得自定义的属性
+- 空格和换行会去掉
+- 可读写
+
+### element.innerHTML
+
+- 起始位置到终止位置的全部内容
+- 识别html 标签
+- 保留空格和换行
+- 可读写 
+
+### 修改常用元素属性
+
+如：`element.src` 、`element.href`
+
+修改表单元素的属性操作
+
+如：`element.type`、`element.value`、`element.checked`、`element.selected`、`element.disabled`
+
+### 行内样式element.style
+
+JS 里面的样式采取驼峰命名法 比如 `this.style.fontSize`、 `this.style.backgroundColor`
+
+修改 style 样式操作，产生的是**行内样式**
+
+### 类样式element.className
+
+因为`class`是个保留字，所以用`className`来操作元素类名属性
+
+会直接更改元素类名，**覆盖原先的类名**
+
+### 文本解析成HTML插入DOM中element.insertAdjacentHTML
+
+`element.insertAdjacentHTML(position, text);`
+
+`position`参数
+
+- `beforebegin` 元素自身的前面
+- `afterbegin` 插入元素内部的第一个子节点之前
+- `beforeend` 插入元素内部的最后一个子节点之后
+- `afterend` 元素自身的后面
+
+```javascript
+let html = `<div id="two">two</div>`;
+div.insertAdjacentHTML('beforeend', html);
+```
+
+
+
+## 获取元素属性值
+
+### element.属性
+
+获取**内置属性值**（元素本身自带的属性）
+
+### element.getAttribute('属性');
+
+可以获取**内置属性和自定义属性**。主要获得自定义的属性
 
 - ##### `element.dataset.index` 或 `element.dataset[‘index’]`
 
@@ -144,63 +141,64 @@
 
 
 
+## 设置元素属性值
 
-### 设置元素属性值
+### element.属性 = '值'
 
-- ##### `element.属性 = '值'`
+设置**内置属性**值
 
-  设置内置属性值
+### element.setAttribute('属性', '值');
 
-- ##### `element.setAttribute('属性', '值');`
+可以设置**内置属性和自定义属性**。主要设置自定义的属性
 
-  可以设置内置属性和自定义属性。主要设置自定义的属性
+`div.setAttribute('class', 'footer');`这里写`class `，而不是`className`
 
-  `div.setAttribute('class', 'footer');`这里写`class `，而不是`className`
+### 移除属性element.removeAttribute('属性');
 
-- ##### 移除属性`element.removeAttribute('属性');`
-
-
-
-### 获取元素类名
-
-- ##### `element.classList` 获取元素类名
-
-  - 返回元素所有的类名集合
-
-  - ie10以上版本支持
+没有返回值，不能使用链式调用。例如：`document.body.removeAttribute("first").removeAttribute("second")…）`
 
 
 
-### 设置元素类名
+## 获取元素类名
 
-- ##### 添加类`element.classList.add`
+### 获取元素类名element.classList
 
-  `focus.classList.add(‘current’);`
+- 返回元素所有的类名集合
 
-  - 类名不带点
-  - ie10以上版本支持
-
-- ##### 移除类`element.classList.remove`
-
-  `focus.classList.remove(‘current’);`
-
-  - 类名不带点
-  - ie10以上版本支持
-
-- ##### 切换类`element.classList.toggle`
-
-  `focus.classList.toggle(‘current’);`
-
-  存在指定类名就删除，不存在就添加
-
-  - 类名不带点
-  - ie10以上版本支持
+- ie10以上版本支持
 
 
 
-## 节点
+## 设置元素类名
 
-### 节点基本属性
+### 添加类element.classList.add
+
+`focus.classList.add(‘current’);`
+
+- 类名不带点
+- ie10以上版本支持
+
+### 移除类element.classList.remove
+
+`focus.classList.remove(‘current’);`
+
+- 类名不带点
+- ie10以上版本支持
+
+### 切换类element.classList.toggle
+
+`focus.classList.toggle(‘current’);`
+
+**存在**指定类名就**删除**，**不存在**就**添加**
+
+- 类名不带点
+- ie10以上版本支持
+
+
+
+# 节点
+
+## 节点基本属性
 
 - 元素节点 `nodeType `为 1
 - 属性节点 `nodeType `为 2
@@ -208,151 +206,153 @@
 
  
 
-### 获取节点
+## 获取节点
 
-- ##### 父节点`node.parentNode`,`node.parentElement`
+### 父节点node.parentNode,node.parentElement
 
-  - 返回最近的一个父节点
+- **返回最近的一个父节点**
 
-  - 如果指定的节点没有父节点则返回 null
+- 如果指定的节点没有父节点则返回 null
 
-  - `parentNode`找的是节点，当找到根部document时候就返回`#document`
+- **`parentNode`找的是节点，当找到根部document时候就返回`#document`**
 
-    `parentElement`找的是元素，当找到根部document时候就是出现值为null的报错
+  **`parentElement`找的是元素，当找到根部document时候就是出现值为null的报错**
 
-- ##### 查找最近祖先节点`node.closest('选择器')`
+### 查找最近祖先节点node.closest('选择器')
 
-  - 如果找到匹配的祖先，返回最接近的元素，找不到，返回null
-  - IE不支持
+- 如果找到匹配的祖先，**返回最接近的元素**，找不到，返回null
+- **IE不支持**
 
-- ##### 子节点`parentNode.childNodes`
+### 子节点parentNode.childNodes
 
-  - 返回包含指定节点的子节点的集合，该集合为即时更新的集合
+- 返回包含指定节点的**子节点的集合**，该集合为**即时更新的集合**
 
-  - 返回值里面包含了所有的子节点，包括元素节点，文本节点等
+- 返回值里面包含了所有的子节点，包括**元素节点，文本节点**等
 
-  - 如果只想要获得里面的元素节点，需要专门处理。 所以不提倡使用childNodes
-
-    ```javascript
-    var ul = document. querySelector('ul');
-    for(var i = 0; i < ul.childNodes.length;i++) {
-    	if (ul.childNodes[i].nodeType == 1) {
-    	// ul.childNodes[i] 是元素节点
-    	console.log(ul.childNodes[i]);
-    	}
-    }
-    ```
-
-- ##### 子节点`parentNode.children`
-
-  - 只读属性，返回所有的子元素节点
-  - 只返回子元素节点，其余节点不返回
-  - 非标准，但是得到了各个浏览器的支持，放心使用
-
-- ##### 第一个子节点`parentNode.firstChild`
-
-  - 返回第一个子节点，找不到则返回null
-  - 包含所有的节点
-
-- ##### 最后一个子节点`parentNode.lastChild`
-
-  - 返回最后一个子节点，找不到则返回null
-  - 包含所有的节点
-
-- ##### 第一个子元素节点(有兼容问题)`parentNode.firstElementChild`
-
-  - 返回第一个子元素节点，找不到则返回null
-  - IE9 以上才支持
-
-- ##### 最后一个子元素节点(有兼容问题)`parentNode.lastElementChild`
-
-  - 返回最后一个子元素节点，找不到则返回null
-  - IE9 以上才支持
-
-- ##### 第一个子元素节点`parentNode.chilren[0]`
-
-  - 没有兼容问题的返回第一个子元素节点
-
-- ##### 最后一个子元素节点`parentNode.chilren[parentNode.chilren.length - 1]`
-
-  - 没有兼容问题的返回最后一个子元素节点
-
-- ##### 下一个兄弟节点`node.nextSibling`
-
-  - 返回下一个兄弟节点，找不到则返回null
-  - 包含所有的节点
-
-- ##### 上一个兄弟节点`node.previousSibling`
-
-  - 返回上一个兄弟节点，找不到则返回null
-  - 包含所有的节点
-
-- ##### 下一个兄弟元素节点(有兼容问题)`node.nextElementSibling`
-
-  - 返回下一个兄弟元素节点，找不到则返回null
-  - IE9 以上才支持
-
-- ##### 上一个兄弟元素节点(有兼容问题)`node.previousElementSibling`
-
-  - 返回上一个兄弟元素节点，找不到则返回null
-  - IE9 以上才支持
-
-- ##### 返回兄弟元素节点无兼容性问题的函数
+- 如果只想要获得里面的元素节点，需要专门处理。 所以不提倡使用childNodes
 
   ```javascript
-  function getNextElementSibling(element) {
-  	var el = element;
-  	while (el = el.nextSibling) {
-  		if (el.nodeType === 1) {
-  		return el;
-  		}
+  var ul = document. querySelector('ul');
+  for(var i = 0; i < ul.childNodes.length;i++) {
+  	if (ul.childNodes[i].nodeType == 1) {
+  	// ul.childNodes[i] 是元素节点
+  	console.log(ul.childNodes[i]);
   	}
-  	return null;
   }
   ```
 
-  
+### 子节点parentNode.children
 
-### 设置节点
+- 只读属性，返回所有的子元素节点
+- **只返回子元素节点**，其余节点不返回
+- 非标准，但是得到了各个浏览器的支持，放心使用
 
-- ##### 动态创建元素节点`document.createElement('tagName')`
+### 第一个子节点parentNode.firstChild
 
-  - 创建指定的 HTML 元素
-  - 创建多个元素效率稍低一点点，但是结构更清晰
+- 返回第一个子节点，找不到则返回null
+- 包含所有的节点
 
-- ##### 动态创建元素`document.write()`
+### 最后一个子节点parentNode.lastChild
 
-  - `document.write('<div>123</div>')`
+- 返回最后一个子节点，找不到则返回null
+- 包含所有的节点
 
-  - 直接将内容写入页面的内容流，但是文档流执行完毕，再调用这句话会导致页面全部重绘
+### 第一个子元素节点parentNode.firstElementChild
 
-- ##### 动态创建元素`element.innerHTML`
+- 返回第一个子元素节点，找不到则返回null
+- IE9 以上才支持，有兼容问题
 
-  - 将内容写入某个 DOM 节点，不会导致页面全部重绘
-  - 创建多个元素效率更高（不要拼接字符串，采取数组形式拼接），结构稍微复杂
+### 最后一个子元素节点parentNode.lastElementChild
 
-- ##### 末尾添加节点`node.appendChild(child)`
+- 返回最后一个子元素节点，找不到则返回null
+- IE9 以上才支持，有兼容问题
 
-  - 一个节点添加到指定父节点的子节点列表末尾
-  - 类似于 CSS 里面的after 伪元素。 类似于数组的push
+### 第一个子元素节点parentNode.chilren[0]
 
-- ##### 前面添加节点`node.insertBefore(child, 指定元素)`
+- 没有兼容问题的返回第一个子元素节点
 
-  - 一个节点添加到父节点的指定子节点前面
+### 最后一个子元素节点parentNode.chilren[parentNode.chilren.length - 1]
 
-- ##### 删除节点`node.removeChild(child)`
+- 没有兼容问题的返回最后一个子元素节点
 
-  - 从 DOM 中删除一个子节点，返回删除的节点
+### 下一个兄弟节点node.nextSibling
 
-- #####  复制节点`node.cloneNode()`
+- 返回下一个兄弟节点，找不到则返回null
+- 包含所有的节点
 
-  - 返回调用该方法的节点的一个副本
-  - 括号参数为空或者为 false ，则是浅拷贝，即只克隆复制节点本身，不克隆里面的子节点
-  - 括号参数为 true ，则是深度拷贝，会复制节点本身以及里面所有的子节点
+### 上一个兄弟节点node.previousSibling
+
+- 返回上一个兄弟节点，找不到则返回null
+- 包含所有的节点
+
+### 下一个兄弟元素节点node.nextElementSibling
+
+- 返回下一个兄弟元素节点，找不到则返回null
+- IE9 以上才支持，有兼容问题
+
+### 上一个兄弟元素节点node.previousElementSibling
+
+- 返回上一个兄弟元素节点，找不到则返回null
+- IE9 以上才支持，有兼容问题
+
+### 下一个兄弟元素节点函数
+
+```javascript
+function getNextElementSibling(element) {
+	var el = element;
+	while (el = el.nextSibling) {
+		if (el.nodeType === 1) {
+			return el;
+		}
+	}
+	return null;
+}
+```
+
+- 无兼容性问题
 
 
 
-## 事件
+## 设置节点
+
+### 动态创建元素节点document.createElement('tagName')
+
+- 创建指定的 HTML 元素
+- 创建多个元素效率稍低一点点，但是结构更清晰
+
+### 动态创建元素document.write()
+
+- `document.write('<div>123</div>')`
+
+- 直接将内容写入页面的内容流，但是文档流执行完毕，再调用这句话会导致页面全部重绘
+
+### 动态创建元素element.innerHTML
+
+- 将内容写入某个 DOM 节点，不会导致页面全部重绘
+- 创建多个元素效率更高（不要拼接字符串，采取数组形式拼接），结构稍微复杂
+
+### 末尾添加节点node.appendChild(child)
+
+- 一个节点添加到指定父节点的子节点列表末尾
+- 类似于 CSS 里面的after 伪元素。 类似于数组的push
+
+### 前面添加节点node.insertBefore(child, 指定元素)
+
+- 一个节点添加到父节点的指定子节点前面
+
+### 删除节点node.removeChild(child)
+
+- 从 DOM 中删除一个子节点，返回删除的节点
+
+###  复制节点node.cloneNode()
+
+- 返回调用该方法的节点的一个副本
+- 括号参数为空或者为 false ，则是浅拷贝，即只克隆复制节点本身，不克隆里面的子节点
+- 括号参数为 true ，则是深度拷贝，会复制节点本身以及里面所有的子节点
+
+
+
+# 事件
 
 - #####  事件三要素
 
@@ -360,213 +360,218 @@
   2. 绑定事件类型
   3. 添加事件处理程序
 
-- 事件函数内的`this`指向事件函数的调用者
+- ##### 事件函数内的`this`指向事件函数的调用者
 
 
 
-### 注册事件
+## 注册事件
 
-- #####  传统注册`on`开头
+###  传统注册
 
-  `<button onclick=“alert('hi~')”></button>`
+on开头事件注册
 
-  `btn.onclick = function() {}`
+`<button onclick=“alert('hi~')”></button>`
 
-  - 注册事件的唯一性
+`btn.onclick = function() {}`
 
-    同一个元素同一个事件只能设置一个处理函数，最后注册的处理函数将会覆盖前面注册的处理函数
+- ##### 注册事件的唯一性
 
-- ##### 方法监听注册`addEventListener()`
+  同一个元素同一个事件只能设置一个处理函数，最后注册的处理函数将会覆盖前面注册的处理函数
 
-  `eventTarget.addEventListener(type, listener[, useCapture])`
+### 方法监听注册addEventListener()
 
-  - 参数
-    - `type` 事件类型字符串，比如 click 、mouseover ，不要带 on
-    
-    - `listener` 事件处理函数
+`eventTarget.addEventListener(type, listener[, useCapture])`
 
-    - `useCapture` 可选参数 
-    
-      如果是 true，表示在事件捕获阶段调用事件处理程序
-    
-      如果是 false或者空，表示在事件冒泡阶段调用事件处理程序
-    
-  - 同一个元素同一个事件可以注册多个监听器
-  
-  - 按注册顺序依次执行
-  
-  - IE9 之前不支持此方法，可使用 `attachEvent()` 代替
+1. `type` 事件类型字符串，比如 click 、mouseover ，**不要带 on**
 
+2. `listener` 事件处理函数
 
+3. `useCapture` 可选参数 
 
-### 删除事件
+   如果是 true，表示在**事件捕获阶段调用**事件处理程序
 
-- ##### 传统注册方式
+   如果是 false或者空，表示在**事件冒泡阶段调用**事件处理程序
 
-  `eventTarget.onclick = null;`
+同一个元素同一个事件**可以注册多个监听器**
 
-- ##### 方法监听注册方式
+按注册顺序依次执行
 
-  `eventTarget.removeEventListener(type, listener[, useCapture]);`
-
-  - IE9 之前`eventTarget.detachEvent(eventNameWithOn, callback);`
+IE9 之前不支持此方法，可使用 `attachEvent()` 代替
 
 
 
-### DOM事件流
+## 删除事件
+
+### 传统注册方式
+
+`eventTarget.onclick = null;`
+
+### 方法监听注册方式
+
+`eventTarget.removeEventListener(type, listener[, useCapture]);`
+
+- IE9 之前`eventTarget.detachEvent(eventNameWithOn, callback);`
+
+
+
+## DOM事件流
 
 事件发生时会在元素节点之间按照特定的顺序传播，这个传播过程即 DOM 事件流
 
-- ##### DOM 事件流分为3个阶段：
+**DOM 事件流分为3个阶段**：
 
-  1. 捕获阶段
+1. **捕获阶段**
 
-     由 DOM 最顶层节点开始，然后逐级向下传播到到最具体的元素接收的过程
+   由 DOM 最顶层节点开始，然后**逐级向下传播**到到最具体的元素接收的过程
 
-  2. 当前目标阶段
+2. **当前目标阶段**
 
-  3. 冒泡阶段
+3. **冒泡阶段**
 
-     事件开始时由最具体的元素接收，然后逐级向上传播到到 DOM 最顶层节点的过程
+   事件开始时由最具体的元素接收，然后**逐级向上传播**到到 DOM 最顶层节点的过程
 
-- JS 代码中只能执行捕获或者冒泡其中的一个阶段
+**JS 代码中只能执行捕获或者冒泡其中的一个阶段**
+
 - `onclick `和 `attachEvent `只能得到冒泡阶段
+
 - 有些事件没有冒泡，比如 `onblur`、`onfocus`、`onmouseenter`、`onmouseleave`
+
 - 实际开发中很少使用事件捕获，更关注事件冒泡
 
-- 给一个div 注册了点击事件
+DOM事件流图解：给一个div 注册了点击事件
 
   <img src="WebApi.assets/image-20211206001924190.png" alt="image-20211206001924190" style="zoom:67%;" /> 
 
-- > 我们向水里面扔一块石头，首先它会有一个下降的过程，这个过程就可以理解为从最顶层向事件发生的最具
-  > 体元素（目标点）的捕获过程；之后会产生泡泡，会在最低点（ 最具体元素）之后漂浮到水面上，这个过
-  > 程相当于事件冒泡。
+我们向水里面扔一块石头，首先它会有一个下降的过程，这个过程就可以理解为从最顶层向事件发生的最具
+体元素（目标点）的捕获过程；之后会产生泡泡，会在最低点（ 最具体元素）之后漂浮到水面上，这个过
+程相当于事件冒泡。
 
-  <img src="WebApi.assets/image-20211206002142543.png" alt="image-20211206002142543" style="zoom: 50%;" /> 
+<img src="WebApi.assets/image-20211206002142543.png" alt="image-20211206002142543" style="zoom: 50%;" /> 
 
-- 验证
+验证
+
+```html
+<div class="father">
+    <div class="son">
+        son盒子
+    </div>
+</div>
+```
+
+```javascript
+// 捕获阶段 addEventListener 第三个参数为true
+// 顺序 document->html>body->father->son
+var son = document.querySelector('.son');
+son.addEventListener('click', function(){
+    alert('son');
+}, true);
+var father = document.querSelector('.father');
+father.addEventListener('click', function(){
+   alert('father') 
+}, true);
+// 点击结果 father->son
+
+// 冒泡阶段 addEventListener 第三个参数为false或者空
+// 顺序 son->father->body->html->document
+var son = document.querySelector('.son');
+son.addEventListener('click', function(){
+    alert('son');
+}, false);
+var father = document.querSelector('.father');
+father.addEventListener('click', function(){
+   alert('father') 
+}, false);
+// 点击结果 son->father
+```
+
+
+
+## 事件对象
+
+### 事件对象event
+
+event 对象代表事件的状态，比如键盘按键的状态、鼠标的位置、鼠标按钮的状态
+
+事件发生后，跟事件相关的一系列信息数据的集合都放到这个对象里面，这个对象就是事件对象event，它有很多属性和方法。比如：
+
+1. 谁绑定了这个事件。
+2. 鼠标触发事件的话，会得到鼠标的相关信息，比如鼠标位置。
+3. 键盘触发事件的话，会得到键盘的相关信息，比如按了哪个键。
+
+```javascript
+// 这个 event 就是事件对象，我们还喜欢的写成 e 或者 evt
+eventTarget.onclick = function(event) {}
+eventTarget.addEventListener('click', function(event) {}）
+```
+
+event 是个**形参**，系统帮我们设定为事件对象，不需要传递实参过去
+
+当注册事件时， event 对象就会被系统自动创建，并依次传递给事件监听器（事件处理函数）
+
+兼容问题：IE6~8浏览器不会给方法传递参数，使用`window.event`获取
+
+解决：`e = e || window.event;`
+
+### 触发事件的对象e.target
+
+- `e.target` 和 `this `的区别
+
+  `this `是事件绑定的元素， 这个函数的调用者（绑定这个事件的元素）
+
+  `e.target `是事件触发的元素
+
+  **`e.target `返回的是触发事件(点击)的对象，`this`返回的是绑定事件(绑定点击)的对象**
 
   ```html
-  <div class="father">
-      <div class="son">
-          son盒子
-      </div>
-  </div>
+  <ul>
+      <li>abc</li>
+  </ul>
   ```
 
   ```javascript
-  // 捕获阶段 addEventListener 第三个参数为true
-  // 顺序 document->html>body->father->son
-  var son = document.querySelector('.son');
-  son.addEventListener('click', function(){
-      alert('son');
-  }, true);
-  var father = document.querSelector('.father');
-  father.addEventListener('click', function(){
-     alert('father') 
-  }, true);
-  // 点击结果 father->son
-  
-  // 冒泡阶段 addEventListener 第三个参数为false或者空
-  // 顺序 son->father->body->html->document
-  var son = document.querySelector('.son');
-  son.addEventListener('click', function(){
-      alert('son');
-  }, false);
-  var father = document.querSelector('.father');
-  father.addEventListener('click', function(){
-     alert('father') 
-  }, false);
-  // 点击结果 son->father
+  var ul = document.querySelector('ul');
+  ul.addEventListener('click', function(e){
+      // 给ul绑定了事件，this指向的是ul
+      console.log(this); 
+      
+      // 点击的是li，e.target指向的就是li
+      console.log(e.target);
+  });
   ```
 
+  `currentTarget`和`this`非常相似，但是ie678不兼容
 
+- IE6~8使用`e.srcElement`
 
-### 事件对象
+### 返回事件类型e.type
 
-- ##### 事件对象`event`
+返回事件的类型，比如`click`,`mouseover` 不带`on`
 
-  - event 对象代表事件的状态，比如键盘按键的状态、鼠标的位置、鼠标按钮的状态
+### 阻止默认事件e.preventDefault()
 
-    事件发生后，跟事件相关的一系列信息数据的集合都放到这个对象里面，这个对象就是事件对象event，它有很多属性和方法。比如：
+阻止链接跳转，阻止提交按钮提交
 
-    1. 谁绑定了这个事件。
-    2. 鼠标触发事件的话，会得到鼠标的相关信息，比如鼠标位置。
-    3. 键盘触发事件的话，会得到键盘的相关信息，比如按了哪个键。
+- ie678 `e.returnValue`
 
-    ```javascript
-    // 这个 event 就是事件对象，我们还喜欢的写成 e 或者 evt
-    eventTarget.onclick = function(event) {}
-    eventTarget.addEventListener('click', function(event) {}）
-    ```
+### 阻止事件冒泡e.stopPropagation()
 
-    event 是个形参，系统帮我们设定为事件对象，不需要传递实参过去
-
-    当注册事件时， event 对象就会被系统自动创建，并依次传递给事件监听器（事件处理函数）
-
-    兼容问题：IE6~8浏览器不会给方法传递参数，使用`window.event`获取
-
-    解决：`e = e || window.event;`
-
-- ##### 返回触发事件的对象`e.target`
-
-  - ie678`e.srcElement`
-
-  - `e.target` 和 `this `的区别
-
-    `this `是事件绑定的元素， 这个函数的调用者（绑定这个事件的元素）
-
-    `e.target `是事件触发的元素
-
-    `e.target `返回的是触发事件(点击)的对象，`this`返回的是绑定事件(绑定点击)的对象
-
-    ```html
-    <ul>
-        <li>abc</li>
-    </ul>
-    ```
-
-    ```javascript
-    var ul = document.querySelector('ul');
-    ul.addEventListener('click', function(e){
-        // 给ul绑定了事件，this指向的是ul
-        console.log(this); 
-        
-        // 点击的是li，e.target指向的就是li
-        console.log(e.target);
-    });
-    ```
-
-    `currentTarget`和`this`非常相似，但是ie678不兼容
-
-- ##### 返回事件类型`e.type`
-
-  - 返回事件的类型，比如`click`,`mouseover` 不带`on`
-
-- ##### 阻止默认事件`e.preventDefault()`
-
-  - 阻止链接跳转，阻止提交按钮提交
-  - ie678 `e.returnValue`
-
-- ##### 阻止事件冒泡`e.stopPropagation()`
-
-  - ie678 `e.cancelBubble = true`
+- ie678 `e.cancelBubble = true`
 
 
 
-### 事件委托 
+## 事件委托 
 
 事件委托的原理：不在每个子节点单独设置事件监听器，而是事件监听器设置在其父节点上，然后利用冒泡原理影响设置每个子节点。
 
-- 例如`ul`中有许多`li`，如果给每个 li 注册事件，多次操作DOM会影响性能。
+例如`ul`中有许多`li`，如果给每个 li 注册事件，多次操作DOM会影响性能。
 
-  给 `ul `注册点击事件，然后利用事件对象的 `target `来找到当前点击的 `li`，因为点击 `li`，事件会冒泡到 `ul `上，
+给 `ul `注册点击事件，然后利用事件对象的 `target `来找到当前点击的 `li`，因为点击 `li`，事件会冒泡到 `ul `上，
 
-  `ul `有注册事件，就会触发事件监听器。只操作了一次 DOM ，提高了程序的性能
+`ul `有注册事件，就会触发事件监听器。只操作了一次 DOM ，提高了程序的性能
 
 
 
-### 鼠标事件
+## 鼠标事件
 
 - ##### 常用的鼠标事件
 
@@ -641,7 +646,7 @@
 
 
 
-### 键盘事件
+## 键盘事件
 
 - ##### 常用键盘事件
 
@@ -663,7 +668,7 @@
 
 
 
-### 触摸事件
+## 触摸事件
 
 - ##### 常用触摸事件
 
@@ -720,9 +725,7 @@
 
 
 
-# BOM
-
-##  BOM构成
+#  BOM构成
 
 浏览器对象模型，提供了独立于内容而与浏览器窗口进行交互的对象
 
@@ -732,7 +735,7 @@ BOM 比 DOM 更大，它包含 DOM
 
 
 
-## window 对象
+# window 对象
 
 window 对象是浏览器的顶级对象，它具有双重角色
 
@@ -744,7 +747,7 @@ window 对象是浏览器的顶级对象，它具有双重角色
 
 
 
-## window 对象方法
+# window 对象方法
 
 - ##### 定时器`setTimeout()`
 
@@ -848,7 +851,7 @@ window 对象是浏览器的顶级对象，它具有双重角色
 
 
 
-## window 对象事件
+# window 对象事件
 
 - ##### 窗口加载事件(完全加载完成)
 
@@ -901,7 +904,7 @@ window 对象是浏览器的顶级对象，它具有双重角色
 
 
 
-## 本地存储
+# 本地存储
 
 - ##### 本地存储特性
 
@@ -957,6 +960,86 @@ window 对象是浏览器的顶级对象，它具有双重角色
   - ##### 删除所有数据
 
     `localStorage.clear()`
+
+
+
+# Cookie
+
+浏览器会把Cookie保存起来，当浏览器再请求该网站时，浏览器把请求的网址连同该Cookie一同提交给服务器
+
+Cookie一般用来存储数据，比如用户的登录状态
+
+Http协议本身是无状态的，服务器无法判断用户身份。Cookie实际上是一小段的文本信息(key-Value格式)。
+
+浏览器向服务器发送请求，如果服务器需要记录该用户状态，就使用response向浏览器颁发一个Cookie记录用户状态，浏览器会把Cookie保存起来
+
+当浏览器再请求该网站时，浏览器会把请求的网址连同该Cookie一同提交给服务器。服务器检查该Cookie状态，以此辨认用户状态
+
+- ##### 设置Cookie
+
+  可以设置多个
+
+  `document.cookie = '键=值; expires=过期时间'`
+
+- ##### 获取Cookie
+
+  获取字符串形式：username=zhangsan; age=18
+
+  `document.cookie`
+
+  获取之后使用split拆分成数组
+
+- ##### 缺点
+
+  1.  存储的数据量小
+  2. 默认浏览器关掉就会过期，但是可以自己设置过期时间
+  3. 安全性不好，请求头会带着Cookie
+  4. 跨域问题
+
+  现在常用localStorage去存token做处理，存储数据量大，不会过期
+
+
+
+# 浏览器缓存
+
+浏览器的缓存分为**强制缓存**和**协商缓存**，都可以通过后台设置响应头控制
+
+- ##### 强制缓存
+
+  不会向服务器发生请求，直接从缓存中读取资源。每次访问本地缓存直接验证检测是否过期
+
+  强制缓存可以通过设置两种HTTP Header实现
+
+  - 过期时间Expires
+
+  - 缓存控制Cache-Control
+
+    Cache-Control:max-age=300 缓存300秒
+
+- ##### 协商缓存(Last-Modified / If-Modified-Since和Etag / If-None-Match)
+
+  协商缓存命中，服务器会将这个请求返回，但不会返回这个资源的数据，而是告诉客户端可以直接从缓存中读取
+
+**强制缓存优先于协商缓存进行**，弱强制缓存(Expires / Cache-Control)生效则直接使用缓存
+
+浏览器缓存执行过程
+
+1. 浏览器加载资源时，先根据资源的http header去判断它是否强缓存，强缓存如果命中，浏览器就直接从缓存中加载这个css，连请求都不会发送到服务器
+
+   例如某个css文件，如果浏览器在加载网页时，这个css文件的缓存配置命中了强缓存，浏览器就直接从缓存中加载这个css，不会发送请求到服务器
+
+2. 当强缓存过期时，浏览器一定会发送一个请求到服务器。如果请求中的header命中协商缓存，服务器会将这个请求返回，但是不会返回请求数据，会告诉客户端可以直接从缓存中加载资源
+
+3. 如果协商缓存没有命中，浏览器直接从服务器加载数据资源
+
+强缓存和协商缓存的共同点
+
+1. 如果命中，都是从客户端缓存中加载资源
+
+强缓存和协商缓存的不同点
+
+1. 强缓存不发送请求到服务器
+2. 协商缓存会发送请求到服务器
 
 
 
