@@ -1,348 +1,36 @@
-# DOM 树
 
-<img src="WebApi.assets/image-20211203182322669.png" alt="image-20211203182322669" style="zoom:67%;" /> 
-
-- 文档：一个页面就是一个文档，DOM 中使用 document 表示
-- 元素：页面中的所有**标签都是元素**，DOM 中使用 element 表示
-- 节点：网页中的**所有内容都是节点**（标签、属性、文本、注释等），DOM 中使用 node 表示
-- DOM 把以上内容都看做是对象
-
-
-
-# 元素
-
-## 获取页面元素
-
-###  根据ID获取
-
-`document.getElementById('id');`
-
-- 参数id区分大小写
-- 返回的是一个元素对象
-- `console.dir()` 可以打印获取的元素对象，查看对象里面的属性和方法
-
-### 根据标签名获取
-
-`document.getElementsByTagName('标签名');`
-
-- 以返回带有指定标签名的对象的集合，以伪数组的形式存储
-- 操作里面的元素需要遍历
-- 得到元素对象是动态的
-
-### 根据类名获取(H5)
-
-`document.getElementsByClassName(‘类名’);`
-
-### 根据选择器获取第一个(H5)
-
-`document.querySelector('选择器');`
-
-- 根据指定选择器返回第一个元素对象
-- 选择器需要加符号 `#nav` `.box`
-
-### 根据选择器获取所有(H5)
-
-`document.querySelectorAll('选择器');`
-
-- 根据指定选择器返回所有元素对象
-- 选择器需要加符号 `#nav` `.box`
-
-### 获取body元素
-
-`doucumnet.body`
-
-### 获取html元素
-
-`document.documentElement`
-
-
-
-## 设置元素内容
-
-### element.innerText
-
-- 从起始位置到终止位置的内容
-
-- 不识别html 标签
-
-- 空格和换行会去掉
-- 可读写
-
-### element.innerHTML
-
-- 起始位置到终止位置的全部内容
-- 识别html 标签
-- 保留空格和换行
-- 可读写 
-
-### 修改常用元素属性
-
-如：`element.src` 、`element.href`
-
-修改表单元素的属性操作
-
-如：`element.type`、`element.value`、`element.checked`、`element.selected`、`element.disabled`
-
-### 行内样式element.style
-
-JS 里面的样式采取驼峰命名法 比如 `this.style.fontSize`、 `this.style.backgroundColor`
-
-修改 style 样式操作，产生的是**行内样式**
-
-### 类样式element.className
-
-因为`class`是个保留字，所以用`className`来操作元素类名属性
-
-会直接更改元素类名，**覆盖原先的类名**
-
-### 文本解析成HTML插入DOM中element.insertAdjacentHTML
-
-`element.insertAdjacentHTML(position, text);`
-
-`position`参数
-
-- `beforebegin` 元素自身的前面
-- `afterbegin` 插入元素内部的第一个子节点之前
-- `beforeend` 插入元素内部的最后一个子节点之后
-- `afterend` 元素自身的后面
-
-```javascript
-let html = `<div id="two">two</div>`;
-div.insertAdjacentHTML('beforeend', html);
-```
-
-
-
-## 获取元素属性值
-
-### element.属性
-
-获取**内置属性值**（元素本身自带的属性）
-
-### element.getAttribute('属性');
-
-可以获取**内置属性和自定义属性**。主要获得自定义的属性
-
-- ##### `element.dataset.index` 或 `element.dataset[‘index’]`
-
-  获取自定义属性 H5新增 ie 11才开始支持
-
-  `dataset`是一个集合存放了所以以`data`开头的自定义属性
-
-  自定义属性有-的单词，获取时使用驼峰命名法
-
-  ```html
-  <div data-list-name="andy"></div>
-  ```
-
-  ```javascript
-  div.dataset.listName
-  ```
-
-
-
-## 设置元素属性值
-
-### element.属性 = '值'
-
-设置**内置属性**值
-
-### element.setAttribute('属性', '值');
-
-可以设置**内置属性和自定义属性**。主要设置自定义的属性
-
-`div.setAttribute('class', 'footer');`这里写`class `，而不是`className`
-
-### 移除属性element.removeAttribute('属性');
-
-没有返回值，不能使用链式调用。例如：`document.body.removeAttribute("first").removeAttribute("second")…）`
-
-
-
-## 获取元素类名
-
-### 获取元素类名element.classList
-
-- 返回元素所有的类名集合
-
-- ie10以上版本支持
-
-
-
-## 设置元素类名
-
-### 添加类element.classList.add
-
-`focus.classList.add(‘current’);`
-
-- 类名不带点
-- ie10以上版本支持
-
-### 移除类element.classList.remove
-
-`focus.classList.remove(‘current’);`
-
-- 类名不带点
-- ie10以上版本支持
-
-### 切换类element.classList.toggle
-
-`focus.classList.toggle(‘current’);`
-
-**存在**指定类名就**删除**，**不存在**就**添加**
-
-- 类名不带点
-- ie10以上版本支持
 
 
 
 # 节点
 
-## 节点基本属性
 
-- 元素节点 `nodeType `为 1
-- 属性节点 `nodeType `为 2
-- 文本节点 `nodeType `为 3 （文本节点包含文字、空格、换行等）
 
- 
 
-## 获取节点
 
-### 父节点node.parentNode,node.parentElement
 
-- **返回最近的一个父节点**
 
-- 如果指定的节点没有父节点则返回 null
 
-- **`parentNode`找的是节点，当找到根部document时候就返回`#document`**
 
-  **`parentElement`找的是元素，当找到根部document时候就是出现值为null的报错**
 
-### 查找最近祖先节点node.closest('选择器')
 
-- 如果找到匹配的祖先，**返回最接近的元素**，找不到，返回null
-- **IE不支持**
 
-### 子节点parentNode.childNodes
 
-- 返回包含指定节点的**子节点的集合**，该集合为**即时更新的集合**
 
-- 返回值里面包含了所有的子节点，包括**元素节点，文本节点**等
 
-- 如果只想要获得里面的元素节点，需要专门处理。 所以不提倡使用childNodes
 
-  ```javascript
-  var ul = document. querySelector('ul');
-  for(var i = 0; i < ul.childNodes.length;i++) {
-  	if (ul.childNodes[i].nodeType == 1) {
-  	// ul.childNodes[i] 是元素节点
-  	console.log(ul.childNodes[i]);
-  	}
-  }
-  ```
-
-### 子节点parentNode.children
-
-- 只读属性，返回所有的子元素节点
-- **只返回子元素节点**，其余节点不返回
-- 非标准，但是得到了各个浏览器的支持，放心使用
-
-### 第一个子节点parentNode.firstChild
-
-- 返回第一个子节点，找不到则返回null
-- 包含所有的节点
-
-### 最后一个子节点parentNode.lastChild
-
-- 返回最后一个子节点，找不到则返回null
-- 包含所有的节点
-
-### 第一个子元素节点parentNode.firstElementChild
-
-- 返回第一个子元素节点，找不到则返回null
-- IE9 以上才支持，有兼容问题
-
-### 最后一个子元素节点parentNode.lastElementChild
-
-- 返回最后一个子元素节点，找不到则返回null
-- IE9 以上才支持，有兼容问题
-
-### 第一个子元素节点parentNode.chilren[0]
-
-- 没有兼容问题的返回第一个子元素节点
-
-### 最后一个子元素节点parentNode.chilren[parentNode.chilren.length - 1]
-
-- 没有兼容问题的返回最后一个子元素节点
-
-### 下一个兄弟节点node.nextSibling
-
-- 返回下一个兄弟节点，找不到则返回null
-- 包含所有的节点
-
-### 上一个兄弟节点node.previousSibling
-
-- 返回上一个兄弟节点，找不到则返回null
-- 包含所有的节点
-
-### 下一个兄弟元素节点node.nextElementSibling
-
-- 返回下一个兄弟元素节点，找不到则返回null
-- IE9 以上才支持，有兼容问题
-
-### 上一个兄弟元素节点node.previousElementSibling
-
-- 返回上一个兄弟元素节点，找不到则返回null
-- IE9 以上才支持，有兼容问题
-
-### 下一个兄弟元素节点函数
-
-```javascript
-function getNextElementSibling(element) {
-	var el = element;
-	while (el = el.nextSibling) {
-		if (el.nodeType === 1) {
-			return el;
-		}
-	}
-	return null;
-}
-```
-
-- 无兼容性问题
 
 
 
 ## 设置节点
 
-### 动态创建元素节点document.createElement('tagName')
 
-- 创建指定的 HTML 元素
-- 创建多个元素效率稍低一点点，但是结构更清晰
 
-### 动态创建元素document.write()
 
-- `document.write('<div>123</div>')`
 
-- 直接将内容写入页面的内容流，但是文档流执行完毕，再调用这句话会导致页面全部重绘
 
-### 动态创建元素element.innerHTML
 
-- 将内容写入某个 DOM 节点，不会导致页面全部重绘
-- 创建多个元素效率更高（不要拼接字符串，采取数组形式拼接），结构稍微复杂
 
-### 末尾添加节点node.appendChild(child)
-
-- 一个节点添加到指定父节点的子节点列表末尾
-- 类似于 CSS 里面的after 伪元素。 类似于数组的push
-
-### 前面添加节点node.insertBefore(child, 指定元素)
-
-- 一个节点添加到父节点的指定子节点前面
-
-### 删除节点node.removeChild(child)
-
-- 从 DOM 中删除一个子节点，返回删除的节点
 
 ###  复制节点node.cloneNode()
 
@@ -725,133 +413,226 @@ event 是个**形参**，系统帮我们设定为事件对象，不需要传递�
 
 
 
-#  BOM构成
+#  BOM 构成
 
 浏览器对象模型，提供了独立于内容而与浏览器窗口进行交互的对象
 
 BOM 比 DOM 更大，它包含 DOM
 
-<img src="WebApi.assets/image-20211206171357043.png" alt="image-20211206171357043" style="zoom:50%;" /> 
-
 
 
 # window 对象
 
+## 认识window对象
+
 window 对象是浏览器的顶级对象，它具有双重角色
 
-1.  JS 访问浏览器窗口的一个接口。
+1. **窗口对象**，JS访问浏览器窗口的一个接口
 
-2. 全局对象。定义在全局作用域中的变量、函数都会变成 window 对象的属性和方法。
+   <img src="WebApi.assets/image-20211206171357043.png" alt="image-20211206171357043" style="zoom:50%;" /> 
 
-   调用的时候可以省略 window。alert()、prompt() 等都属于 window 对象方法
+   - window：包括全局属性、方法，控制浏览器窗口相关的属性、方法
+   - document：当前窗口操作文档的对象
+   - location：浏览器连接到的对象的位置（URL）
+   - navigator：浏览器信息
+   - screen：屏幕窗口信息
+   - history：操作浏览器的历史
+
+2. **全局对象**，也就是GO对象
+
+   定义在全局作用域中的变量、函数都会变成 window 对象的属性和方法
+   
+   默认提供的全局的函数和类：setTimeout、Math、Date、Object等，调用的时候可以略 window
+
+window窗口对象包含的内容
+
+1. 属性：localStorage、console、location、history、screenX、scrollX等等
+2. 方法：alert、close、scrollTo、open等等
+3. 事件：focus、blur、load、hashchange等等
+4. 从EventTarget继承来的方法：addEventListener、removeEventListener、dispatchEvent
+
+MDN文档：https://developer.mozilla.org/zh-CN/docs/Web/API/Window
 
 
 
-# window 对象方法
+## location对象
 
-- ##### 定时器`setTimeout()`
+location对象用于表示当前链接到的URL信息，location其实是URL的一个抽象实现
 
-  设置一个定时器，该定时器在定时器到期后执行调用函数
+<img src="WebApi.assets/image-20220507222340427.png" alt="image-20220507222340427" style="zoom: 67%;" /> 
 
-  ```javascript
-  window.setTimeout(调用函数, [延迟的毫秒数]);
-  ```
+### 常见属性
 
-  - 延迟的毫秒数省略默认是 0，如果写，必须是毫秒
+- ##### location.href：获取或设置整个URL，设置`location.href`可以跳转页面
 
-  - 停止 `setTimeout() `定时器
+- ##### location.protocol：当前的协议（http、https）
 
-    `clearTimeout()`方法取消先前通过调用` setTimeout() `建立的定时器。
+- ##### location.host：主机地址（域名，如www.baidu.com，带端口）
 
-    ```javascript
-    window.clearTimeout(timeoutID)
-    ```
+- ##### location.hostname：主机地址(不带端口)
 
-    里面的参数就是定时器的标识符 
+- ##### location.origin：URL的协议、主机名和端口号（如https://www.baidu.com）
 
-- ##### 定时器`setInterval()`
+- ##### location.port：端口号
 
-  重复调用一个函数，每隔这个时间，就去调用一次回调函数
+- ##### location.pathname：路径
 
-  ```javascript
-  window.setInterval(回调函数, [间隔的毫秒数]);
-  ```
+- ##### location.search：查询字符串
 
-  - 间隔的毫秒数省略默认是 0，如果写，必须是毫秒，表示每隔多少毫秒就自动调用这个函数
+- ##### location.hash：哈希值（#后面的内容） 
 
-  - 第一次执行也是间隔毫秒数之后执行，之后每隔毫秒数就执行一次
 
-  - 停止 `setInterval() `定时器
 
-    `clearInterval()`方法取消了先前通过调用 `setInterval()`建立的定时器。
+### 常见方法
 
-    ```javascript
-    window.clearInterval(intervalID);
-    ```
-
-    里面的参数就是定时器的标识符
-
-- ##### `location`解析 URL对象
-
-  用于获取或设置窗体的 URL
-
-  - 对象属性
-
-    <img src="WebApi.assets/image-20211207221718514.png" alt="image-20211207221718514" style="zoom:67%;" /> 
-
-    - 设置`location.href`可以跳转页面
-
-  - 对象方法
-
-    <img src="WebApi.assets/image-20211207222653321.png" alt="image-20211207222653321" style="zoom:67%;" /> 
-
-    - `location.assign()`可以记录历史，可以后退页面
-
-- ##### `navigator`浏览器信息
-
-  - 用户代理信息`userAgent`判断用户在哪个终端打开页面，实现跳转
-
-    ```javascript
-    if((navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i))) {
-    	window.location.href = ""; //手机
-    } else {
-    	window.location.href = ""; //电脑
-    }
-    ```
-
-- ##### `history`历史记录
-
-  <img src="WebApi.assets/image-20211207224216641.png" alt="image-20211207224216641" style="zoom: 67%;" /> 
-
-- ##### `scroll`滚动窗口
-
-  滚动窗口至文档中的特定位置
+- ##### location.assign()：赋值一个新的URL，并且跳转到该URL中（重定向页面）
 
   ```javascript
-  window.scroll(x, y)
+  location.assign("http://www.baidu.com")
+  // 等于
+  location.href = "http://www.baidu.com"
   ```
 
-  - x和y 不跟单位，直接写数字
+- ##### location.replace()：替换当前页面（不记录历史，无法后退页面）
 
-- ##### `prompt(text) `浏览器弹出用户输入框
+  ```javascript
+  location.replace("http://www.baidu.com")
+  ```
 
-- ##### `this`指向问题
-
-  `this`的指向在函数定义的时候是确定不了的，只有函数执行的时候才能确定`this`到底指向谁
-
-  一般情况下`this`的最终指向的是那个调用它的对象
-
-  - 全局作用域或者普通函数中this指向全局对象window
-
-    定时器里面的this指向window
-
-  - 方法调用中谁调用this指向谁
-
-  - 构造函数中this指向构造函数的实例
+- ##### location.reload()：重新加载页面，相当于刷新按钮或f5，参数是true则强制刷新ctrl+f5
 
 
 
-# window 对象事件
+## history对象
+
+history对象允许我们访问浏览器曾经的会话历史记录
+
+### 常见属性
+
+- ##### history.length：会话中的记录条数
+
+- ##### history.state：当前保留的状态值
+
+
+
+### 常见方法
+
+- ##### history.go()：加载历史中的某一页
+
+- ##### history.back()：返回上一页，等价于history.go(-1)
+
+- ##### history.forward()：前进下一页，等价于history.go(1)
+
+- ##### history.pushState()：打开一个指定的地址（网页不会刷新，不会请求资源，会保存历史）
+
+  可以监听路径的改变，匹配加载相对应的组件进行渲染
+
+  `history.pushState(state, title[, url])`
+
+  - state：状态对象
+  - title：网页标题，大部分浏览器不支持
+  - url：跳转的网页
+
+  ```javascript
+  // 不会真实跳转detail.html页面，也不会检测detail.html页面是否存在
+  history.pushState({name: "demo"}, "", "/detail")
+  console.log(history.state);
+  // {name: "demo"}
+  ```
+
+- ##### history.replaceState()：打开一个指定的地址（网页不会刷新，不会请求资源，会替换掉之前页面的历史记录）
+
+
+
+## navigator对象
+
+navigator对象用它来查询当前浏览器的相关信息
+
+- ##### navigator.userAgent：返回当前浏览器的用户代理信息
+
+  判断用户在哪个终端打开页面，实现跳转
+
+  ```javascript
+  if((navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i))) {
+  	window.location.href = ""; //手机
+  } else {
+  	window.location.href = ""; //电脑
+  }
+  ```
+
+
+
+# window 属性
+
+
+
+# window 方法
+
+## 定时器 setTimeout
+
+设置一个定时器，该定时器在定时器到期后执行调用函数
+
+```javascript
+window.setTimeout(调用函数, [延迟的毫秒数]);
+```
+
+- 延迟的毫秒数省略默认是 0，如果写，必须是毫秒
+
+- 停止 `setTimeout() `定时器
+
+  `clearTimeout()`方法取消先前通过调用` setTimeout() `建立的定时器。
+
+  ```javascript
+  window.clearTimeout(timeoutID)
+  ```
+
+  里面的参数就是定时器的标识符 
+
+
+
+## 定时器 setInterval
+
+重复调用一个函数，每隔这个时间，就去调用一次回调函数
+
+```javascript
+window.setInterval(回调函数, [间隔的毫秒数]);
+```
+
+- 间隔的毫秒数省略默认是 0，如果写，必须是毫秒，表示每隔多少毫秒就自动调用这个函数
+
+- 第一次执行也是间隔毫秒数之后执行，之后每隔毫秒数就执行一次
+
+- 停止 `setInterval() `定时器
+
+  `clearInterval()`方法取消了先前通过调用 `setInterval()`建立的定时器。
+
+  ```javascript
+  window.clearInterval(intervalID);
+  ```
+
+  里面的参数就是定时器的标识符
+
+
+
+## 滚动窗口 scroll
+
+滚动窗口至文档中的特定位置
+
+```javascript
+window.scroll(x, y)
+```
+
+- x和y 不跟单位，直接写数字
+
+
+
+## 输入对话框 prompt
+
+prompt(text) 浏览器弹出用户输入框
+
+
+
+# window 事件
 
 - ##### 窗口加载事件(完全加载完成)
 
@@ -904,76 +685,311 @@ window 对象是浏览器的顶级对象，它具有双重角色
 
 
 
-# 本地存储
+# 数据存储
 
-- ##### 本地存储特性
+## 会话存储
 
-  - 数据存储在用户浏览器中
-  - 设置、读取方便、甚至页面刷新不丢失数据
-  - 容量较大，`sessionStorage`约5M、`localStorage`约20M
-  - 只能存储字符串，可以将对象JSON.stringify() 编码后存储
+### 生命周期和特性
 
-- ##### `window.sessionStorage`
+window.sessionStorage：**会话存储**
 
-  生命周期为关闭浏览器窗口
+**生命周期为关闭浏览器窗口**，在**同一个窗口(页面)下数据可以共享**，以**键值对的形式存储使用**
 
-  在同一个窗口(页面)下数据可以共享
+1. 关闭网页后重新打开：不会保留
+2. 在页面内实现跳转：保留
+3. 在页面外实现跳转（打开新的网页）：不会保留
 
-  以键值对的形式存储使用
+数据存储在用户浏览器中，容量较大，sessionStorage约5M
 
-  - ##### 存储数据
+**只能存储字符串**，可以将对象JSON.stringify() 编码后存储
 
-    `sessionStorage.setItem(key, value)`
+### 存储数据
 
-  - ##### 获取数据
+`sessionStorage.setItem(key, value)`
 
-    `sessionStorage.getItem(key)`
+访问当前域名下的会话存储对象，把key和value添加到存储中
 
-  - ##### 删除数据
+```javascript
+sessionStorage.setItem("name", "coderwhy")
+sessionStorage.setItem("age", 18)
+```
 
-    `sessionStorage.removeItem(key)`
+### 获取数据
 
-  - ##### 删除所有数据
+`var value = sessionStorage.getItem(key)`
 
-    `sessionStorage.clear()`
+返回key对应的value
 
-- ##### `window.localStorage`
+```javascript
+sessionStorage.setItem("name", "coderwhy")
+sessionStorage.setItem("age", 18)
+console.log(sessionStorage.getItem("age"))
+// 18
+```
 
-  声明周期永久生效，除非手动删除 否则关闭页面也会存在
+### 获取键名
 
-  可以多窗口（页面）共享（同一浏览器可以共享）
+`var keyName = sessionStorage.key(key)`
 
-  以键值对的形式存储使用
+接受一个数值n作为参数，返回存储中的第n个key名称（键的存储顺序是由用户代理定义的，尽可能不使用）
 
-  - ##### 存储数据
+```javascript
+sessionStorage.setItem("name", "coderwhy")
+sessionStorage.setItem("age", 18)
+console.log(sessionStorage.key(0))
+// age
+```
 
-    `localStorage.setItem(key, value)`
+### 获取长度
 
-  - ##### 获取数据
+`var length = sessionStorage.length`
 
-    `localStorage.getItem(key)`
+只读属性，存储在会话存储对象中的数据项数量
 
-  - ##### 删除数据
+```javascript
+sessionStorage.setItem("name", "coderwhy")
+sessionStorage.setItem("age", 18)
+console.log(sessionStorage.length)
+for (let i = 0; i < sessionStorage.length; i++) {
+  const key = sessionStorage.key(i)
+  console.log(sessionStorage.getItem(key))
+}
+// 2
+// 18
+// coderwhy
+```
 
-    `localStorage.removeItem(key)`
+### 删除数据
 
-  - ##### 删除所有数据
+`sessionStorage.removeItem(key)`
 
-    `localStorage.clear()`
+把传入的key从存储中删除
+
+```javascript
+sessionStorage.setItem("name", "coderwhy")
+sessionStorage.setItem("age", 18)
+sessionStorage.removeItem("age")
+```
+
+### 清空数据
+
+`sessionStorage.clear()`
+
+清空存储中的所有key
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+sessionStorage.setItem("age", 18)
+sessionStorage.clear()
+```
 
 
 
-# Cookie
+## 本地存储
 
-浏览器会把Cookie保存起来，当浏览器再请求该网站时，浏览器把请求的网址连同该Cookie一同提交给服务器
+### 生命周期和特性
 
-Cookie一般用来存储数据，比如用户的登录状态
+window.localStorage：**本地存储**
 
-Http协议本身是无状态的，服务器无法判断用户身份。Cookie实际上是一小段的文本信息(key-Value格式)。
+声明周期**永久生效**，除非手动删除，否则**关闭页面也会存在**
 
-浏览器向服务器发送请求，如果服务器需要记录该用户状态，就使用response向浏览器颁发一个Cookie记录用户状态，浏览器会把Cookie保存起来
+可以多窗口（页面）共享（**同一浏览器可以共享**），以**键值对的形式存储使用**
 
-当浏览器再请求该网站时，浏览器会把请求的网址连同该Cookie一同提交给服务器。服务器检查该Cookie状态，以此辨认用户状态
+1. 关闭网页后重新打开：保留
+2. 在页面内实现跳转：保留
+3. 在页面外实现跳转（打开新的网页）：保留
+
+数据存储在用户浏览器中，容量较大，localStorage约20M
+
+只能存储字符串，可以将对象JSON.stringify() 编码后存储
+
+### 存储数据
+
+`localStorage.setItem(key, value)`
+
+访问当前域名下的本地存储对象，把key和value添加到存储中
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+localStorage.setItem("age", 18)
+```
+
+### 获取数据
+
+`var value = localStorage.getItem(key)`
+
+返回key对应的value
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+localStorage.setItem("age", 18)
+console.log(localStorage.getItem("age"))
+// 18
+```
+
+### 获取键名
+
+`var keyName = localStorage.key(key)`
+
+接受一个数值n作为参数，返回存储中的第n个key名称（键的存储顺序是由用户代理定义的，尽可能不使用）
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+localStorage.setItem("age", 18)
+console.log(localStorage.key(0))
+// age
+```
+
+### 获取长度
+
+`var length = localStorage.length`
+
+只读属性，存储在本地存储对象中的数据项数量
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+localStorage.setItem("age", 18)
+console.log(localStorage.length)
+for (let i = 0; i < localStorage.length; i++) {
+  const key = localStorage.key(i)
+  console.log(localStorage.getItem(key))
+}
+// 2
+// 18
+// coderwhy
+```
+
+### 删除数据
+
+`localStorage.removeItem(key)`
+
+把传入的key从存储中删除
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+localStorage.setItem("age", 18)
+localStorage.removeItem("age")
+```
+
+### 清空数据
+
+`localStorage.clear()`
+
+清空存储中的所有key
+
+```javascript
+localStorage.setItem("name", "coderwhy")
+localStorage.setItem("age", 18)
+sessionStorage.clear()
+```
+
+### 存储工具类封装
+
+为了让对Storage使用更加方便，可以对其进行工具类封装
+
+```javascript
+class MyCache {
+  constructor(isLocal = true) {
+    this.storage = isLocal ? localStorage: sessionStorage
+  }
+
+  setItem(key, value) {
+    if (value) {
+      this.storage.setItem(key, JSON.stringify(value))
+    }
+  }
+
+  getItem(key) {
+    let value = this.storage.getItem(key)
+    if (value) {
+      value = JSON.parse(value)
+      return value
+    } 
+  }
+
+  removeItem(key) {
+    this.storage.removeItem(key)
+  }
+
+  clear() {
+    this.storage.clear()
+  }
+
+  key(index) {
+    return this.storage.key(index)
+  }
+
+  length() {
+    return this.storage.length
+  }
+}
+
+const localCache = new MyCache()
+const sessionCache = new MyCache(false)
+
+export {
+  localCache,
+  sessionCache
+}
+```
+
+
+
+## Cookie
+
+### 认识Cookie
+
+Cookie是一小段的文本信息(key-Value格式)，一般用来存储数据，比如用户的登录状态
+
+Http协议本身是无状态的，服务器无法判断用户身份。浏览器向服务器发送请求，如果服务器需要记录该用户状态，就使用**response向浏览器颁发一个Cookie**记录用户状态，**浏览器会把Cookie保存起来**，当浏览器再请求该网站时，浏览器会把**请求的网址连同该Cookie一同提交给服务器**。服务器检查该Cookie状态，以此辨认用户状态
+
+<img src="WebApi.assets/image-20220507172359631.png" alt="image-20220507172359631" style="zoom:50%;" /><img src="WebApi.assets/image-20220507172407085.png" alt="image-20220507172407085" style="zoom:50%;" />
+
+Cookie总是保存在客户端中，按在客户端中的存储位置，Cookie可以分为内存Cookie和硬盘Cookie
+
+- 内存Cookie：
+
+  没有设置过期时间，默认情况下cookie是内存cookie
+
+  内存Cookie由浏览器维护，保存在内存中，浏览器关闭时Cookie就自动删除
+
+- 硬盘Cookie：
+
+  有设置过期时间，并且过期时间不为0或者负数的cookie，是硬盘cookie
+
+  硬盘Cookie保存在硬盘中，有一个过期时间，用户手动清理或者过期时间到时，才会被清理
+
+cookie的**生命周期**：
+
+通过设置expires或者max-age来设置过期的时间
+
+- expires：设置Date.toUTCString()，设置格式是`;expires=date-in-GMTString-format；`
+- max-age：设置过期的秒数，`;max-age=max-age-in-seconds `(例如一年为60*60*24*365)；
+
+cookie的**作用域**：（允许cookie发送给哪些URL）
+
+- Domain：指定哪些主机可以接受cookie
+
+  如果不指定，那么默认是origin，不包括子域名
+
+  如果指定，则包含子域名（例如，如果设置Domain=mozilla.org，则Cookie 也包含在子域名中（如developer.mozilla.org））
+
+- Path：指定主机下哪些路径可以接受cookie
+
+  例如，设置Path=/docs，则以下地址都会匹配：
+
+  /docs、/docs/Web/、/docs/Web/HTTP
+
+cookie的**缺点**
+
+1.  存储的数据量小，大约4kb
+2.  默认浏览器关掉就会过期，但是可以自己设置过期时间
+3.  安全性不好，每次请求头都会带着Cookie
+4.  跨域问题
+
+现在常用localStorage去存**token**做处理，存储数据量大，不会过期
+
+### 客户端设置
 
 - ##### 设置Cookie
 
@@ -981,22 +997,301 @@ Http协议本身是无状态的，服务器无法判断用户身份。Cookie实�
 
   `document.cookie = '键=值; expires=过期时间'`
 
+  `document.cookie = '键=值; max-age=过期秒数'`
+
+  不设置过期时间就是内存Cookie，会在会话关闭时被删除掉
+
+  `document.cookie = '键=值;' `
+
 - ##### 获取Cookie
 
-  获取字符串形式：username=zhangsan; age=18
+  获取字符串形式：username=zhangsan; age=18，获取之后可以使用split拆分成数组
 
   `document.cookie`
 
-  获取之后使用split拆分成数组
+- ##### 删除Cookie
 
-- ##### 缺点
+  设置为过期日期，也要设置domain和path，参数完全一样才能删除掉
 
-  1.  存储的数据量小
-  2. 默认浏览器关掉就会过期，但是可以自己设置过期时间
-  3. 安全性不好，请求头会带着Cookie
-  4. 跨域问题
+  ```javascript
+  document.cookie = `name=;expires=${ new Date(0).toUTCString() };domain=.example.com;path=/`
+  ```
 
-  现在常用localStorage去存token做处理，存储数据量大，不会过期
+  如果Cookie的HttpOnly的属性是true的时候，只能通过服务器清除
+
+
+
+## IndexedDB
+
+IndexedDB是一种底层的API，用于在客户端存储大量的结构化数据
+
+是一种事务型数据库系统，是一种基于JavaScript面向对象数据库，类似于NoSQL（非关系型数据库）
+
+<img src="WebApi.assets/image-20220507005241606.png" alt="image-20220507005241606" style="zoom:50%;" /> 
+
+### 建立数据库连接
+
+打开indexDB的某一个数据库，**建立数据库连接**
+
+`var openRequest = indexDB.open(数据库名称, 数据库版本号)`
+
+open方法会返回IDBOpenDBRequest类型结果
+
+如果数据库不存在，会创建这个数据库，已经存在，则打开
+
+```javascript
+const dbRequest = indexedDB.open("demo", 1)
+```
+
+通过监听回调得到**数据库连接结果**
+
+1. onerror：当数据库连接失败时回调
+
+2. onsuccess：当数据库连接成功时回调
+
+   通过回调的event获取到db对象：event.target.result
+
+3. onupgradeneeded：当数据库第一次打开或者版本升级时回调
+
+   通常在这里创建具体的存储对象：db.createObjectStore(存储对象名称, { keypath: 存储的主键})
+
+```javascript
+let db = null
+// 数据库连接成功
+dbRequest.onsuccess = function(event) {
+  // 连接成功时，获取DB对象
+  db = event.target.result
+}
+// 据库连接失败
+dbRequest.onerror = function(err) {
+  console.log("打开数据库失败~")
+}
+// 第一次打开/或者版本发生升级
+dbRequest.onupgradeneeded = function(event) {
+  const db = event.target.result
+  // 创建存储对象
+  db.createObjectStore("users", { keyPath: "id" })
+}
+
+```
+
+
+
+### 数据库操作
+
+对数据库的操作通过**事务对象**来完成
+
+1. 通过db获取对应存储的事务：`var transaction = db.transaction(存储名称, 读写权限readonly | readwrite)`
+2. 通过事务获取对应的存储对象：`var store = transaction.objectStore(存储名称)`
+
+```html
+<button>新增</button>
+<button>查询</button>
+<button>删除</button>
+<button>修改</button>
+```
+
+```javascript
+class User {
+  constructor(id, name, age) {
+    this.id = id
+    this.name = name
+    this.age = age
+  }
+}
+const users = [
+  new User(100, "why", 18),
+  new User(101, "kobe", 40),
+  new User(102, "james", 30),
+]
+
+// 获取btns, 监听点击
+const btns = document.querySelectorAll("button")
+for (let i = 0; i < btns.length; i++) {
+  btns[i].onclick = function() {
+
+    // 指定操作表的名字和操作模式，表名参数可以是数组指定多个
+    const transaction = db.transaction("users", "readwrite")
+    // 指定表名，从事务中拿store
+    const store = transaction.objectStore("users")
+
+    switch(i) {
+      case 0:
+        console.log("点击了新增")
+        break
+      case 1:
+        console.log("点击了查询")
+        break
+      case 2:
+        console.log("点击了删除")
+        break
+      case 3:
+        console.log("点击了修改")
+        break
+    }
+  }
+}
+```
+
+**增删改查操作**
+
+- ##### 新增数据：store.add
+
+  ```javascript
+  for (let i = 0; i < btns.length; i++) {
+    btns[i].onclick = function() {
+      const transaction = db.transaction("users", "readwrite")
+      const store = transaction.objectStore("users")
+      switch(i) {
+        case 0:
+          console.log("点击了新增")
+          for (const user of users) {
+            const request = store.add(user)
+            // 监听当前数据是否添加成功
+            request.onsuccess = function() {
+              console.log(`${user.name}插入成功`)
+            }
+          }
+          // 监听当前事务中，是否添加成功
+          transaction.oncomplete = function() {
+            console.log("添加操作全部完成")
+          }
+          break
+      }
+    }
+  }
+  ```
+
+- ##### 查询数据
+
+  1. 通过 store.get(key)
+
+     ```javascript
+     for (let i = 0; i < btns.length; i++) {
+       btns[i].onclick = function() {
+         const transaction = db.transaction("users", "readwrite")
+         const store = transaction.objectStore("users")
+         switch(i) {
+           case 1:
+             console.log("点击了查询")
+             // 根据主键查询
+             const request = store.get(102)
+     		request.onsuccess = function(event) {
+     		  console.log(event.target.result)
+     		}
+             break
+         }
+       }
+     }
+     // 点击了查询
+     // {id: 102, name: 'james', age: 30}
+     ```
+
+  2. 通过 store.openCursor 拿到游标对象
+
+     在request.onsuccess中获取cursor：event.target.result
+
+     - 获取对应的key：cursor.key
+
+     - 获取对应的value：cursor.value
+
+     - 继续执行：cursor.continue
+
+       指针最初是指向第一条数据的，cursor.continue接着指向下一条
+
+       <img src="WebApi.assets/image-20220507152854922.png" alt="image-20220507152854922" style="zoom:50%;" /> 
+
+     ```javascript
+     for (let i = 0; i < btns.length; i++) {
+       btns[i].onclick = function() {
+         const transaction = db.transaction("users", "readwrite")
+         const store = transaction.objectStore("users")
+         switch(i) {
+           case 1:
+             console.log("点击了查询")
+             const request = store.openCursor()
+             request.onsuccess = function(event) {
+               // 获取游标
+               const cursor = event.target.result
+               if (cursor) {
+                 if (cursor.key === 101) {
+                   console.log(cursor.key, cursor.value)
+                 } else {
+                   cursor.continue()
+                 }
+               } else {
+                 console.log("查询完成")
+               }
+             }
+             break
+         }
+       }
+     }
+     // 点击了查询
+     // {id: 101, name: 'kobe', age: 40}
+     ```
+
+- ##### 删除数据：cursor.delete()
+
+  ```javascript
+  for (let i = 0; i < btns.length; i++) {
+    btns[i].onclick = function() {
+      const transaction = db.transaction("users", "readwrite")
+      const store = transaction.objectStore("users")
+      switch(i) {
+        case 2:
+          console.log("点击了删除")
+          const deleteRequest = store.openCursor()
+          deleteRequest.onsuccess = function(event) {
+            const cursor = event.target.result
+            if (cursor) {
+              if (cursor.key === 101) {
+                // 删除对应游标的数据
+                cursor.delete()
+              } else {
+                cursor.continue()
+              }
+            } else {
+              console.log("查询完成")
+            }
+          }
+          break
+      }
+    }
+  }
+  ```
+
+- ##### 修改数据：cursor.update(value)
+
+  ```javascript
+  for (let i = 0; i < btns.length; i++) {
+    btns[i].onclick = function() {
+      const transaction = db.transaction("users", "readwrite")
+      const store = transaction.objectStore("users")
+      switch(i) {
+        case 3:
+          console.log("点击了修改")
+          const updateRequest = store.openCursor()
+          updateRequest.onsuccess = function(event) {
+            const cursor = event.target.result
+            if (cursor) {
+              if (cursor.key === 101) {
+                // 获取value，修改
+                const value = cursor.value;
+                value.name = "curry"
+                cursor.update(value)
+              } else {
+                cursor.continue()
+              }
+            } else {
+              console.log("查询完成")
+            }
+          }
+          break
+      }
+    }
+  }
+  ```
 
 
 

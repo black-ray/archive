@@ -1,8 +1,4 @@
-# 鼠标样式
 
-**鼠标样式**`cursor`
-
-- 属性`defult`,`pointer`,`move`,`text`,`not-allowed`
 
 
 
