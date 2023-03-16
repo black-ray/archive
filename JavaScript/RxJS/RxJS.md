@@ -8,37 +8,37 @@
 
 代表一组**未来**即将产生的**事件资料**（被观察的对象）
 
-例如click事件就是一个可以被观察的事件，点击会发出事件资料，称为**Stream**，这些资料是可以被观察的
+例如 `click` 事件就是一个可以被观察的事件，点击会发出事件资料，称为 Stream，这些资料是可以被观察的
 
 ## 观察者对象 Observer 
 
 代表一个用来接收**观察结果**的对象（收到的就是**事件资料**）
 
-Observer对象包含有三个回调函数属性：**next**，**error**，**complete**
+`Observer` 对象包含有三个回调函数属性：`next`，`error`，`complete`
 
 ## 订阅对象 Subscription 
 
-代表正在执行Observable/Observer 的执行个体（可以用来**取消订阅**）
+代表正在执行 `Observable` / `Observer` 的执行个体（可以用来**取消订阅**）
 
-通过**Observer观察者对象**去观察**Observable可观察的对象**的资料，这整件事被称为**Subscription订阅** 
+通过**`Observer` 观察者对象**去观察 **`Observable` 可观察的对象**的资料，这整件事被称为 **`Subscription` 订阅** 
 
-没有观察者去订阅，可观察对象Observable就不会触发
+没有观察者去订阅，可观察对象 `Observable` 就不会触发
 
 ## 操作符 Operators 
 
-从**Observable可观察对象**丢出来的资料，到被**订阅**拿到资料的过程，可以想象成一个水管。
+从 **`Observable` 可观察对象**丢出来的资料，到被**订阅**拿到资料的过程，可以想象成一个水管。
 
-**Operators操作符**就是水管中**过滤**这些**事件资料集合**的运算，最后让**Observer观察者**拿到结果
+**`Operators` 操作符**就是水管中**过滤**这些**事件资料集合**的运算，最后让**`Observer` 观察者**拿到结果
 
 常见操作符：`map` `fliter` `concat` `flatMap` `switchMap`...
 
 ## 主体对象 Subject 
 
-如同EventEmitter一样，主要用来**广播**收到的事件资料给多位Observer观察者。**一对多的广播**
+如同 `EventEmitter` 一样，主要用来**广播**收到的事件资料给多位 `Observer` 观察者。**一对多的广播**
 
-**Subject主体对象本身**是**Observable可观察对象**，同时也是**Observer观察者**
+**`Subject` 主体对象本身**是 **`Observable` 可观察对象**，同时也是 **`Observer` 观察者**
 
-当多个地方都需要Observable提供的资料时，如果同时订阅多次，会出现预想外的问题
+当多个地方都需要 `Observable` 提供的资料时，如果同时订阅多次，会出现预想外的问题
 
 ## 排程控制器 Schedulers 
 
@@ -56,27 +56,27 @@ rxjs.interval(500)				// 建立运算子（Creation）
 )
 ```
 
-- ##### 建立可观察的Observable对象
+- ##### 建立可观察的 `Observable` 对象
 
   ```javascript
   // 变量后带$通常代表是一个Observable
   var clicks$ = rxjs.fromEvent(document, 'click');
   ```
 
-- ##### 建立观察者对象（Observer）
+- ##### 建立观察者对象（`Observer`）
 
   ```javascript
   var observer = { next: (x) => console.log(x) };
   ```
 
-- ##### 建立订阅对象（订阅Observable对象，并传入Observer观察者对象）
+- ##### 建立订阅对象（订阅 `Observable` 对象，并传入 `Observer` 观察者对象）
 
   ```javascript
   // 通过subscribe传入Observer
   var subs$ = clicks$.subscribe(observer);
   ```
 
-- ##### 取消订阅Subscription对象
+- ##### 取消订阅 `Subscription` 对象
 
   ```javascript
   subs$.unsubscribe();
@@ -86,7 +86,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 # 操作符过滤
 
-- ##### 建立可观察的Observable对象
+- ##### 建立可观察的 `Observable` 对象
 
   ```javascript
   var clicks$ = rxjs.fromEvent(document, 'click');
@@ -102,13 +102,13 @@ rxjs.interval(500)				// 建立运算子（Creation）
   );
   ```
 
-- ##### 建立订阅对象（订阅Observable对象并自动建立观察者对象）
+- ##### 建立订阅对象（订阅 `Observable` 对象并自动建立观察者对象）
 
   ```javascript
   var sub$ = clicks$.subscribe((x) => console.log(x));
   ```
 
-- ##### 取消订阅Subscription对象
+- ##### 取消订阅 `Subscription` 对象
 
   ```javascript
   subs$.unsubscribe();
@@ -118,32 +118,32 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 # 主体对象的用法
 
-- ##### 建立主体对象（Subject）（之后要靠这个主体对象进行广播）
+- ##### 建立主体对象（`Subject`）（之后要靠这个主体对象进行广播）
 
   ```javascript
   var subject = new rxjs.Subject();
   ```
 
-- ##### 建立可观察的Observable对象
+- ##### 建立可观察的 `Observable` 对象
 
   ```javascript
   var clicks$ = rxjs.formEvent(document, 'click');
   ```
 
-- ##### 设定最多取两个事件资料就将Obserable对象设置为完成
+- ##### 设定最多取两个事件资料就将 `Obserable` 对象设置为完成
 
   ```javascript
   clicks$ = clicks$.pipe(take(2));
   ```
 
-- ##### 设定将clicks$全部交由subject主体对象进行广播
+- ##### 设定将 `clicks$` 全部交由 `subject` 主体对象进行广播
 
   ```javascript
   // 用主体对象Subject去做观察者Observer的动作
   clicks$.subcribe(subject);
   ```
 
-- ##### 最后再由subject去建立Observer观察者对象
+- ##### 最后再由 `subject` 去建立 `Observer` 观察者对象
 
   ```javascript
   // 两个观察者订阅同一个subject
@@ -152,7 +152,7 @@ rxjs.interval(500)				// 建立运算子（Creation）
   var subs2$ = subject.subscribe((x) => console.log(x.clientY));
   ```
 
-- ##### 取消订阅Subscription对象
+- ##### 取消订阅 `Subscription` 对象
 
   ```javascript
   sub1$.unsubscribe();
@@ -165,45 +165,45 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 ## 创建
 
-负责创建一个Observable对象
+负责创建一个 `Observable` 对象
 
 - ##### 常用操作符
 
-  from
+  `from`
 
-  fromEvent
+  `fromEvent`
 
-  fromEventPattern
+  `fromEventPattern`
 
-  interval
+  `interval`
 
-  of
+  `of`
 
-  range
+  `range`
 
-  throwError
+  `throwError`
 
-  timer
+  `timer`
 
 - ##### 其他操作符
 
-  ajax
+  `ajax`
 
-  bindCallback
+  `bindCallback`
 
-  bindNodeCallback
+  `bindNodeCallback`
 
-  defer
+  `defer`
 
-  generate
+  `generate`
 
-  iif
+  `iif`
 
 
 
 ## 组合建立
 
-可将多个Observable对象组合成一个Observable对象
+可将多个 `Observable` 对象组合成一个 `Observable` 对象
 
 - ##### 常用操作符
 
@@ -229,83 +229,83 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 - ##### 常用操作符
 
-  concatMap
+  `concatMap`
 
-  concatMapTo
+  `concatMapTo`
 
-  map
+  `map`
 
-  mapTo
+  `mapTo`
 
-  mergeMap
+  `mergeMap`
 
-  mergeMapTo
+  `mergeMapTo`
 
-  switchMap
+  `switchMap`
 
-  switchMapTo
+  `switchMapTo`
 
-  pluck
+  `pluck`
 
 - ##### 其他操作符
 
-  buffer
+  `buffer`
 
-  bufferCount
+  `bufferCount`
 
-  bufferTime
+  `bufferTime`
 
-  bufferToggle
+  `bufferToggle`
 
-  bufferWhen
+  `bufferWhen`
 
-  exhaust
+  `exhaust`
 
-  exhaustMap
+  `exhaustMap`
 
-  expand
+  `expand`
 
-  groupBy
+  `groupBy`
 
-  mergeScan
+  `mergeScan`
 
-  pairwise
+  `pairwise`
 
-  scan
+  `scan`
 
-  window
+  `window`
 
-  windowCount
+  `windowCount`
 
-  windowTime
+  `windowTime`
 
-  windowToggle
+  `windowToggle`
 
-  windowWhen
+  `windowWhen`
 
 
 
 ## 过滤
 
-负责将Observable传入的资料过滤筛选掉
+负责将 `Observable` 传入的资料过滤筛选掉
 
 - ##### 常用操作符
 
-  debounce
+  `debounce`
 
-  debounceTime
+  `debounceTime`
 
-  distinct
+  `distinct`
 
-  filter
+  `filter`
 
-  first / last
+  `first` / `last`
 
-  skip / take
+  `skip` / `take`
 
-  throttle
+  `throttle`
 
-  throttleTime
+  `throttleTime`
 
   - 延迟执行
 
@@ -318,133 +318,133 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 - ##### 其他操作符
 
-  audit
+  `audit`
 
-  auditTime
+  `auditTime`
 
-  distinctUntilChanged
+  `distinctUntilChanged`
 
-  distinctKey
+  `distinctKey`
 
-  distinctUntilKeyChanged
+  `distinctUntilKeyChanged`
 
-  elementAt
+  `elementAt`
 
-  ignoreElements
+  `ignoreElements`
 
-  sample
+  `sample`
 
-  sampleTime
+  `sampleTime`
 
-  single
+  `single`
 
-  skipLast
+  `skipLast`
 
-  skipUntil
+  `skipUntil`
 
-  skipWhile
+  `skipWhile`
 
-  takeLast
+  `takeLast`
 
-  takeUntile
+  `takeUntile`
 
-  takeWhile
+  `takeWhile`
 
 
 
 ## 组合
 
-负责组合多个Observable。
+负责组合多个 `Observable`。
 
-**组合运算符**是把多个Observable用pipe的方式组合在一起
+**组合运算符**是把多个 `Observable` 用 `pipe` 的方式组合在一起
 
-**组合建立操作符**是在建立Observable的时候就一次合并在一起
+**组合建立操作符**是在建立 `Observable` 的时候就一次合并在一起
 
 - ##### 常用操作符
 
-  combineAll
+  `combineAll`
 
-  concatAll
+  `concatAll`
 
-  mergeAll
+  `mergeAll`
 
-  startWith
+  `startWith`
 
 - ##### 其他操作符
 
-  exhaust
+  `exhaust`
 
-  withLatestFrom
+  `withLatestFrom`
 
 
 
 ## 多播
 
-负责将Observable广播给多位观察者
+负责将 `Observable` 广播给多位观察者
 
 - ##### 常用操作符
 
-  publish
+  `publish`
 
-  publishReplay
+  `publishReplay`
 
-  share
+  `share`
 
 - ##### 其他操作符
 
-  multicast
+  `multicast`
 
-  publishBehavior
+  `publishBehavior`
 
-  publishLast
+  `publishLast`
 
 
 
 ## 错误处理
 
-负责处理Observable观察过程中出现的例外错误
+负责处理 `Observable` 观察过程中出现的例外错误
 
 - ##### 常用运算符
 
-  catchError
+  `catchError`
 
-  retry
+  `retry`
 
-  retryWhen 
+  `retryWhen `
 
 
 
 ## 工具函数
 
-负责提供Observable执行过程的工具函数
+负责提供 `Observable` 执行过程的工具函数
 
 - ##### 常用运算符
 
-  tap
+  `tap`
 
-  delay
+  `delay`
 
-  materialize
+  `materialize`
 
-  timeout
+  `timeout`
 
-  timeoutWith
+  `timeoutWith`
 
-  toArray
+  `toArray`
 
 - ##### 其他操作符
 
-  delayWhen
+  `delayWhen`
 
-  dematerialize
+  `dematerialize`
 
-  observeOn
+  `observeOn`
 
-  subscribeOn
+  `subscribeOn`
 
-  timeInterval
+  `timeInterval`
 
-  timestamp
+  `timestamp`
 
 
 
@@ -454,41 +454,41 @@ rxjs.interval(500)				// 建立运算子（Creation）
 
 - ##### 常用运算符
 
-  defaultIfEmpty
+  `defaultIfEmpty`
 
-  every
+  `every`
 
-  find
+  `find`
 
-  findIndex
+  `findIndex`
 
-  isEmpty
+  `isEmpty`
 
 
 
 ## 数学与汇总操作符
 
-负责将Observable传来的资料进行数学/汇总运算
+负责将 `Observable` 传来的资料进行数学/汇总运算
 
 - ##### 常用运算符
 
-  count
+  `count`
 
-  max
+  `max`
 
-  min
+  `min`
 
 - ##### 其他操作符
 
-  reduce
+  `reduce`
 
 
 
 # Promise和RxJS对比
 
-- Promise创建之后动作无法撤回
+- `Promise` 创建之后动作无法撤回
 
-  Observable动作可以通过unsbscribe() 方法中途撤回
+  `Observable` 动作可以通过 `unsbscribe()` 方法中途撤回
 
   ```javascript
   let promise = new Promise(resolve => {
@@ -514,9 +514,9 @@ rxjs.interval(500)				// 建立运算子（Creation）
   }, 1000);
   ```
 
-- Promise不能订阅后多次执行，对于Promise 来说，最终结果要么resole兑现，要么reject拒绝，而且都只能触发一次
+- `Promise` 不能订阅后多次执行，对于 `Promise` 来说，最终结果要么 `resole` 兑现，要么 `reject` 拒绝，而且都只能触发一次
 
-  Observable可以不断地触发下一个值
+  `Observable` 可以不断地触发下一个值
 
   ```javascript
   let promise = new Promise(resolve => {

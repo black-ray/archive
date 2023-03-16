@@ -10,7 +10,7 @@
 
 - 运动曲线：默认是ease（可以省略）,线性变化是 linear
 
-  <img src="CSS动画.assets/image-20220114230534157.png" alt="image-20220114230534157" style="zoom: 50%;" /> 
+  <img src="CSS动画.assets/image-20220114230534157.png" alt="image-20220114230534157"  /> 
 
 - 何时开始：单位是 秒。 可以设置延迟触发时间 默认是0s （可以省略）
 
@@ -39,88 +39,15 @@
 
 # 2D转换
 
-## 移动`translate`
+- 
 
-- 定义2D转换中的移动，沿着X和Y轴移动元素
+- 
 
-- `transform: translate(x, y);`
+- - 
 
-  `transform: translateX(n); `
+## 
 
-  `transform: translateY(n); `
 
-- 优点：不会影响到其他元素的位置
-
-- 参数可以是%，%是参照盒子自身的高度或宽度来计算的
-
-- 通过`translate`让盒子水平垂直居中
-
-  ```css
-  div {
-      position: relative;
-      background-color: pink;
-  }
-  p {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 200px;
-      height: 200px;
-      background-color: purple;
-      tranform: translate(-50%,-50%);
-      /*
-      margin-top: -100px;
-      margin-left: -100px;
-      */
-  }
-  ```
-
-  ```html
-  <div>
-  	<p></p>
-  </div>
-  ```
-
-- 对行内元素是没有效果的
-
-## 旋转`rotate`
-
-- `transform: rotate(度数)`
-
-- 度数单位是`deg`，比如45度就是`45deg`
-
-- 角度为正是顺时针，负为逆时针
-
-- 默认旋转的中心点是元素的中心点
-
-- 设置旋转中心点
-
-  `transform-origin: x y;`
-
-  - x y默认中心点是50% 50 %
-  - 可以给xy设置像素或者方位名词(top bottom left right center)
-
-## 缩放`scale`
-
-- `transform: scale(x,y);`
-
-- `transform: scale(1,1);` 宽和高都放大一倍，相当于没有放大
-
-  `transform: scale(2,2);`宽和高都放大两倍
-
-  `transform: scale(0.5,0.5);`缩小
-
-  `transform: scale(2);`相当于`scale(2,2)`
-
-- 可以设置`transform-origin`中心点缩放，默认以中心点缩放。
-
-- 不影响其他盒子
-
-## 复合写法
-
-- `transform: translate() rotate() scale()...`
-- 顺序会影响转换效果(先旋转会改变坐标轴的方向)
-- 同时有位移和其他属性的时候，要把位移放到最前
 
 
 

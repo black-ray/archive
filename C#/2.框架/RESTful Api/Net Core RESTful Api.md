@@ -1,22 +1,22 @@
-# .Net Core RESTful Web Api
+# RESTful API 基础
 
+## 特点
 
+- 无状态
 
-# 1. RESTful API基础
+  一次调用就会返回结果。不存在类似打开连接访问数据库然后关闭连接这种依赖于上次调用的情况
 
-### 1.1. 特点
+  WebSoket 这样的持续性连接有状态的连接就不属于 RESTful
 
-- ##### 无状态
+- 面向资源
 
-  一次调用就会返回结果。不存在类似打开连接访问数据库然后关闭连接这种依赖于上次调用的情况。WebSoket这样的持续性连接有状态的连接就不属于RESTful。
+   无论数据还是服务，在 RESTful 中一切都是资源
 
-- ##### 面向资源
-
-   无论数据还是服务，在RESTful中一切都是资源。URL中只会出现名词，不会出现动词。
+   URL 中只会出现名词，不会出现动词
 
    正确：api/v1/touristRoutes                      错误：api/v1/GetTouristRoutes
 
-- ##### 使用HTTP动词，表达数据操作
+- 使用 HTTP 动词，表达数据操作
 
    | 动词    | 意义     | URL                                             | 请求主体                          | 相应主体                         |
    | ------- | -------- | ----------------------------------------------- | --------------------------------- | -------------------------------- |
@@ -28,40 +28,45 @@
    | HEAD    |          | /api/touristRoutes<br />/api/touristRoutes/{id} | -                                 | -                                |
    | OPTIONS |          |                                                 |                                   |                                  |
 
-- ##### HATOAS 超媒体即应用状态引擎
+- HATOAS 超媒体即应用状态引擎
 
-- ##### 6个约束限制
+- 6 个约束限制
 
-1. Client-Server：前后端分离
-2. 无状态：请求独立
-3. 分层系统：代码分层
-4. 统一接口：数据统一，API自我发现
-5. 可缓存
-6. 按需代码
+   1. Client-Server：前后端分离
+   2. 无状态：请求独立
+   3. 分层系统：代码分层
+   4. 统一接口：数据统一，API 自我发现
+   5. 可缓存
+   6. 按需代码
 
-### 1.2. API架构
+
+
+## API 架构
 
 <img src="Net Core RESTful Api.assets/14-1 【理解】分页与项目架构浅析.mp4_20210904_225550.654.jpg" style="zoom: 50%;" />
 
 
 
-# 2. 配置文件
+# 配置文件
 
-### 2.1. 服务依赖
+## 服务依赖
 
-- ##### Dependencies : 项目以及框架的服务依赖
+- Dependencies : 项目以及框架的服务依赖
 
-  在框架下引用了AspNetCore.App 和 NETCore.App 两个框架
+  在框架下引用了 AspNetCore.App 和 NETCore.App 两个框架
 
-  NETCore.App是整个项目的基础框架，包含了对代码的运行，编译，部署的处理
-
-  AspNetCore.App是基于基础框架引入的应用层框架，包含了应用层的服务。包括认证服务，授权服务，诊断服务，HTTP请求处理服务，文件访问，日志记入，依赖注入等等
+  - NETCore.App 是整个项目的**基础框架**，包含了对代码的运行，编译，部署的处理
 
   
+  - AspNetCore.App 是基于基础框架引入的**应用层框架**，包含了应用层的服务
+  
+    包括认证服务，授权服务，诊断服务，HTTP 请求处理服务，文件访问，日志记入，依赖注入等等
+  
+  
 
-### 2.2. 运行时设置
+## 运行时设置
 
-- ##### 运行时设置 appsettings.json
+- 运行时设置 appsettings.json
 
   ```json
   {
@@ -78,7 +83,7 @@
   }
   ```
 
-- ##### 开发环境运行时设置 appsettings.Development.json
+- 开发环境运行时设置 appsettings.Development.json
 
   ```json
   {
@@ -94,9 +99,9 @@
 
 
 
-### 2.3. 项目启动信息
+## 项目启动信息
 
-- ##### Properties/launchSettings.json
+- Properties/launchSettings.json
 
   ```json
   {
@@ -134,48 +139,48 @@
   }
   ```
 
-- ##### 项目服务器
+- 项目服务器
 
-  ISS服务器: 只能运行在Windows上 
+  ISS 服务器: 只能运行在 Windows 上 
 
-  KESTREL服务器 （文件名一致）: 可以跨平台
+  KESTREL 服务器 （文件名一致）: 可以跨平台
   
   
 
-# 3. 主函数
+# 主函数
 
 ```c#
 public class Program
 {
 	public static void Main(string[] args)
-    {
-        // 创建运行虚拟托管服务器
-        CreateHostBuilder(args).Build().Run();
-    }
+  {
+      // 创建运行虚拟托管服务器
+      CreateHostBuilder(args).Build().Run();
+  }
 
-    // 创建运行托管服务器
-    public static IHostBuilder CreateHostBuilder(string[] args) =>
-        // CreateDefaultBuilder执行过程：
-        // 1.查看程序运行的环境 currentDirectory
-        // 2.启用相应的配置文件 appsettings
-        // 3.加载程序集 assembly 运行程序所有核心代码
-        // 4.设置环境变量 日志 系统的反转控制 IOC容器
-        Host.CreateDefaultBuilder(args)
-            .ConfigureWebHostDefaults(webBuilder =>
-            {
-                // asp.net core config信息 如注入依赖，配置中间件，处理请求通道，都会使用Startup文件来进行管理
-                webBuilder.UseStartup<Startup>();
-            });
+  // 创建运行托管服务器
+  public static IHostBuilder CreateHostBuilder(string[] args) =>
+    // CreateDefaultBuilder执行过程：
+    // 1.查看程序运行的环境 currentDirectory
+    // 2.启用相应的配置文件 appsettings
+    // 3.加载程序集 assembly 运行程序所有核心代码
+    // 4.设置环境变量 日志 系统的反转控制 IOC容器
+    Host.CreateDefaultBuilder(args)
+    	.ConfigureWebHostDefaults(webBuilder =>
+    	{
+    	    // asp.net core config信息 如注入依赖，配置中间件，处理请求通道，都会使用Startup文件来进行管理
+    	    webBuilder.UseStartup<Startup>();
+    	});
 }
 ```
 
 
 
-# 4. 启动类
+# 启动类
 
-### 4.1. 概述
+## 概述
 
-config信息 如注入依赖，配置中间件，处理请求通道，都会使用Startup文件来进行管理
+**注入依赖，配置中间件，处理请求通道**等会使用 `Startup` 来进行管理
 
 ```c#
 public class Startup
@@ -198,9 +203,9 @@ public class Startup
         
         // 安装Swagger NuGet Swashbuckle.AspNetCore
         services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "RESTful.API", Version = "v1" });
-            });
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "RESTful.API", Version = "v1" });
+        });
     }
 
     // Configure: 创立中间件MiddleWare，设置Http请求通道request pipeline
@@ -230,70 +235,69 @@ public class Startup
 }
 ```
 
-### 4.2. 依赖注入ConfigureServices
 
-#### 4.2.1. 概述
 
-- ##### 功能
+## 依赖注入ConfigureServices
 
-  注入各种服务组件的依赖。程序运行时调用，将我们自己的服务注入到IOC容器中
+### 概述
 
-#### 4.2.2. 生命周期函数
+- 功能：**注入各种服务组件的依赖**，程序运行时调用，将我们自己的服务注入到 IOC 容器中
 
-AddSingleton、AddScoped、AddTransient 都可以依赖注入数据仓库，只是注入的时间和实例存在的时间有区别
+
+
+### 生命周期函数
+
+`AddSingleton`、`AddScoped`、`AddTransient` 都可以依赖注入数据仓库，只是注入的时间和实例存在的时间有区别
 
 ```c#
 public void ConfigureServices(IServiceCollection services)
 {
-    services.AddTransient<ITransientTestService, TransientTestService>();
-	services.AddScoped<IAddScopedTestService, AddScopedTestService>();
-	services.AddSingleton<IAddSingletonTestService, AddSingletonTestService>(); 
+  services.AddTransient<ITransientTestService, TransientTestService>();
+  services.AddScoped<IAddScopedTestService, AddScopedTestService>();
+  services.AddSingleton<IAddSingletonTestService, AddSingletonTestService>(); 
 }
 ```
 
-- ##### AddTransient
+- 瞬时 `AddTransient`
 
-  瞬时
+  会在**每一次发起请求的时候创建一个全新的实例**，而**请求结束以后会自动注销这个实例**
 
-  会在每一次发起请求的时候创建一个全新的实例，而请求结束以后会自动注销这个实例
+  - 优点：每一次请求都会初始化一个全新的实例，而**不同的请求之间，实例中的数据是完全独立互不影响** 
 
-  优点：每一次请求都会初始化一个全新的实例，而不同的请求之间，实例中的数据是完全独立互不影响 
+- 单例 `AddSingleton`
 
-- ##### AddSingleton 
+  系统的启动的时候**有且仅创建一个实例**，之后系统每次**处理请求都会使用同一个实例**
 
-  单例
+  - 优点：便于管理、内存占用少、效率高 
 
-  系统的启动的时候有且仅创建一个实例，之后系统每次处理请求都会使用同一个实例
+  
+  - 缺点：每次请求共享了数据通道，造成数据污染
+  
+- 作用域 `AddScoped`
 
-  优点：便于管理 内存占用少 效率高 
-
-  缺点：每次请求共享了数据通道，造成数据污染
-
-- ##### AddScoped
-
-  作用域
-
-  引入事务管理Transaction，将一系列的请求操作整合起来，放在一个事务之中
+  引入事务管理 `Transaction`，**将一系列的请求操作整合起来，放在一个事务之中**
 
   这个事务有且仅创建一个实例，在事务结束以后，系统会自动销毁实例
+
+  优点：介于 `AddTransient`、`AddSingleton` 之间
+
+
+
+## 请求管道 Configure
+
+### 概述
+
+- 功能：创立中间件 MiddleWare，设置 Http 请求通道 request pipeline
+
+- 参数
+
+  - `IApplicationBuilder`：创建请求通道
+
+  - `IWebHostEnvironment`：托管服务器的环境变量
   
-  优点：介于AddTransient AddSingleton之间。
+    环境变量: 开发环境Development 集成环境 Intergration 测试环境 Testing 预发布环境 Staging 生产环境 Production
 
-### 4.3. 请求管道Configure
 
-#### 4.3.1. 概述
-
-- ##### 功能
-
-  创立中间件MiddleWare，设置Http请求通道request pipeline
-
-- ##### 参数
-
-  IApplicationBuilder 创建请求通道
-
-  IWebHostEnvironment 托管服务器的环境变量
-  
-  环境变量: 开发环境Development 集成环境 Intergration 测试环境 Testing 预发布环境 Staging 生产环境 Production
 
 #### 4.3.2. **请求通道和中间件** 
 
@@ -335,7 +339,7 @@ public void ConfigureServices(IServiceCollection services)
   });
   ```
 
-### 4.4 注册MVC框架依赖
+## 4.4 注册MVC框架依赖
 
 - ##### Startup.cs
 
@@ -356,7 +360,7 @@ public void ConfigureServices(IServiceCollection services)
   }
   ```
 
-### 4.5 跨域处理
+## 4.5 跨域处理
 
 - ##### 跨域
 
@@ -1864,37 +1868,37 @@ api/touristRoutes/123456
     ```c#
     public class PaginationResourceParamaters
     {
-        private int _pageNumber = 1;
-        public int PageNumber
+      private int _pageNumber = 1;
+      public int PageNumber
+      {
+        get
         {
-            get
-            {
-                return _pageNumber;
-            }
-            set
-            {
-                if (value >= 1)
-                {
-                    _pageNumber = value;
-                }
-            }
+          return _pageNumber;
         }
-        private int _pageSize = 10;
-        const int maxPageSize = 50;
-        public int PageSize
+        set
         {
-            get
-            {
-                return _pageSize;
-            }
-            set
-            {
-                if (value >= 1)
-                {
-                    _pageSize = (value > maxPageSize) ? maxPageSize : value;
-                }
-            }
+          if (value >= 1)
+          {
+            _pageNumber = value;
+          }
         }
+      }
+      private int _pageSize = 10;
+      const int maxPageSize = 50;
+      public int PageSize
+      {
+        get
+        {
+          return _pageSize;
+        }
+        set
+        {
+          if (value >= 1)
+          {
+            _pageSize = (value > maxPageSize) ? maxPageSize : value;
+          }
+        }
+      }
     }
     ```
 
@@ -2063,50 +2067,50 @@ api/touristRoutes/123456
       [HttpGet(Name = "GetTouristRoutes")]
       [HttpHead]
       public async Task<IActionResult> GerTouristRoutes(
-          [FromQuery] TouristRouteResourceParamaters paramaters,
-          [FromQuery] PaginationResourceParamaters paramaters2)
+        [FromQuery] TouristRouteResourceParamaters paramaters,
+        [FromQuery] PaginationResourceParamaters paramaters2)
       {
-          /******* 数据验证等 省略  **********/
-           
-          // 取得数据列表
-          var touristRoutesFromRepo = await _touristRouteRepository
-                      .GetTouristRoutesAsync(
-                          paramaters.Keyword,
-                          paramaters.RatingOperator,
-                          paramaters.RatingValue,
-                          paramaters2.PageSize,
-                          paramaters2.PageNumber,
-                          paramaters.OrderBy
-                      );
-          // DTO
-          var touristRoutesDto = _mapper.Map<IEnumerable<TouristRouteDto>>(touristRoutesFromRepo);
+        /******* 数据验证等 省略  **********/
       
-          // 生成前一页URL
-          var previousPageLink = touristRoutesFromRepo.HasPrevious
-                      ? GenerateTouristRouteResourceURL(paramaters, paramaters2, ResourceUrlType.PreviousPage)
-                      : null;
+        // 取得数据列表
+        var touristRoutesFromRepo = await _touristRouteRepository
+          .GetTouristRoutesAsync(
+          paramaters.Keyword,
+          paramaters.RatingOperator,
+          paramaters.RatingValue,
+          paramaters2.PageSize,
+          paramaters2.PageNumber,
+          paramaters.OrderBy
+        );
+        // DTO
+        var touristRoutesDto = _mapper.Map<IEnumerable<TouristRouteDto>>(touristRoutesFromRepo);
       
-          // 生成后一页URL
-          var nextPageLink = touristRoutesFromRepo.HasNext
-                      ? GenerateTouristRouteResourceURL(paramaters, paramaters2, ResourceUrlType.NextPage)
-                      : null;
+        // 生成前一页URL
+        var previousPageLink = touristRoutesFromRepo.HasPrevious
+          ? GenerateTouristRouteResourceURL(paramaters, paramaters2, ResourceUrlType.PreviousPage)
+          : null;
       
-          // x-pagination
-          var paginationMetadata = new
-                  {
-                      previousPageLink,
-                      nextPageLink,
-                      totalCount = touristRoutesFromRepo.TotalCount,
-                      pageSize = touristRoutesFromRepo.PageSize,
-                      currentPage = touristRoutesFromRepo.CurrentPage,
-                      totalPages = touristRoutesFromRepo.TotalPages
-                  };
-          
-      	// 添加自定义的响应头部
-      	// 参数是json字符串格式的分页元数据
-      	Response.Headers.Add("x-pagination", Newtonsoft.Json.JsonConvert.SerializeObject(paginationMetadata));
-          
-            /******* 返回等 省略  **********/
+        // 生成后一页URL
+        var nextPageLink = touristRoutesFromRepo.HasNext
+          ? GenerateTouristRouteResourceURL(paramaters, paramaters2, ResourceUrlType.NextPage)
+          : null;
+      
+        // x-pagination
+        var paginationMetadata = new
+        {
+          previousPageLink,
+          nextPageLink,
+          totalCount = touristRoutesFromRepo.TotalCount,
+          pageSize = touristRoutesFromRepo.PageSize,
+          currentPage = touristRoutesFromRepo.CurrentPage,
+          totalPages = touristRoutesFromRepo.TotalPages
+        };
+      
+        // 添加自定义的响应头部
+        // 参数是json字符串格式的分页元数据
+        Response.Headers.Add("x-pagination", Newtonsoft.Json.JsonConvert.SerializeObject(paginationMetadata));
+      
+        /******* 返回等 省略  **********/
       }
       ```
 

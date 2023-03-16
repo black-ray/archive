@@ -18,19 +18,5 @@
 
 
 
-# 函数
 
-**模糊**`blur`
-
-- `filter: blur(5px);` `blur`模糊处理，数值越大越模糊
-
-**计算**`calc`
-
-- `width:calc(100%-80px);`
-
-
-
-# ※ 其他待整理
-
-去除`input`蓝获取焦点时的蓝色边框色 `outline:none`
 
