@@ -1,6 +1,6 @@
 # 基础架构
 
-<img src="C:\Users\shawe\AppData\Roaming\Typora\typora-user-images\image-20210908135822699.png" alt="image-20210908135822699" style="zoom:50%;" /> 
+<img src="Angular.assets/image-20210908135822699-16792426792891.png" alt="image-20210908135822699" style="zoom:50%;" /> 
 
 
 
@@ -2262,8 +2262,6 @@ Angular 引入 Zone.js 以处理变更检测
 - 使用 `ViewContainerRef` 对象的 `createComponent` 方法实例化一个组件，并将宿主视图插入到容器
 
   `createComponent(componentType, options?)`
-
-  
 
 - 通过 **`#` 模板变量标记插入点**，来插入动态组件
 
@@ -7926,6 +7924,8 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
 
 - Karma：单元测试**执行引擎**，本质是通过启动一个 Web 服务，运行测试代码和源代码，检查并显示测试结果
 
+  Karma 在 http://localhost:9876/ 上启动了一个开发服务器，用于提供 Webpack 编译的 JavaScript 包
+
   - 初始化项目时，在项目 src 目录下默认生成 **karma.conf.js** 文件
 
     其中包含一些配置信息，如默认浏览器、根目录、端口号等等，可根据实际需要自行更改
@@ -7944,16 +7944,22 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
         // 使用的测试框架，如 jasmine、mocha、qunit 等
         frameworks: ['jasmine', '@angular-devkit/build-angular'],
         // 添加 karma 插件
+        // 在不同的浏览器中运行，需要加载不同浏览器的插件，同时在 browsers 选项中添加浏览器列表
+        // 安装 firefox 浏览器插件 npm install --save-dev karma-firefox-launcher
         plugins: [
           require('karma-jasmine'),
           require('karma-chrome-launcher'),
+          require('karma-firefox-launcher'),
           require('karma-jasmine-html-reporter'),
           require('karma-coverage'),
           require('@angular-devkit/build-angular/plugins/karma')
         ],
         client: {
           // 配置Jasmine选项，https://jasmine.github.io/api/edge/Configuration.html
-          jasmine: { },
+          jasmine: { 
+          	// 如果没有任何一个测试期望，测试会失败
+            failSpecWithNoExpectations: true
+          },
           // 运行测试完成后清除上下文窗口
           clearContext: false
         },
@@ -7984,7 +7990,8 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
             }
           }
         },
-        // 测试结果报告
+        // 输出的测试结果报告
+        // JUnit 结果报告：npm install --save-dev karma-junit-reporter，并添加到插件选项中和报告选项中
         reporters: ['progress', 'kjhtml'],
         // 服务端口
         port: 9876,
@@ -7994,8 +8001,9 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
         logLevel: config.LOG_INFO,
         // 是否启动热部署
         autoWatch: true,
-        // 启动的浏览器
-        browsers: ['Chrome'],
+        // 启动的浏览器，对应的浏览器需要安装 karma 插件的支持
+        // karma 会平行的对这两个浏览器进行测试
+        browsers: ['Chrome', 'Firefox'],
         // 运行一次后退出
         singleRun: false,
         restartOnFileChange: true
@@ -8057,10 +8065,12 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
   ng test --no-watch --no-progress
   # 生成覆盖率文件
   ng test --no-watch --code-coverage
+  # 运行仅包括指定的测试
+  ng test --include **/counter.component.spec.ts
   ```
 
   常用参数
-
+  
   ```bash
   # 代码覆盖率报告，简写 -cc，报告生成在 /coverage 文件夹下
   --code-coverage
@@ -8073,6 +8083,39 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
   # 运行测试一次，检测变化，简写 -w，默认开启
   -watch
   ```
+  
+  通过设置 karma 配置文件的 `reporters` 选项，选择输出的测试报告
+  
+  - 内置的 progress reporter 在 shell 上输出文本
+  
+    ```bash
+    # 输出进度
+    Chrome 84.0.4147.135 (Mac OS 10.15.6): Executed 9 of 46 SUCCESS (0.278 secs / 0.219 secs)
+    # 输出结果
+    Chrome 84.0.4147.135 (Mac OS 10.15.6): Executed 46 of 46 SUCCESS (0.394 secs / 0.329 secs)
+    TOTAL: 46 SUCCESS
+    ```
+  
+  - HTML reporter kjhtml 浏览器结果（`karma-jasmine-html-reporter`）
+  
+    <img src="Angular.assets/karma-jasmine-html-reporter.png" alt="46 specs, 0 failures" style="zoom: 33%;" /> 
+  
+  - 覆盖率结果（`karma-coverage`）
+  
+- 测试代码调试
+
+  - 使用 `fdescribe`、`fit` 缩小测试范围，Jasmine 仅会测试此测试套件并跳过所有其他测试
+
+  - 使用 `ng test --include <file pattern>` 来指定特定的测试文件，只会编译和运行指定的文件
+
+    ```bash
+    # 只执行任意目录下的 example.spec.ts 文件
+    ng test --include **/example.spec.ts
+    ```
+
+  - Karma 调试测试运行器 http://localhost:9876/debug.html 
+
+    非调试运行器 http://localhost:9876/context.html
 
 
 
@@ -8084,6 +8127,23 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
 
   - `description`：测试集合的名字
   - `specDefinitions`：要执行的一组测试用例
+
+  ```typescript
+  describe('Suite description', () => {
+    describe('One aspect', () => {
+      it('One Spec description', () => {
+        /* … */
+      });
+      /* … more specs …  */
+    });
+    describe('Another aspect', () => {
+      it('Another Spec description', () => {
+        /* … */
+      });
+      /* … more specs …  */
+    });
+  });
+  ```
 
 - `describe` 测试集合中需要至少一个 `it` 方法，`it` 定义一个具体的测试用例
 
@@ -8122,6 +8182,7 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
   ```
 
 - 使用 `xdescribe` 、`xit` 暂时禁用一些测试用例，在输出结果中显示 skipped
+
 - 使用 `fdescribe`、`fit` 将测试用例标记为重点关注，其余的用例不会被执行，相当于 `xdescribe` / `fit` 取反
 
 
@@ -8299,6 +8360,8 @@ import { TestBed } from '@angular/core/testing';
 
 - `configureTestingModule` 如同 `@NgModule`，帮助建立依赖注入（DI）的单元测试，返回值为 `TestBed` 对象
 
+  将要测试的代码的必需的依赖项和伪装项添加到模块中
+
   ```typescript
   @NgModule({
     declarations: [ ComponentToTest ],
@@ -8316,18 +8379,20 @@ import { TestBed } from '@angular/core/testing';
   })
   ```
 
-- 如果组件使用**内联模板和内联样式**，需要使用 `compileComponents()` 编译组件
+- 需要使用 `compileComponents()` 编译组件的模板
 
   **`compileComponents` 是异步**的，需要包裹在 `waitForAsync` 函数中
 
-  **注**：在 v13 中，如果使用 `ng test` cli 来测试，不需要使用 `compileComponents`
+  **注**：在 v13 中，如果使用 `ng test` CLI 来测试，不需要使用 `compileComponents`
 
   ```typescript
   let component: BannerComponent;
   let fixture: ComponentFixture<BannerComponent>;
   
   beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({ declarations: [BannerComponent] }).compileComponents();
+    TestBed
+      .configureTestingModule({ declarations: [BannerComponent] })
+      .compileComponents();
   }));
   
   beforeEach(() => {
@@ -8336,13 +8401,15 @@ import { TestBed } from '@angular/core/testing';
     fixture.detectChanges();
   });
   ```
-
+  
   ```typescript
   let component: BannerComponent;
   let fixture: ComponentFixture<BannerComponent>;
   
   beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({ declarations: [BannerComponent] }).compileComponents()
+    TestBed
+      .configureTestingModule({ declarations: [BannerComponent] })
+      .compileComponents()
       .then(() => {
       fixture = TestBed.createComponent(BannerComponent);
       component = fixture.componentInstance;
@@ -8355,15 +8422,21 @@ import { TestBed } from '@angular/core/testing';
 
 ### 创建组件实例
 
-通过 `TestBed.createComponent` 方法创建组件实例，该对象是 `ComponentFixture<T>` 的实例
+通过 `TestBed.createComponent` 方法创建组件实例，返回值是 `ComponentFixture<T>` 的实例
 
 ```typescript
 const fixture: ComponentFixture<BannerComponent> = TestBed.createComponent(BannerComponent)
 ```
 
-调用 `createComponent` 后**不能再重新配置 `TestBed`**，以及调用 `TestBed` 方法
+- 使用 `createComponent` 创建组件后，静态的 HTML 模板存在，而动态的例如 `{{ count }}` 这种动态模板不会生成成功
 
+- 在测试环境中没有自动更改检测，组件不会自动在更新时呈现和重新呈现，**创建组件后必须手动触发更改检测**
 
+  ```typescript
+  fixture.detectChanges();
+  ```
+
+- 调用 `createComponent` 后**不能再重新配置 `TestBed`**，以及调用 `TestBed` 方法
 
 ### 创建服务实例
 
@@ -8407,9 +8480,7 @@ it('should use ValueService', () => {
 
 ### 测试帮助属性 debugElement
 
-`fixture.debugElement` 提供了 `query` 等查找 DOM 元素的实用方法，以及组件相关的各种引用和方法
-
-通常用来**查找组件的 DOM 元素**
+`fixture.debugElement` 返回组件的**宿主元素**，提供了 `query` 等查找 DOM 元素的实用方法，以及组件相关的各种引用和方法
 
 - 查询 DOM 元素方法
 
@@ -8442,6 +8513,16 @@ it('should use ValueService', () => {
     ```typescript
     const debugEl = fixture.debugElement.query(By.directive(HighlightDirective));
     ```
+    
+  - 查询 DOM 元素的可重用函数
+
+    ```typescript
+    function findEl<T>(fixture: ComponentFixture<T>, testId: string): DebugElement {
+      return fixture.debugElement.query(
+        By.css(`[data-testid="${testId}"]`)
+      );
+    }
+    ```
 
 - 触发事件 `triggerEventHandler`
 
@@ -8451,47 +8532,51 @@ it('should use ValueService', () => {
 
   - 仅触发 **用 Angular 事件绑定、 `@Output` 或 `@HostListener()` 绑定的事件**
 
-    原生事件
+    `triggerEventHandler ` 不会触及原生 DOM，效果保留在 DebugElement 抽象级别上
 
-    ```html
-    <h1 class="set-emoji" (click)="onClick()">{{ emoji }}</h1>
-    ```
+    `triggerEventHandler` 不会模拟事件冒泡或任何其他真实事件可能具有的效果
+  
+    - 原生事件
 
-    ```typescript
-    fixture.debugElement.query(By.css('.set-emoji')).triggerEventHandler('click', null);
-    ```
+      ```html
+      <h1 class="set-emoji" (click)="onClick()">{{ emoji }}</h1>
+      ```
 
-    原生事件传递事件对象参数
+      ```typescript
+      fixture.debugElement.query(By.css('.set-emoji')).triggerEventHandler('click', null);
+      ```
+  
+    - 原生事件传递事件对象参数
 
-    ```html
-    <input (keydown.enter)="onEnter($event)">
-    ```
+      ```html
+      <input (keydown.enter)="onEnter($event)">
+      ```
+  
+      ```typescript
+      const input = fixture.debugElement.query(By.css('input'));
+      // 原生事件对象结构 event.target.value
+      input.triggerEventHandler('keydown.enter', { target: { value: 'A' } });
+      ```
+  
+    - 自定义事件
 
-    ```typescript
-    const input = fixture.debugElement.query(By.css('input'));
-    // 原生事件对象结构 event.target.value
-    input.triggerEventHandler('keydown.enter', { target: { value: 'A' } });
-    ```
+      ```html
+      <my-component (data)="onData($event)"></my-component>
+      ```
+  
+      ```typescript
+      const myComponent = fixture.debugElement.query(By.directive(MyComponent));
+      myComponent.triggerEventHandler('data', { emoji: '😜' });
+      ```
 
-    自定义事件
-
-    ```html
-    <my-component (data)="onData($event)"></my-component>
-    ```
-
-    ```typescript
-    const myComponent = fixture.debugElement.query(By.directive(MyComponent));
-    myComponent.triggerEventHandler('data', { emoji: '😜' });
-    ```
-
-  - `triggerEventHandler` **不会自动触发变更检测**，需要手动调用 `fixture.detectChanges()`
-
-  - 非 Angular 绑定的事件使用原生触发
+  - `triggerEventHandler` **不会自动触发变更检测**，需要手动调用 `fixture.detectChanges()` 以更新 DOM
+  
+  - **非 Angular 绑定的事件使用原生触发**
 
     ```typescript
     fromEvent(this.h1.nativeElement, 'click').subscribe(() => { this.emoji = '😜' });
     ```
-
+  
     ```typescript
     it('should', async(() => {
       spyOn(component, 'onEditButtonClick');
@@ -8509,19 +8594,27 @@ it('should use ValueService', () => {
       expect(component.onEditButtonClick).toHaveBeenCalled();
     }));
     ```
-
+  
      使用 `nativeElement.dispatchEvent` 触发
-
+  
     ```typescript
     const h1 = fixture.debugElement.query(By.css('h1'))
     const mouseenter = new MouseEvent('mouseenter')
     h1.nativeElement.dispatchEvent(mouseenter)
     ```
 
-  - 浏览器中的任何事件都是异步，但是使用 `triggerEventHandler` / `dispatchEvent` 不需要使用 `fakeAsync`
-
+    ```typescript
+    const input = fixture.debugElement.query(By.css('input'))
+    const inputElement = input.nativeElement
+    inputElement.value = '123'
+    inputElement.dispatchEvent(new Event('input'))
+    fixture.detectChanges();
+    ```
+  
+  - 浏览器中的任何事件都是异步，但是**使用 `triggerEventHandler` / `dispatchEvent` 不需要使用 `fakeAsync`**
+  
     **处理将会同步执行**
-
+  
     > 和经由浏览器触发，并通过事件循环异步调用事件处理程序的“原生”事件不同，`dispatchEvent()` 会**同步**调用事件处理函数。在 `dispatchEvent()` 返回之前，所有监听该事件的事件处理程序将在代码继续前执行并返回。
     >
     > ----- 来自 MDN
@@ -8545,6 +8638,18 @@ it('should create', () => {
 });
 ```
 
+- 使用组件实例设置输入并订阅输出
+
+  ```typescript
+  const component = fixture.componentInstance;
+  // Set Input
+  component.startCount = 10;
+  // Subscribe to Output
+  component.countChange.subscribe((count) => {
+    /* … */
+  });
+  ```
+  
 - `fixture.componentInstance` 和 `fixture.debugElement.componentInstance` 的区别：
 
   1. 如果在非浏览器平台运行测试，则必须使用 `fixture.debugElement.componentInstance`；除此以外二者一致
@@ -8555,7 +8660,7 @@ it('should create', () => {
 
 
 
-### 组件 DOM 元素 nativeElement
+### 原生 DOM 元素 nativeElement
 
 - `fixture.nativeElement` 返回的是 DOM 树
 
@@ -8574,6 +8679,8 @@ it('should create', () => {
   const el = fixture.nativeElement.querySelector(‘#shan’)
   ```
 
+- `nativeElement ` 类型为 `any`，可以 `as` 为 `HTMLElement ` 或者其子类
+
 
 
 ### 变化检测 detectChanges
@@ -8588,9 +8695,9 @@ it('should create', () => {
 
 - 运行 `fixture.detectChanges()` 会**使 `ngOnInit` 运行一次**
 
-- `ChangeDetectionStrategy.OnPush` 组件只允许 `detectChanges` 调用一次，后续调用无法执行任何操作
+- **`ChangeDetectionStrategy.OnPush` 组件只允许 `detectChanges` 调用一次**，后续调用无法执行任何操作
 
-  - 解决方案 1：更新组件的输入 `fixture.componentRef.setInput()`，标记为脏组件
+  - 解决方案 1：**更新组件的输入 `fixture.componentRef.setInput()`，标记为脏组件**
 
     `setInput(name: string, value: unknown)`
 
@@ -8625,6 +8732,105 @@ it('should create', () => {
 
 - 是否稳定或具有尚未完成的异步任务 `isStable()`
 - 当事件已触发异步活动或异步变更检测后，可用此方法继续执行测试 `whenStable(): Promise<any>`
+
+
+
+### 共通方法封装
+
+- 查找元素的 `DebugElement`
+
+  ```typescript
+  // 通过 css 选择器查找元素
+  export function findEl<T>(fixture: ComponentFixture<T>, selector: string): DebugElement {
+    const debugElement = fixture.debugElement.query(By.css(selector));
+    if (!debugElement) {
+      throw new Error(`queryByCss: Element with ${selector} not found`);
+    }
+    return debugElement;
+  }
+  
+  // 查找所有满足条件的元素
+  export function findEls<T>(fixture: ComponentFixture<T>, selector: string): DebugElement[] {
+    return fixture.debugElement.queryAll(By.css(selector));
+  }
+  ```
+
+- 获取 DOM 元素的 `attribute`
+
+  ```typescript
+  // 获取指定 DOM 元素的 textContent 属性
+  export function getText<T>(fixture: ComponentFixture<T>, selector: string): string {
+    return findEl(fixture, selector).nativeElement.textContent;
+  }
+  // 期望具有给定的文本内容
+  export function expectText<T>(fixture: ComponentFixture<T>, selector: string, text: string): void {
+    expect(getText(fixture, selector)).toBe(text);
+  }
+  ```
+
+- 触发事件
+
+  ```typescript
+  // DOM 元素触发事件
+  export function dispatchFakeEvent(element: EventTarget, type: string, bubbles: boolean = false)
+  : void {
+    const event = document.createEvent('Event');
+    // type：事件名 例如 'input'
+    event.initEvent(type, bubbles, false);
+    element.dispatchEvent(event);
+  }
+  ```
+
+  ```typescript
+  // debugElement 触发事件
+  export function click<T>(fixture: ComponentFixture<T>, selector: string): void {
+    const element = findEl(fixture, selector);
+    const event = makeClickEvent(element.nativeElement);
+    element.triggerEventHandler('click', event);
+  }
+  // 虚拟 click 事件参数
+  export function makeClickEvent(target: EventTarget): Partial<MouseEvent> {
+    return {
+      preventDefault(): void {},
+      stopPropagation(): void {},
+      stopImmediatePropagation(): void {},
+      type: 'click',
+      target,
+      currentTarget: target,
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    };
+  }
+  ```
+
+- 文本输入表单字段
+
+  ```typescript
+  export function setFieldElementValue(
+   element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+   value: string,
+  ): void {
+    element.value = value;
+    const isSelect = element instanceof HTMLSelectElement;
+    // 触发相关事件以便让 Angular 察觉到变化
+    // 如果在 input 或 textarea 上监听了 change 事件，需要手动触发
+    dispatchFakeEvent(element, isSelect ? 'change' : 'input', isSelect ? false : true);
+  }
+  
+  export function setFieldValue<T>(fixture: ComponentFixture<T>, selector: string, value: string)
+  : void {
+    setFieldElementValue(findEl(fixture, selector).nativeElement, value);
+  }
+  
+  export function checkField<T>(fixture: ComponentFixture<T>, selector: string, checked: boolean)
+  : void {
+    const { nativeElement } = findEl(fixture, testId);
+    nativeElement.checked = checked;
+    // Dispatch a `change` fake event so Angular form bindings take notice of the change.
+    dispatchFakeEvent(nativeElement, 'change');
+  }
+  ```
 
 
 
@@ -8757,11 +8963,11 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
 
 ## 测试间谍
 
-- spy 函数用来追踪函数的调用历史信息（是否被调用、调用参数列表、被请求次数等）
+### 函数监控
 
 - 仅存在于定义它的 `describe` 和 `it` 方法块中，并且会在各个用例使用后销毁
 
-- `spyOn`：在一个已经存在的对象上装载 spy，实现对函数执行的监控
+- `spyOn`：在一个已经存在的对象上装载 spy，实现对函数执行、调用参数列表、被请求次数等监控
 
   `spyOn(obj: Object, methodName: string) → {Spy}`
 
@@ -8777,6 +8983,31 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
   const closedSpy = spyOn(fixture.componentInstance, 'onClosed')
   expect(closedSpy).toHaveBeenCalled();
   // 也可以 expect(fixture.componentInstance.onClosed).toHaveBeenCalled();
+  ```
+
+  **覆盖替代现有方法**，并设置固定返回值
+
+  ```typescript
+  class TodoService {
+    public async getTodos(): Promise<string[]> {
+      const response = await fetch('/todos');
+      if (!response.ok) throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+      return await response.json();
+    }
+  }
+  ```
+
+  ```typescript
+  it('gets the to-dos', async () => {
+    const todos = ['shop groceries', 'mow the lawn', 'take the cat to the vet'];
+    const okResponse = new Response(JSON.stringify(todos), { status: 200, statusText: 'OK' });
+    // 使用 spyOn 来捕获并覆盖 fetch 方法
+    spyOn(window, 'fetch').and.returnValue(okResponse);
+    const todoService = new TodoService();
+    const actualTodos = await todoService.getTodos();
+    expect(actualTodos).toEqual(todos);
+    expect(window.fetch).toHaveBeenCalledWith('/todos');
+  });
   ```
 
 - `spyOnProperty`：在属性上装载 spy，实现对属性的 getter 和 setter 监控
@@ -8805,25 +9036,90 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
   });
   ```
 
-- `createSpy`：创建一个 spy，这个 spy 可以充当任何其它 spy 使用，例如跟踪调用、参数等
+
+
+### 函数伪造
+
+- 使用 `createSpy` 和 `createSpyObj` 来伪造函数和方法，使用其作为**虚拟依赖项替换真实依赖项**
+
+  - 原始依赖代码可能会产生副作用，需要在测试过程中抑制这些副作用，伪造可以防止原始代码的执行
+
+  - 虚拟依赖项不需要完全替代真实依赖性，只需要在被测试的代码方面与真实依赖项等效
+
+  - 使用虚拟依赖项的最大危险在于，当原始依赖项发生更改时，虚拟依赖项的代码也需要调整
+
+    为了确保虚拟依赖与原始依赖保持同步，可以强制要求虚拟依赖项是严格类型的，其类型需要是原始依赖项类型的子集
+
+- `createSpy`：创建一个 spy，可以用来伪造函数，同时也可以跟踪调用、参数等
 
   `createSpy(name?: string, originalFn?: Function) → {Spy}`
 
-  参数 1：spy 名称，参数 2：真正实现的函数
+  参数 1：spy 名称，建议为描述原始值的名称，参数 2：真正实现的函数
 
-  ```typescript
-  it('should close a dialog and get back a result', fakeAsync(() => {
-    const dialogRef = dialog.open(DialogSimpleContentComponent, {
-      viewContainerRef: testViewContainerRef
-    });
-    const afterClosedCallback = createSpy('afterClosed callback');
-    dialogRef.afterClosed().subscribe(afterClosedCallback);
-    dialogRef.close('close result');
-    viewContainerFixture.detectChanges();
-    flush();
-    expect(afterClosedCallback).toHaveBeenCalledWith('close result');
-  }));
-  ```
+  - 使用 `createSpy` 伪造函数，替换依赖
+
+    ```typescript
+    // 原依赖函数
+    class TodoService {
+      constructor(private fetch = window.fetch.bind(window)) {}
+      public async getTodos(): Promise<string[]> {
+        const response = await this.fetch('/todos');
+        if (!response.ok) throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+        return await response.json();
+      }
+    }
+    ```
+
+    ```typescript
+    // 测试时不希望进行HTTP调用，可以伪造函数测试
+    describe('TodoService', () => {
+      it('should get the Todos', async () => {
+        // 假响应数据
+        const todos = ['shop groceries', 'mow the lawn', 'take the cat to the vet'];
+        const okResponse = new Response(JSON.stringify(todos), { status: 200, statusText: 'OK' });
+        // createSpy 函数伪造 fetch，固定返回值为响应对象
+        const fetchSpy = jasmine.createSpy('fetch').and.returnValue(okResponse);
+        // 手动依赖注入
+        const todoService = new TodoService(fetchSpy);
+        const actualTodos = await todoService.getTodos();
+        expect(actualTodos).toEqual(todos);
+        // 是否用 '/todos' 调用了间谍
+        expect(fetchSpy).toHaveBeenCalledWith('/todos');
+      });
+      
+      it('handles an HTTP error when getting the to-dos', async () => {
+        // 模拟错误响应
+        const errorResponse = new Response('Not Found', { status: 404, statusText: 'Not Found' });
+        const fetchSpy = jasmine.createSpy('fetch').and.returnValue(errorResponse);
+        const todoService = new TodoService(fetchSpy);
+        // 捕获并保存错误
+        let error;
+        try {
+          await todoService.getTodos();
+        } catch (e) {
+          error = e;
+        }
+        expect(error).toEqual(new Error('HTTP error: 404 Not Found'));
+        expect(fetchSpy).toHaveBeenCalledWith('/todos');
+      });
+    })
+    ```
+
+  - 使用 `createSpy` 跟踪调用
+
+    ```typescript
+    it('should close a dialog and get back a result', fakeAsync(() => {
+      const dialogRef = dialog.open(DialogSimpleContentComponent, {
+        viewContainerRef: testViewContainerRef
+      });
+      const afterClosedCallback = createSpy('afterClosed callback');
+      dialogRef.afterClosed().subscribe(afterClosedCallback);
+      dialogRef.close('close result');
+      viewContainerFixture.detectChanges();
+      flush();
+      expect(afterClosedCallback).toHaveBeenCalledWith('close result');
+    }));
+    ```
 
 - `createSpyObj`：创建一个具有多个 spy 的对象
 
@@ -8839,77 +9135,365 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
   expect(logger.log).toHaveBeenCalledTimes(1);
   ```
 
-- spy  有自己的匹配器，分别是 `toHaveBeenCalled`、`toHaveBeenCalledTimes`、`toHaveBeenCalledWith` 等
 
-  - `toHaveBeenCalled()` 函数是否调用，函数需要被 `spy` 跟踪
 
-    ```typescript
-    function foo() {
-      // .....
-      console.error('has error').
-    }
-    
-    it('test spyon', () => {
-      // spyOn console.err()
-      const errorSpy = spyOn(console, 'error');
-      expect(errorSpy).toHaveBeenCalled();
-      expect(errorSpy).not.toHaveBeenCalled();
-    })
-    ```
+### 匹配器
 
-  - `toHaveBeenCalledWith(...params: any[])`  函数被调用时的参数是否匹配，函数需要被 `spy` 跟踪
+spy  有自己的匹配器，分别是 `toHaveBeenCalled`、`toHaveBeenCalledTimes`、`toHaveBeenCalledWith` 等
 
-    ```typescript
-    spyOn(hello, 'getSum');
-    hello.getSum(5, 10);
-    expect(hello.getSum).toHaveBeenCalledWith(5, 10)
-    ```
+- `toHaveBeenCalled()` 函数是否调用，函数需要被 `spy` 跟踪
 
-  - `toHaveBeenCalledTimes(expected)` 函数被调用的次数，函数需要被 `spy` 跟踪
+  ```typescript
+  function foo() {
+    // .....
+    console.error('has error').
+  }
+  
+  it('test spyon', () => {
+    // spyOn console.err()
+    const errorSpy = spyOn(console, 'error');
+    expect(errorSpy).toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+  })
+  ```
+
+- `toHaveBeenCalledWith(...params: any[])`  函数被调用时的参数是否匹配，函数需要被 `spy` 跟踪
+
+  ```typescript
+  spyOn(hello, 'getSum');
+  hello.getSum(5, 10);
+  expect(hello.getSum).toHaveBeenCalledWith(5, 10)
+  ```
+
+- `toHaveBeenCalledTimes(expected)` 函数被调用的次数，函数需要被 `spy` 跟踪
 
 
 
 ## 组件测试
 
-- 单独测试没有依赖的组件类
+### 组件测试准则
 
-  ```typescript
-  // 可以直接 new 这个组件类进行测试
-  const comp = new LightswitchComponent();
-  expect(comp.isOn).toBe(false);
-  ```
+组件测试意义在于它们能够紧密**模拟用户与组件的交互**
 
-  ```typescript
-  let fixture: ComponentFixture<BannerComponent>;
-  // 使用 TestBed.configureTestingModule 声明组件，createComponent 创建组件
-  beforeEach(() => {
-    TestBed.configureTestingModule({ declarations: [BannerComponent] });
-    fixture = TestBed.createComponent(BannerComponent);
-  })
-  it('should create', () => {
-    const component = fixture.componentInstance;
-    expect(component).toBeDefined();
-  });
-  ```
+应该采用**黑盒测试**的原则，例如直接使用 DOM 来读取文本、点击按钮和填写表单字段
 
-  ```typescript
-  let component: BannerComponent;
-  let fixture: ComponentFixture<BannerComponent>;
-  // 内联模板、内联样式的组件需要进行编译
-  beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({declarations: [BannerComponent]}).compileComponents();
-  }));
-  beforeEach(() => {
-    fixture = TestBed.createComponent(BannerComponent);
+例如组件中定义了累加 increment 方法，更推荐通过 DOM 点击事件来触发这个方法，而不是白盒测试的直接调用这个方法
+
+- 按照黑盒测试准则，对于组件的测试应该访问的和不应该访问的属性和方法：
+  - `Input`、`Output` 属性：可以访问
+  - 生命周期函数除了 `ngOnChanges` 外，避免使用
+  - 公共方法，避免使用
+  - 私有方法，不可使用
+
+
+
+### 组件烟雾测试
+
+只检查组件实例的存在，不断言有关组件行为的任何特定内容，**仅仅证明组件可以正常呈现，没有错误**
+
+如果烟雾测试失败，则知道测试设置存在问题
+
+```typescript
+describe('HomeComponent', () => {
+  let fixture: ComponentFixture<HomeComponent>;
+  let component: HomeComponent;
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [HomeComponent],
+      schemas: [NO_ERRORS_SCHEMA]
+    }).compileComponents();
+    fixture = TestBed.createComponent(HomeComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
-  it('should create', () => {
-    expect(component).toBeDefined();
+  it('renders without errors', () => {
+    expect(component).toBeTruthy();
+  });
+});
+```
+
+- 导入 `NO_ERRORS_SCHEMA` 忽略未知元素，使测试成为一个单元测试
+
+  > 如果出现以下警告例如：
+  >
+  > `'app-counter' is not a known element:`
+  >
+  > `1. If 'app-counter' is an Angular component, then verify that it is part of this module.`
+  >
+  > `2. If 'app-counter' is a Web Component then add 'CUSTOM_ELEMENTS_SCHEMA' to the '@NgModule.schemas' of this component to suppress this message.`
+  >
+  > `Can't bind to 'startCount' since it isn't a known property of 'app-counter'.`
+  >
+  > 这是因为 Angular 无法识别自定义元素 app-counter ，因为没有声明与这些选择器匹配的组件
+  >
+  > 对于警告的解决方案：
+  >
+  > 1. 测试模块中声明子组件，使测试成为一个集成测试
+  > 2. 告诉 Angular 忽略这些未知元素，使测试成为一个单元测试
+
+  忽略未知元素，需要在测试模块中导入 `NO_ERRORS_SCHEMA`，这个模式会告诉 Angular 忽略未知元素和属性
+
+  ```typescript
+  import { NO_ERRORS_SCHEMA } from '@angular/core';
+  ```
+
+  ```typescript
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [HomeComponent],
+      schemas: [NO_ERRORS_SCHEMA],
+    }).compileComponents();
+    fixture = TestBed.createComponent(HomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
   ```
 
-- 单独测试有依赖的组件类
+
+- 模拟子组件，虚拟组件和真实组件拥有有相同的选择器、输入和输出，但没有依赖项，也不需要渲染任何东西
+
+  在测试具有子组件的组件时，可以将子组件替换为虚拟组件，要确保虚拟组件是原始组件的子集
+
+  假子组件是渲染的，但是模板可能是空的，测试仍然是快速而短小的单元测试
+
+  ```typescript
+  // 虚拟组件不需要模板和逻辑，需要相同的选择器和输入输出
+  @Component({
+    selector: 'app-counter',
+    template: '',
+  })
+  class FakeCounterComponent implements Partial<CounterComponent> {
+    @Input() public startCount = 0;
+    @Output() public countChange = new EventEmitter<number>();
+  }
+  ```
+
+  ```typescript
+  describe('HomeComponent (faking a child Component)', () => {
+    let fixture: ComponentFixture<HomeComponent>;
+    let component: HomeComponent;
+    let counter: FakeCounterComponent;
+    beforeEach(async () => {
+      await TestBed.configureTestingModule({
+        declarations: [HomeComponent, FakeCounterComponent],
+        schemas: [NO_ERRORS_SCHEMA],
+      }).compileComponents();
+      fixture = TestBed.createComponent(HomeComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+      // 通过 By.directive 查找虚拟组件
+      const counterEl = fixture.debugElement.query(By.directive(FakeCounterComponent));
+      counter = counterEl.componentInstance;
+    });
+    it('renders an independent counter', () => {
+      // 组件已经被渲染到了元素中
+      expect(counter).toBeTruthy();
+    });
+    it('passes a start count', () => {
+      // 测试 Input
+      expect(counter.startCount).toBe(5);
+    });
+    it('listens for count changes', () => {
+      // 测试 Output
+      spyOn(console, 'log');
+      const count = 5;
+      // 直接访问 Output 并调用其 emit 方法，就像子组件中的代码一样
+      counter.countChange.emit(5);
+      expect(console.log).toHaveBeenCalledWith('countChange event from CounterComponent', count);
+    });
+  
+  });
+  ```
+
+- ng-mocks 可以帮助创建虚假组件来替代子组件
+
+  ng-mocks 是一个功能丰富的库，用于使用虚假依赖项测试组件
+
+  `MockComponent` 函数接收原始组件并返回一个类似于原始组件的虚假组件
+
+  ```typescript
+  import { MockComponent } from 'ng-mocks';
+  ```
+
+  ```typescript
+  let fixture: ComponentFixture<HomeComponent>;
+  let component: HomeComponent;
+  // 原始组件
+  let counter: CounterComponent;
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [HomeComponent, MockComponent(CounterComponent)],
+      schemas: [NO_ERRORS_SCHEMA],
+    }).compileComponents();
+    fixture = TestBed.createComponent(HomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    // 使用原始组件查找
+    // 虚拟组件是符合 CounterComponent 类型
+    const counterEl = fixture.debugElement.query(By.directive(CounterComponent));
+    counter = counterEl.componentInstance;
+  });
+  ```
+
+
+
+### 无依赖组件测试
+
+```typescript
+// 可以直接 new 这个组件类进行测试
+const comp = new LightswitchComponent();
+expect(comp.isOn).toBe(false);
+```
+
+```typescript
+let fixture: ComponentFixture<BannerComponent>;
+// 使用 TestBed.configureTestingModule 声明组件，createComponent 创建组件
+beforeEach(() => {
+  TestBed.configureTestingModule({ declarations: [BannerComponent] });
+  fixture = TestBed.createComponent(BannerComponent);
+})
+it('should create', () => {
+  const component = fixture.componentInstance;
+  expect(component).toBeDefined();
+});
+```
+
+```typescript
+let component: BannerComponent;
+let fixture: ComponentFixture<BannerComponent>;
+// 内联模板、内联样式的组件需要进行编译
+beforeEach(waitForAsync(() => {
+  TestBed.configureTestingModule({declarations: [BannerComponent]}).compileComponents();
+}));
+beforeEach(() => {
+  fixture = TestBed.createComponent(BannerComponent);
+  component = fixture.componentInstance;
+  fixture.detectChanges();
+});
+it('should create', () => {
+  expect(component).toBeDefined();
+});
+```
+
+
+
+### 有依赖组件测试
+
+- 集成测试写法：将依赖的服务添加到模块
+
+  ```typescript
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ServiceCounterComponent],
+      providers: [CounterService],
+    }).compileComponents();
+    fixture = TestBed.createComponent(ServiceCounterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+  ```
+
+- 单体测试写法：伪造服务依赖
+
+  伪造服务的基本要求：
+
+  1. 伪造和原始服务的等效性：伪造服务必须有一个从原始服务派生的类型
+  2. 有效伪造：原始服务不受影响
+
+- 使用 `createSpyObj` 伪造服务依赖项
+
+  如果被测试的代码没有使用整个 API，那么伪造的代码也不需要复制整个 API，只需声明代码实际使用的方法和属性即可
+
+  `createSpyObj` 用于创建具有多个间谍方法的对象
+
+  ```typescript
+  describe('ServiceCounterComponent: unit test', () => {
+    const currentCount = 123;
+    let component: ServiceCounterComponent;
+    let fixture: ComponentFixture<ServiceCounterComponent>;
+    let fakeCounterService: CounterService;
+    beforeEach(async () => {
+      // createSpyObj<T> 创建伪造服务，提供泛型变量，检测伪造服务是否符合真实服务
+      fakeCounterService = jasmine.createSpyObj<CounterService>(
+        'CounterService',
+        {
+          getCount: of(currentCount),
+          increment: undefined,
+          decrement: undefined,
+          reset: undefined,
+        }
+      );
+      await TestBed.configureTestingModule({
+        declarations: [ServiceCounterComponent],
+        // { provide: …, useValue: … } 伪造服务替代真实服务
+        providers: [{ provide: CounterService, useValue: fakeCounterService }],
+      }).compileComponents();
+      fixture = TestBed.createComponent(ServiceCounterComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+  });
+  ```
+
+- 使用 `spyOn` 实现具有逻辑的伪造服务
+
+  因为 `createSpyObj` 不允许虚假方法实现，可以使用 `spyOn` 对伪造服务的方法上安装间谍
+
+  ```typescript
+  describe('ServiceCounterComponent: unit test with minimal Service logic', () => {
+    const newCount = 456;
+    let component: ServiceCounterComponent;
+    let fixture: ComponentFixture<ServiceCounterComponent>;
+    let fakeCount$: BehaviorSubject<number>;
+    let fakeCounterService: Pick<CounterService, keyof CounterService>;
+    beforeEach(async () => {
+      fakeCount$ = new BehaviorSubject(0);
+      // 使用字面量对象定义虚假服务
+      // createSpyObj 不允许虚假服务中方法的实现
+      fakeCounterService = {
+        getCount(): Observable<number> {
+          return fakeCount$;
+        },
+        increment(): void {
+          fakeCount$.next(1);
+        },
+        decrement(): void {
+          fakeCount$.next(-1);
+        },
+        reset(): void {
+          fakeCount$.next(Number(newCount));
+        },
+      };
+      // 使用 spyOn 在所有方法上安装间谍，添加 .and.callThrough() 以调用底层的虚假方法
+      spyOn(fakeCounterService, 'getCount').and.callThrough();
+      spyOn(fakeCounterService, 'increment').and.callThrough();
+      spyOn(fakeCounterService, 'decrement').and.callThrough();
+      spyOn(fakeCounterService, 'reset').and.callThrough();
+      await TestBed.configureTestingModule({
+        declarations: [ServiceCounterComponent],
+        providers: [{ provide: CounterService, useValue: fakeCounterService }],
+      }).compileComponents();
+      fixture = TestBed.createComponent(ServiceCounterComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+    it('shows the start count', () => {
+      const textContent = fixture.debugElement.query(By.css('.count')).nativeElement.textContent;
+      expect(textContent).toBe('0');
+      expect(fakeCounterService.getCount).toHaveBeenCalled();
+    });
+    it('increments the count', () => {
+      const element = fixture.debugElement.query(By.css('.increment-button'));
+      element.triggerEventHandler('click', null);
+      fakeCount$.next(1);
+      fixture.detectChanges();
+      expect(textContent).toBe('1');
+      expect(fakeCounterService.increment).toHaveBeenCalled();
+    });
+  });
+  ```
+
+- 获取组件依赖的服务实例
 
   ```typescript
   // TestBed.configureTestingModule 中注入依赖的组件和服务
@@ -8928,11 +9512,461 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
 
 
 
-# TypeScript相关
+### 组件输入输出属性
+
+设置组件的 `Input`、`Output` 属性
+
+```typescript
+// 组件定义
+export class CounterComponent implements OnChanges {
+  @Input() public startCount = 0;
+  @Output() public countChange = new EventEmitter<number>();
+  public count = 0;
+  public ngOnChanges(): void {
+    this.count = this.startCount;
+  }
+  private notify(): void {
+    this.countChange.emit(this.count);
+  }
+  public increment(): void {
+    this.count++;
+    this.notify();
+  }
+  public decrement(): void {
+    this.count--;
+    this.notify();
+  }
+}
+```
+
+```typescript
+describe('CounterComponent', () => {
+  let component: CounterComponent;
+  let fixture: ComponentFixture<CounterComponent>;
+  const startCount = 123;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [CounterComponent],
+    }).compileComponents();
+    fixture = TestBed.createComponent(CounterComponent);
+    component = fixture.componentInstance;
+    // 设置 Input 属性
+    component.startCount = startCount;
+    // 调用 ngOnChanges，然后重新渲染
+    // 将 Input 的 startCount 值设置到 count
+    component.ngOnChanges();
+    fixture.detectChanges();
+  });
+
+  it('shows the start count', () => {
+    const element = fixture.debugElement.query(By.css(`.count`));
+    const textContent = element.nativeElement.textContent;
+    expect(textContent).toBe(startCount);
+  });
+
+  it('emits countChange events on increment', () => {
+    let actualCount: number | undefined;
+    // 订阅 Output
+    component.countChange.subscribe((count: number) => {
+      actualCount = count;
+    });
+    const element = fixture.debugElement.query(By.css(`.increment-button`));
+    // 单击按钮会同步地发出计数并调用观察者函数
+		element.triggerEventHandler('click');
+    expect(actualCount).toBe(1);
+  });
+});
+
+```
+
+
+
+## 表单测试
+
+### 响应式表单测试准备
+
+模块配置
+
+```typescript
+describe('SignupFormComponent', () => {
+  let fixture: ComponentFixture<SignupFormComponent>; 
+  let signupService: jasmine.SpyObj<SignupService>;
+  await TestBed.configureTestingModule({
+    // 导入响应式表单模块
+    imports: [ReactiveFormsModule],
+    // 继承测试，需要导入组件及子组件等
+    declarations: [SignupFormComponent, ControlErrorsComponent, ErrorMessageDirective],
+    // 替换为伪造服务
+    providers: [{ provide: SignupService, useValue: signupService }]
+  }).compileComponents();
+  fixture = TestBed.createComponent(SignupFormComponent);
+  fixture.detectChanges();
+});
+```
+
+构造伪造服务函数
+
+```typescript
+// 构造伪造 SignupService 函数，参数可以重新 SignupService 中方法的默认返回值
+const setup = async (signupServiceReturnValues?: jasmine.SpyObjMethodNames<SignupService>) => {
+  signupService = jasmine.createSpyObj<SignupService>('SignupService', {
+    // Successful responses per default
+    isUsernameTaken: of(false),
+    isEmailTaken: of(false),
+    getPasswordStrength: of(strongPassword),
+    signup: of({ success: true }),
+    // Overwrite with given return values
+    ...signupServiceReturnValues,
+  });
+};
+```
+
+
+
+### 表单输入验证
+
+填写表单项函数
+
+```typescript
+// 填写表单项函数，在 describe 作用域中定义
+const fillForm = () => {
+  setFieldValue(fixture, 'username', 'quickBrownFox');
+  setFieldValue(fixture, 'email', 'quick.brown.fox@example.org');
+  setFieldValue(fixture, 'password', 'asdqwe123');
+  setFieldValue(fixture, 'name', 'Mr. Fox');
+  setFieldValue(fixture, 'addressLine1', '');
+  setFieldValue(fixture, 'addressLine2', 'Under the Tree 1');
+  setFieldValue(fixture, 'city', 'Farmtown');
+  setFieldValue(fixture, 'postcode', '123456');
+  setFieldValue(fixture, 'region', 'Upper South');
+  setFieldValue(fixture, 'country', 'Luggnagg');
+  checkField(fixture, 'tos', true);
+};
+```
+
+```typescript
+// 共通函数
+export function setFieldValue<T>(fixture: ComponentFixture<T>, testId: string, value: string): void {
+  const { nativeElement } = findEl(fixture, testId);
+  nativeElement.value = value;
+  const isSelect = nativeElement instanceof HTMLSelectElement;
+  dispatchFakeEvent(nativeElement, isSelect ? 'change' : 'input', isSelect ? false : true);
+}
+export function checkField<T>(fixture: ComponentFixture<T>, testId: string, checked: boolean): void {
+  const { nativeElement } = findEl(fixture, testId);
+  nativeElement.checked = checked;
+  dispatchFakeEvent(nativeElement, 'change');
+}
+export function findEl<T>(fixture: ComponentFixture<T>, testId: string): DebugElement {
+  return fixture.debugElement.query(By.css(`#${testId}`));
+}
+export function dispatchFakeEvent(element: EventTarget, type: string, bubbles: boolean = false): void {
+  const event = document.createEvent('Event');
+  event.initEvent(type, bubbles, false);
+  element.dispatchEvent(event);
+}
+```
+
+编写测试用例
+
+```typescript
+// 正确验证
+it('submits the form successfully', fakeAsync(async () => {
+  await setup();
+  fillForm();
+  // 刷新 DOM
+  fixture.detectChanges();
+  expect(findEl(fixture, 'submit').properties.disabled).toBe(true);
+  // 等待表单进行的异步验证器（username, email, password 等异步验证）
+  tick(1000);
+  // 刷新 DOM
+  fixture.detectChanges();
+  findEl(fixture, 'form').triggerEventHandler('submit', {});
+  expectText(fixture, 'status', 'Sign-up successful!');
+  // 验证函数等被调用
+  expect(signupService.isUsernameTaken).toHaveBeenCalledWith(username);
+  expect(signupService.isEmailTaken).toHaveBeenCalledWith(email);
+  expect(signupService.getPasswordStrength).toHaveBeenCalledWith(password);
+  expect(signupService.signup).toHaveBeenCalledWith(signupData);
+}));
+// 未输入验证
+it('does not submit an invalid form', fakeAsync(async () => {
+  await setup();
+  tick(1000);
+  findEl(fixture, 'form').triggerEventHandler('submit', {});
+  expect(signupService.isUsernameTaken).not.toHaveBeenCalled();
+  expect(signupService.isEmailTaken).not.toHaveBeenCalled();
+  expect(signupService.getPasswordStrength).not.toHaveBeenCalled();
+  expect(signupService.signup).not.toHaveBeenCalled();
+}));
+// 异步验证错误
+it('handles signup failure', fakeAsync(async () => {
+  await setup({
+    signup: throwError(new Error('Validation failed')),
+  });
+  fillForm();
+  tick(1000);
+  findEl(fixture, 'form').triggerEventHandler('submit', {});
+  fixture.detectChanges();
+  expectText(fixture, 'status', 'Sign-up error');
+  expect(signupService.isUsernameTaken).toHaveBeenCalledWith(username);
+  expect(signupService.getPasswordStrength).toHaveBeenCalledWith(password);
+  expect(signupService.signup).toHaveBeenCalledWith(signupData);
+}));
+```
+
+
+
+### 必需项验证
+
+对于必需项的验证，需要将表单控件**标记为已触摸**（被聚焦并再次失去焦点），需要监听 `onblur` 事件
+
+```typescript
+// 定义必需项的 id 集合
+const requiredFields = 
+      ['username', 'email', 'name', 'addressLine2', 'city', 'postcode', 'country', 'tos'];
+```
+
+```typescript
+// 触发 blur 事件函数
+const markFieldAsTouched = (element: DebugElement) => {
+  dispatchFakeEvent(element.nativeElement, 'blur');
+};
+```
+
+```typescript
+it('marks fields as required', async () => {
+  await setup();
+  // 循环标记必需项为 touched
+  requiredFields.forEach((testId) => {
+    markFieldAsTouched(findEl(fixture, testId));
+  });
+  fixture.detectChanges();
+  // 循环必需项，检测是否包含错误信息
+  requiredFields.forEach((testId) => {
+    const el = findEl(fixture, testId);
+    expect(el.attributes['aria-required']).toBe('true', `${testId} must be marked as aria-required`);
+    const errormessageId = el.attributes['aria-errormessage'];
+    const errormessageEl = document.getElementById(errormessageId);
+    expect(errormessageEl.textContent).toContain('must be given');
+  });
+});
+```
+
+
+
+### 关联字段验证
+
+> 例如以下案例：
+>
+> ```typescript
+> this.plan.valueChanges.subscribe((plan: Plan) => {
+>   if (plan !== this.PERSONAL) {
+>     // 如果选择的是 'Business'，字段为必需且 lable 显示为 Company
+>     this.addressLine1.setValidators(required);
+>   } else {
+>     // 如果选择的是 'Personal'，字段为可选且 lable 显示为 Address line 1
+>     // 如果选择的是 'Education & Non-profit'，字段为可选且 lable 显示为 Organization
+>     this.addressLine1.setValidators(null);
+>   }
+>   // 验证器已改变，重新验证字段值
+>   this.addressLine1.updateValueAndValidity();
+> });
+> ```
+
+```typescript
+it('requires address line 1 for business and non-profit plans', async () => {
+  await setup();
+
+  // 检查初始为 Personal
+  const addressLine1El = findEl(fixture, 'addressLine1');
+  expect('ng-invalid' in addressLine1El.classes).toBe(false);
+  expect('aria-required' in addressLine1El.attributes).toBe(false);
+
+  // 选择 Business，更新页面并检查
+  checkField(fixture, 'plan-business', true);
+  fixture.detectChanges();
+  expect(addressLine1El.attributes['aria-required']).toBe('true');
+  expect(addressLine1El.classes['ng-invalid']).toBe(true);
+
+  // 选择 Education & Non-profit，更新页面并检查
+  checkField(fixture, 'plan-non-profit', true);
+  fixture.detectChanges();
+  expect(addressLine1El.attributes['aria-required']).toBe('true');
+  expect(addressLine1El.classes['ng-invalid']).toBe(true);
+});
+```
+
+
+
+## 服务测试
+
+### HTTP 请求测试
+
+Angular 提供了用于测试 `HttpClient` 的测试模块 `HttpClientTestingModule`
+
+- `HttpClientTestingModule` 提供了 `HttpClient` 的虚假实现，实际上不会发送 HTTP 请求，会在内部拦截和记录
+
+- 使用 `HttpTestingController` 获取未决请求，使用 `TestBed.inject(HttpTestingController)` 获取实例
+
+  ```typescript
+  let flickrService: FlickrService;
+  let controller: HttpTestingController;
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [FlickrService],
+    });
+    flickrService = TestBed.inject(FlickrService);
+    // 获取未决请求
+    controller = TestBed.inject(HttpTestingController);
+  });
+  ```
+
+- 正常响应测试
+
+  ```typescript
+  const searchTerm = 'dragonfly';
+  const expectedUrl = `https://www.flickr.com/services/rest/?tags=${searchTerm}`;
+  it('searches for public photos', () => {
+    // 初期值为 undefined 来判断是否获取到值
+    let actualPhotos: Photo[] | undefined;
+    flickrService.searchPublicPhotos(searchTerm).subscribe(
+      (otherPhotos) => {
+        actualPhotos = otherPhotos;
+        // 以下写法会导致问题：如果代码有故障，Observable 永远也发不出来值，期望函数也不会校验，Jasmine 也不会报错
+        // expect(actualPhotos).toEqual(photos);
+      }
+    );
+    // 使用 expectOne 期望发出一个与给定 URL 匹配的单个请求
+    // 未找到，抛出异常
+    const request: TestRequest = controller.expectOne(expectedUrl);
+    // 响应请求：使用 flush 响应假数据
+    // 模拟了 200 OK 成功响应
+    request.flush({ photos: { photo: photos } });
+    // 验证没有其他请求正在等待响应
+    // verify 保证被测试的代码不会发出多余的请求
+    controller.verify();
+    // 验证数据，如果数据为 undefined 或者不相同，则失败
+    expect(actualPhotos).toEqual(photos);
+  });
+  ```
+
+- 异常响应测试
+
+  ```typescript
+  // 异常情况验证
+  it('passes through search errors', () => {
+    const status = 500;
+    const statusText = 'Server error';
+    const errorEvent = new ErrorEvent('API error');
+    let actualError: HttpErrorResponse | undefined;
+    flickrService.searchPublicPhotos(searchTerm).subscribe(
+      // 使用 jasmine 的 fail 方法
+      // 错误的情况 next 方法不能被调用
+      () => {
+        fail('next handler must not be called');
+      },
+      // error 方法必须被调用
+      // 错误的情况接受 HttpErrorResponse 对象
+      (error) => {
+        actualError = error;
+      },
+      // 错误的情况 complete 方法不能被调用
+      () => {
+        fail('complete handler must not be called');
+      },
+    );
+    const request = controller.expectOne(expectedUrl);
+    // 使用 error 响应错误，需要一个 ErrorEvent 参数，和一个可选对象参数
+    // new ErrorEvent 构造函数参数为错误信息的描述
+    // 可选对象可以为：HTTP 状态码，状态文本（例如 Internal Server Error ）和相应头
+    request.error(errorEvent, { status, statusText });
+    if (!actualError) {
+      throw new Error('Error needs to be defined');
+    }
+    // HttpErrorResponse 响应对象需要与提供的伪造错误响应一致
+    expect(actualError.error).toBe(errorEvent);
+    expect(actualError.status).toBe(status);
+    expect(actualError.statusText).toBe(statusText);
+  });
+  ```
+
+- 匹配请求方法及请求 body
+
+  - 匹配请求路径
+
+    ```typescript
+    controller.expectOne('https://www.example.org')
+    ```
+
+  - 匹配请求方法
+
+    ```typescript
+    controller.expectOne({method: 'GET', url: 'https://www.example.org'})
+    ```
+
+  - 回调函数详细匹配，回调函数是 `HttpRequest` 实例，有 `method`, `url`, `headers`, `body`, `params` 等属性
+
+    如果不匹配则抛出异常测试失败
+
+    ```typescript
+    controller.expectOne(
+      (requestCandidate) =>
+      requestCandidate.method === 'GET' &&
+      requestCandidate.url === 'https://www.example.org' &&
+      requestCandidate.headers.get('Accept') === 'application/json',
+    );
+    // 等价于
+    controller.expectOne({method: 'GET', url: 'https://www.example.org'})
+    const httpRequest = request.request;
+    expect(httpRequest.headers.get('Accept')).toBe('application/json');
+    request.flush({ success: true });
+    ```
+
+- 测试多个请求
+
+  ```typescript
+  // 请求 API
+  // public postTwoComments(firstComment: string, secondComment: string) {
+  //   return combineLatest([
+  //     this.http.post('/comments/new', { comment: firstComment }),
+  //     this.http.post('/comments/new', { comment: secondComment }),
+  //   ]);
+  // }
+  const firstComment = 'First comment!';
+  const secondComment = 'Second comment!';
+  commentService.postTwoComments(firstComment, secondComment).subscribe();
+  const requests = controller.match({method: 'POST', url: '/comments/new'});
+  expect(requests.length).toBe(2);
+  expect(requests[0].request.body).toEqual({ comment: firstComment });
+  expect(requests[1].request.body).toEqual({ comment: secondComment });
+  requests[0].flush({ success: true });
+  requests[1].flush({ success: true });
+  ```
+
+
+
+## 管道测试
+
+
+
+
+
+
+
+
+
+
+
+
+
+# TypeScript 相关
 
 ## interface
 
-- ##### 类型命名
+- 类型命名
 
   ```typescript
   interface Topinterface TopMenu {
