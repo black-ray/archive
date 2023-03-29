@@ -9964,6 +9964,39 @@ Angular 提供了用于测试 `HttpClient` 的测试模块 `HttpClientTestingMod
 
 # TypeScript 相关
 
+## 简介
+
+- 编译时静态类型检测，函数或方法传参或变量赋值不匹配时，会出现编译错误提示，规避开发期间大量低级错误，省事，省力
+- 自动提示更清晰明确
+- 引入了泛型和一系列的 TS 特有的类型
+- 强大的 d.ts 声明文件，清晰直观展示了依赖库文件的接口，`type` 类型，类
+- 轻松编译成 JS 文件，即使 TS 文件有错误，绝大多数情况也能编译出 JS 文件
+- 灵活性高，尽管 TS 是一门强类型检查语言，但也提供了 `any` 类型和 `as any` 断言，这提供了 TS 的灵活度
+
+- 代码编译
+
+  ```bash
+  tsc xxx.ts
+  ```
+
+
+
+## 环境搭建
+
+- 环境搭建
+
+  ```bash
+  npm init -y
+  npm install typescript
+  tsc --init
+  ```
+
+- 
+
+
+
+
+
 ## interface
 
 - 类型命名

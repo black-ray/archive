@@ -3189,6 +3189,7 @@ Object.definedProperties(obj, {
 ```javascript
 var obj = { };
 Object.defineProperty(obj, 'name', {
+  // value 是属性本身，如果是方法是方法体
   value: 'jack',
   writable: true,
   enumerable: true,
@@ -3197,6 +3198,43 @@ Object.defineProperty(obj, 'name', {
 console.log(Object.getOwnPropertyDescriper(obj, 'name'));
 // { value: 'jack', writable: true, enumerable: true, configurable: true }
 console.log(Object.getOwnPropertyDescripers(obj));
+```
+
+
+
+### 实现方法拦截器
+
+```javascript
+class People {
+ doEat(who, where) {
+   console.log(`who: ${who}, where: ${where}`)
+ } 
+}
+```
+
+```javascript
+const dataProp = Object.getOwnPropertyDescriper(People.prototype, 'doEat')
+// dataProp.value()	 执行方法
+// 在外部拦截函数
+const targetMethod = dataProp.value		// 保存原来的方法
+// 重写原来的方法，添加拦截内容
+dataProp.value = function (...args) {
+  console.log('前置拦截')
+  // 调用原来的方法
+  targetMethod.apply(this, args)
+  console.log('后置拦截')
+}
+// 替换原有的属性描述符，value 被替换
+Object.defineProperty(People.prototype, 'doEat', dataProp)
+```
+
+```javascript
+const people = new People()
+// 执行的时候执行的是描述符中的 value 
+people.doEate('jack', 'Beijing')
+// 前置拦截
+// who: jack, where: Beijing
+// 后置拦截
 ```
 
 

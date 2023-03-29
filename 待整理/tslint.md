@@ -87,3 +87,35 @@ rules:  规则
         }]
 ```
 
+tsconfig
+
+```json
+{
+  "compilerOptions": {
+    /* 基础配置 */
+    "target": "es5",                         /* 代码生成的 ECMAScript 目标版本 */
+    "module": "commonjs",                    /* 指定模块代码生成的模式 */
+    "lib": ["es6", "dom"],                   /* 指定要包含在编译中的库文件 */
+    "allowJs": true,                         /* 允许编译 JavaScript 文件 */
+    "checkJs": true,                         /* 在 JavaScript 文件中进行类型检查 */
+    "jsx": "react",                          /* 指定 JSX 代码生成的模式 */
+    "declaration": true,                     /* 生成 .d.ts 声明文件 */
+    "sourceMap": true,                       /* 生成 sourceMap 文件 */
+    "outDir": "./dist",                      /* 输出目录 */
+    "strict": true,                          /* 启用所有严格类型检查 */
+    "noImplicitAny": true,                   /* 不允许隐式的 any 类型 */
+    "esModuleInterop": true,                  /* 启用 CommonJS 和 ES 模块之间的交互性 */
+    "resolveJsonModule": true,               /* 允许导入 .json 文件 */
+    "forceConsistentCasingInFileNames": true, /* 强制文件名大小写一致性 */
+    
+    /* 高级配置 */
+    "noUnusedLocals": true,                  /* 不允许存在未使用的局部变量 */
+    "noUnusedParameters": true,              /* 不允许存在未使用的函数参数 */
+    "noImplicitReturns": true,               /* 不允许存在缺失的返回类型 */
+    "noFallthroughCasesInSwitch": true,      /* 不允许 switch 语句中存在贯穿的 case */
+    "strictNullChecks": true,                /* 启用严格的 null 检查 */
+    "strictFunctionTypes": true,             /* 启用严格的函数类型检查 */
+    "strictPropertyInitialization": true,    /* 启用严格的属性初始化检查 */
+    "skipLibCheck": true,                    /* 不对库文件进行
+```
+
