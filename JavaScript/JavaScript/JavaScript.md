@@ -65,6 +65,12 @@
 
 # 数据类型
 
+JavaScript 一共有 8 种数据类型
+
+`number`，`boolean`，`string`，`undefined`，`null`，`symbol`，`bigInt`, `object`
+
+
+
 ## 值类型
 
 **值类型**又叫做**基本数据类型**或者简单类型
@@ -89,15 +95,19 @@
 
 - 特殊数值
 
-  最大正数值：`Number.MAX_VALUE`：1.7976931348623157e+308
+  - 最大正数值：`Number.MAX_VALUE`：`1.7976931348623157e+308`
 
-  最小正数值：`Number.MIN_VALUE`：5e-32，小于这个的数字会被转化为 0
 
-  无穷大，大于任何数值：`Infinity`
+  - 最小正数值：`Number.MIN_VALUE`：`5e-32`，小于这个的数字会被转化为 `0`
 
-  无穷小，小于任何数值：`-Infinity`
 
-  非数值，代表一个计算错误：`NaN`
+  - 无穷大，大于任何数值：`Infinity`
+
+
+  - 无穷小，小于任何数值：`-Infinity`
+
+
+  - 非数值，代表一个计算错误：`NaN`
 
 - 二进制、八进制、十六进制写法（ES6）
 
@@ -130,14 +140,14 @@
   console.log(0.07 * 100); // 结果不是 7， 而是：7.000000000000001
   ```
 
-  比较浮点数是否相等
+- 比较浮点数是否相等
 
   ```javascript
   function floatEqual(num1, num2) {
     return Math.abs(num1 - num2) < Number.EPSILON;
   }
   ```
-
+  
   ```javascript
   // 定义精度精确到0.00001
   var delta = 1e-5;
@@ -148,12 +158,12 @@
   	console.log('a + b == sum');
   }
   ```
-
+  
   ```javascript
   // 重写 toFix() 方法，四舍五入为指定小数的数字，再进行比较
   Number.prototype.toFixed = function (s) {
     var times = Math.pow(10, s);
-    //如果是正数，则+0.5，是负数，则-0.5
+    // 如果是正数，则 +0.5，是负数，则 -0.5
     const adjust = this >= 0 ? 0.5 : -0.5;
     var des = this * times + adjust;
     des = parseInt(des, 10) / times;
@@ -161,7 +171,7 @@
   }
   console.log(1.335.toFixed(2)); // 1.34
   ```
-
+  
 - 大数值连接符（ES12）
 
   数字过长时，可以使用 `_` 作为连接符
@@ -723,6 +733,8 @@ fns.forEach(item => item());
 
 - `toString()` 转成字符串
 
+  每个 JavaScript 对象都有内置的 `toString()` 方法
+
   ```javascript
   let num = 1
   console.log(num.toString())	// '1'
@@ -837,9 +849,11 @@ fns.forEach(item => item());
 
 
 
-### 检测数据类型
+## 检测数据类型
 
-- `typeof` 主要用于**检测基本类型** 
+### typeof 运算符
+
+- `typeof` 主要用于**检测基本类型**
 
   ```javascript
   typeof '小白';          // string
@@ -852,6 +866,32 @@ fns.forEach(item => item());
   typeof function() {};	 // function
   ```
 
+- 返回结果为**变量类型名称的小写字符串形式**
+
+  `string`, `number`, `boolean`, `undefined`, `object`, `bigint`, `symbol`, `function`
+
+- 返回的类型没有 `null`，`null` 返回字符串 `object`
+
+- 与 JavaScript 数据类型相比多了一个 `function` 类型，不过函数是一种特殊的对象
+
+- `typeof` 运算符存在一定的欠缺，如果不是字面量字符串而是字符串包装类 `String` 对象，会存在误判
+
+  ```javascript
+  const str = new String('test');
+  typeof str === 'string'			// => false
+  // 返回的会是 `object`
+  ```
+
+  顾及 `String` 包装类对象的写法
+
+  ```javascript
+  typeof str === 'string' | String.prototype.isPrototypeOf(str) // => true
+  ```
+
+
+
+### instanceof 运算符
+
 - `instanceof` 主要用于**检测引用类型**
 
   根据**对象的原形链往上找**，如果原形链上有 `右边类型.prototype`，返回 `true`
@@ -862,10 +902,14 @@ fns.forEach(item => item());
   var fn = function() {}; fn instanceof Function; // true
   ```
 
+
+
+### 原型链检测
+
 - `Object.prototype.toString.call(sth)` 原形链的检测有漏洞（原型是可以改变的）
 
   所以会造成检测结果不准确，所以可以采用此种形式
-  
+
   ```javascript
   var toString = Object.prototype.toString;
   toString.call(undefined);         // [object Undefined]
@@ -881,69 +925,232 @@ fns.forEach(item => item());
 
 
 
+## 基本包装类型
+
+基本包装类型就是**把简单数据类型包装成为复杂数据类型**，这样**基本数据类型就有了属性和方法**
+
+提供了三个特殊的引用类型：`String`、`Number` 和 `Boolean`
+
+```javascript
+var str = 'andy';
+console.log(str.length);
+
+// 包装过程
+// 1. 生成临时变量，把简单类型包装为复杂数据类型
+var temp = new String('andy');
+// 2. 赋值给我们声明的字符变量
+str = temp;
+// 3. 销毁临时变量
+temp = null;
+```
+
+
+
+### 字符串包装类 String
+
+- 字符串的不可变
+
+  里面的值不可变，虽然看上去可以改变内容，但其实是地址变了，内存中新开辟了一个内存空间
+
+- ##### 指定内容的索引 `indexOf('要查找的字符',开始的位置)`
+
+  如果存在返回索引号，不存在返回 `-1`
+
+- ##### 指定内容的最后索引 `lastIndexOf('要查找的字符')` 
+
+  如果存在返回索引号，不存在返回 `-1`
+
+- ##### 返回指定位置的字符 `charAt(index)` 
+
+  `str[index]` H5新增
+
+- ##### 获取指定位置处字符的ASCII码 `charCodeAt(index)`
+
+- ##### 连接两个或多个字符串 `concat()`
+
+- ##### 截取字符串
+
+  `substr('截取的起始位置','截取几个字符')`
+
+  `slice(start, end)` 从start位置开始，截取到end位置，end取不到 （start和end都是索引）
+
+  `substring(start, end)`从start位置开始，截取到end位置，end取不到 (start和end都是索引）不接受负值
+
+- ##### 替换字符`replace(被替换的字符串/正则表达式 ， 要替换为的字符串) `
+
+  只会替换第一个字符（正则表达式可以通过修饰符来修改匹配机制）
+
+  返回值是一个替换完毕的新字符串
+
+- ##### 切分字符串 `split('分隔符')`
+
+- ##### 删除两端空白字符 `trim()`
+
+  不影响原字符串本身，返回新字符串	
+
+- ##### 单独去除前面或者后面空白字符 trimStart / trimEnd（ES10）
+
+  ```javascript
+  const message = "    Hello World    ";
+  console.log(message.trim());			// Hello World
+  console.log(message.trimStart());		// Hello World    
+  console.log(message.trimEnd());			//     Hello World
+  ```
+
+- ##### 模板字符串
+
+  使用字符串模板来嵌入JS的变量或者表达式来进行拼接（ES6新增）
+
+  ```javascript
+  let name = '张三';
+  let age = 18;
+  function nextAge() {
+      return age + 1;
+  }
+  
+  let sayHello = `hello,my name is ${name}`;
+  let ageDouble = `double age is ${age * 2}`;
+  let ageNext = `next year age is ${nextAge()}`;
+  ```
+
+  - 模板字符串中可以换行
+
+- ##### 是否以指定的子字符串开始/结束 `startsWith()`/`endsWith()`
+
+  `startsWith()`：表示参数字符串是否在原字符串的头部，返回布尔值
+
+  `endsWith()`：表示参数字符串是否在原字符串的尾部，返回布尔值
+
+  大小写敏感
+
+- ##### 重复字符串 `repeat()`
+
+  `string.repeat(count)`
+
+  返回新字符串
+
+- ##### 字符串前后填充 padStart()/padEnd()
+
+  `padStart(targetLength [, padString])`
+
+  `padEnd(targetLength [, padString])`
+
+  1. targetLength  字符串需要填充到的目标长度
+  2. padString 填充字符串 默认" "
+
+  ```javascript
+  const message = "Hello World"
+  const newMessage = message.padStart(15, "*").padEnd(20, "-")
+  console.log(newMessage)
+  // ****Hello World-----
+  ```
+
+  ```javascript
+  const cardNumber = "321324234242342342341312"
+  const lastFourCard = cardNumber.slice(-4)
+  const finalCard = lastFourCard.padStart(cardNumber.length, "*")
+  console.log(finalCard)
+  // ********************1312
+  ```
+
+
+
+### 数字包装类 Number
+
+- `toFixed()`：转换为**小数点后保留几位数字**的字符串，必要时**四舍五入**
+
+  ```javascript
+  const num = 1242.0055;
+  const fixedString = num.toFixed(2);
+  // => '1242.01'
+  ```
+
+- `toExponential()`：转换为指定小数点后保留几位的数字科学计数法字符串，必要时四舍五入
+
+  ```javascript
+  const num = 1242.0055;
+  const sciString = num.toExponential(2);
+  // => '1.24e+3'
+  ```
+
+- `toPrecision()`：转换为**保留几位有效数字**的字符串，必要时**四舍五入**
+
+  ```javascript
+  const num = 13.3714;
+  const preString = num.toPrecision(2);
+  // => '13'
+  ```
+  
+  ```javascript
+  const num = 1242.0055;
+  const sciString = num.toPrecision(2);
+  // => '1.2e+3'
+  ```
+
+
+
 ## 拷贝
 
 ### 浅拷贝
 
-**只拷贝一层**，更**深层次对象级别的只拷贝引用**
+- **只拷贝一层**，更**深层次对象**级别的**只拷贝引用**
 
-```javascript
-var obj = {
-  id: 1,
-  name: 'andy',
-  msg: {
-    age: 18
+  ```javascript
+  var obj = {
+    id: 1,
+    name: 'andy',
+    msg: { age: 18 }
+  };
+  
+  var o = {};
+  for (var k in obj) {
+    // k 是属性名   obj[k] 属性值
+    o[k] = obj[k];
   }
-};
-var o = {};
-for (var k in obj) {
-  // k 是属性名   obj[k] 属性值
-  o[k] = obj[k];
-}
-```
+  ```
 
-ES6 新增浅拷贝方法 `Object.assign(target, ...sources) `
+- 浅拷贝方法 `Object.assign(target, ...sources) `（ES6）
 
 
 
 ### 深拷贝
 
-拷贝多层，**每一级别的数据都会拷贝**
+- 拷贝多层，**每一级别的数据都会拷贝**
 
-```javascript
-var obj = {
-  id: 1,
-  name: 'andy',
-  msg: {
-    age: 18
-  },
-  color: ['pink', 'red']
-};
-var o = {};
-
-function deepCopy(newobj, oldobj) {
-  for (var k in oldobj) {
-    // 判断属性值属于哪种数据类型
-    // 1. 获取属性值 oldobj[k]
-    var item = oldobj[k];
-    // 2. 判断这个值是否是数组
-    // 数组也是对象，所以要放到对象判断前面
-    if (item instanceof Array) {
-      newobj[k] = [];
-      deepCopy(newobj[k], item)
-    } else if (item instanceof Object) {
-      // 3. 判断这个值是否是对象
-      newobj[k] = {};
-      deepCopy(newobj[k], item)
-    } else {
-      // 4. 属于简单数据类型
-      newobj[k] = item;
+  ```javascript
+  var obj = {
+    id: 1,
+    name: 'andy',
+    msg: { age: 18 },
+    color: ['pink', 'red']
+  };
+  
+  var o = {};
+  
+  function deepCopy(newobj, oldobj) {
+    for (var k in oldobj) {
+      // 判断属性值属于哪种数据类型
+      // 1. 获取属性值 oldobj[k]
+      var item = oldobj[k];
+      // 2. 判断这个值是否是数组
+      // 数组也是对象，所以要放到对象判断前面
+      if (item instanceof Array) {
+        newobj[k] = [];
+        deepCopy(newobj[k], item)
+      } else if (item instanceof Object) {
+        // 3. 判断这个值是否是对象
+        newobj[k] = {};
+        deepCopy(newobj[k], item)
+      } else {
+        // 4. 属于简单数据类型
+        newobj[k] = item;
+      }
     }
   }
-}
+  
+  deepCopy(o, obj);
+  ```
 
-deepCopy(o, obj);
-```
 
 
 
@@ -979,68 +1186,83 @@ deepCopy(o, obj);
 
 ## 指数运算符
 
-在 ES7 中，增加了 `**` 运算符，可以对数字来计算乘方，等同于  `Math.pow` 方法
+- `**` 运算符，可以对数字来计算乘方，等同于  `Math.pow` 方法 (ES7)
 
-```javascript
-// 计算3的3次方
-const result1 = Math.pow(3, 3)
-const result2 = 3 ** 3
-console.log(result1, result2)
-```
+  ```javascript
+  // 计算 3 的 3 次方
+  const result1 = Math.pow(3, 3)
+  const result2 = 3 ** 3
+  console.log(result1, result2)
+  ```
+
 
 
 
 ## 空值合并运算符
 
-空值合并操作符（`??`），当左侧的操作数为 `null` 或者 `undefined` 时，返回其右侧操作数，否则返回左侧操作数（ES11）
+- 空值合并操作符（`??`），当左侧的操作数为 `null` 或者 `undefined` 时，返回其右侧操作数，否则返回左侧操作数（ES11）
 
-```javascript
-// 用逻辑或来设置默认值有弊端
-const foo = 0;
-const bar = foo || 'defualt value';
-console.log(bar);
-// 'defualt value'
+  ```javascript
+  // 用逻辑或来设置默认值有弊端
+  const foo = 0;
+  const bar = foo || 'defualt value';
+  console.log(bar);
+  // 'defualt value'
+  
+  const foo = '';
+  const bar = foo || 'defualt value';
+  console.log(bar);
+  // 'defualt value'
+  
+  // 使用空值合并运算符??
+  // 只判断是不是 null 和 undefined
+  const foo = undefined;
+  const bar = foo ?? "defualt value";
+  console.log(bar);
+  // 'defualt value'
+  ```
 
-const foo = '';
-const bar = foo || 'defualt value';
-console.log(bar);
-// 'defualt value'
+- `??` 比 `||` 更严格
 
-// 使用空值合并运算符??
-// 只判断是不是 null 和 undefined
-const foo = undefined;
-const bar = foo ?? "defualt value";
-console.log(bar);
-// 'defualt value'
-```
+  `||` 运算符在左边是空字符串、`false` 或 `null`、`undefined`、`0` 等假值，都会返回后侧的值
+
+  `??` 必须运算符左侧的值为 `null` 或 `undefined` 时，才会返回右侧的值
+
+  ```javascript
+  const bar = 0 || 1
+  // => 1
+  const foo = 0 ?? 1
+  // => 0
+  ```
 
 
 
 ## 逻辑赋值运算符
 
-逻辑或赋值运算 `||=` （ES12）
+- 逻辑或赋值运算 `||=` （ES12）
 
-```javascript
-let message = "hello world;
-// message = message || "default value";
-message ||= "default value";
-```
+  ```javascript
+  let message = "hello world;
+  // message = message || "default value";
+  message ||= "default value";
+  ```
 
-逻辑与赋值运算 `&&=`（ES12）
+- 逻辑与赋值运算 `&&=`（ES12）
 
-```javascript
-let info = { name: "aa" };
-// info = info && info.name;
-info &&= info.name;
-```
+  ```javascript
+  let info = { name: "aa" };
+  // info = info && info.name;
+  info &&= info.name;
+  ```
 
-逻辑空赋值运算 `??=`（ES12）
+- 逻辑空赋值运算 `??=`（ES12）
 
-```javascript
-let message = undefined;
-// message = message ?? "default value";
-message ??= "default value";
-```
+  ```javascript
+  let message = undefined;
+  // message = message ?? "default value";
+  message ??= "default value";
+  ```
+
 
 
 
@@ -1396,6 +1618,26 @@ ES6 中对对象字面量进行了增强，称之为 Enhanced object literals（
 
 
 
+## 标签模板
+
+标签模板可以作为函数调用的参数
+
+```javascript
+function foo(param) {
+  console.log(param)
+}
+foo('hello')		// hello
+// 参数被数组包裹
+foo`hello`			// ['hello']
+// 可以传入复杂参数
+foo`
+<div>hello</div>
+<div>world</div>
+`
+```
+
+
+
 
 ## 解构
 
@@ -1735,7 +1977,7 @@ console.log(obj.friend?.girlFriend?.name);
 
   ```javascript
   function foo(num1, num2, num3) {
-    // 会去AO中寻找arguments
+    // 会去 AO 中寻找 arguments
     console.log(arguments);			// Arguments(5) [10, 20, 30, 40, 50]
     console.log(num1, num2, num3);
   }
@@ -1916,6 +2158,27 @@ foo();			  // 20, 30
     console.log(x, y, z, m, n);
   }
   console.log(foo.length);			// 2
+  ```
+
+- 默认参数可以使用三目运算符
+
+  ```javascript
+  function foo(a, b = a === 1 ? 2 : 3) {
+    console.log(b)
+  }
+  console.log(foo(1));
+  // => 2
+  ```
+
+- 默认参数可以传递函数执行结果
+
+  ```javascript
+  function getNowDate() {
+    return Date.now();
+  }
+  function foo(a = getNowDate()) {
+    console.log(a);
+  }
   ```
 
 
@@ -4066,47 +4329,154 @@ ns.eating();
 
 ## 数学对象 Math
 
-Math 对象不是构造函数，具有数学常数和函数的属性和方法。直接使用里面的属性和方法即可
+- `Math` 对象不是构造函数，具有数学常数和函数的属性和方法，直接使用里面的属性和静态方法即可
 
-- ##### 圆周率 `Math.PI `
 
-- ##### 向下取整 `Math.floor() `
 
-  往小了取值
+### 向下取整 floor
 
-- ##### 向上取整 `Math.ceil() ` 
+`Math.floor()`
 
-  往大了取值
+- **去掉所有的小数**，**向下**为最近的**整数**（**往小了取值**）
 
-- ##### 四舍五入 `Math.round()`
+  ```javascript
+  Math.floor(0.5);
+  // => 0
+  Math.floor(4.5);
+  // => 4
+  Math.floor(4.4);
+  // => 4
+  Math.floor(4.9);
+  // => 4
+  ```
 
-   注意 -3.5 结果是 -3 。
 
-  .5特殊，往大了取值
 
-- ##### 绝对值 `Math.abs()`
+### 向上取整 ceil
 
-- ##### 求最大和最小值 `Math.max()`、`Math.min()`
+`Math.ceil() `
 
-   参数是 0 个或者多个
+- **去掉所有的小数**，**向上**为下一个**整数**（**往大了取值**）
 
-   `Math.max(value1, value2, … , valueN)`，如果没有参数，返回 `-Infinity`
+  ```javascript
+  Math.ceil(0.5);
+  // => 1
+  Math.ceil(4.5);
+  // => 5
+  Math.ceil(4.4);
+  // => 5
+  Math.ceil(4.9);
+  // => 5
+  ```
 
-   `Math.min(value1, value2, … , valueN)`，如果没有参数，返回 `Infinity`
 
-   ```javascript
-   var min = Math.min();
-   var max = Math.max();
-   console.log(min < max);	// false
-   ```
 
-- ##### 随机数 `random()`
+### 四舍五入到整数 round
 
-  取值范围0 <= x < 1
+`Math.round()`
 
-  两个数之间的随机整数，并且包含这两个整数
-  
-  `Math.floor(Math.random() * (max - min + 1)) + min;`
+- 把一个数值四舍五入到最近的**整数**
+
+  ```javascript
+  const num = 19.48938;
+  const roundNum = Math.round(num);
+  // => 19
+  ```
+
+- `round()` **不可以指定保留几位小数**，如果需要**不同的精度**，**需要将数值乘以 10 的相应次方，四舍五入后再除以 10 的相同次方**
+
+  ```javascript
+  const numToRound = num * (10 ** digital);
+  let roundedNum = Math.round(numToRound);
+  roundedNum = roundedNum / (10 ** digital);
+  ```
+
+  ```javascript
+  // 四舍五入保留两位小数
+  const num = 19.48938;
+  const numToRound = num * (10 ** 2);
+  let roundedNum = Math.round(numToRound);
+  roundedNum = roundedNum / (10 ** 2);
+  // => 19.49
+  ```
+
+  **四舍五入到最近的 十 或者 百 等单位**，将保留的**小数位指定为负数**即可
+
+  ```javascript
+  const num = 19.48938;
+  const numToRound = num * (10 ** -1);
+  let roundedNum = Math.round(numToRound);
+  roundedNum = roundedNum / (10 ** -1);
+  // => 20
+  ```
+
+  ```javascript
+  const num = 140.48938;
+  const numToRound = num * (10 ** -2);
+  let roundedNum = Math.round(numToRound);
+  roundedNum = roundedNum / (10 ** -2);
+  // => 100
+  ```
+
+- 如果是恰好是 `0.5` ，则向上取整为 `0`
+
+- 四舍五入负数时，`-0.5` 会向上取整为 `0`
+
+  ```javascript
+  Math.round(-3.5)
+  // => -3
+  ```
+
+
+
+### 绝对值 abs
+
+ `Math.abs()`
+
+
+
+### 最大值和最小值 max / min
+
+`Math.max()`、`Math.min()`
+
+参数是 0 个或者多个
+
+`Math.max(value1, value2, … , valueN)`，如果没有参数，返回 `-Infinity`
+
+`Math.min(value1, value2, … , valueN)`，如果没有参数，返回 `Infinity`
+
+```javascript
+var min = Math.min();
+var max = Math.max();
+console.log(min < max);	// false
+```
+
+
+
+### 随机数 random
+
+`Math.random()`
+
+- 生成一个 `0` 到 `1` 之间的浮点数，取值范围 `0 <= x < 1`，通常会按比例放大，再四舍五入，得到一个落在指定范围内的整数
+
+- 获得两个数之间的随机整数，并且包含这两个整数
+
+  `Math.floor(Math.random() * (max - min + 1)) + min`
+
+  `rondom()` 获得随机小数，`floor()` 去掉小数部分获得一个整数
+
+  ```javascript
+  // 1 到 6 之间的随机整数
+  const randomNumber = Math.floor(Math.random() * 6) + 1;
+  ```
+
+- `random()` 生成的是伪随机数，密码学上的随机数使用 `crypto`
+
+
+
+### 常数
+
+- 圆周率 `Math.PI `
 
 
 
@@ -4482,6 +4852,20 @@ if (names.includes(NaN)) {
 
 
 
+### 替换数组元素 fill
+
+`fill(value, start, end)`
+
+- 使用 `vale` 替换数组从 `start` 开始, 到 `end` 结束的元素
+
+```javascript
+const fruits = ["Banana", "Orange", "Apple", "Mango"];
+fruits.fill("Runoob", 2, 4);
+// [Banana, Orange, Runoob, Runoob]
+```
+
+
+
 ### 数组转树
 
 ```javascript
@@ -4730,13 +5114,13 @@ const tree = [
 
 
 
-## 字符串对象
+## 字符串包装类型 String
 
-- ##### 基本包装类型
+- 基本包装类型
 
   基本包装类型就是把简单数据类型包装成为复杂数据类型，这样基本数据类型就有了属性和方法
 
-  提供了三个特殊的引用类型：String、Number和 Boolean
+  提供了三个特殊的引用类型：`String`、`Number` 和 `Boolean`
 
   ```javascript
   var str = 'andy';
@@ -4755,21 +5139,21 @@ const tree = [
 
   里面的值不可变，虽然看上去可以改变内容，但其实是地址变了，内存中新开辟了一个内存空间
 
-- ##### 指定内容的索引`indexOf('要查找的字符',开始的位置)`
+- ##### 指定内容的索引 `indexOf('要查找的字符',开始的位置)`
 
   如果存在返回索引号，不存在返回-1
 
-- ##### 指定内容的最后索引`lastIndexOf('要查找的字符')` 
+- ##### 指定内容的最后索引 `lastIndexOf('要查找的字符')` 
 
   如果存在返回索引号，不存在返回-1
 
-- ##### 返回指定位置的字符`charAt(index)` 
+- ##### 返回指定位置的字符 `charAt(index)` 
 
   `str[index]` H5新增
 
-- ##### 获取指定位置处字符的ASCII码`charCodeAt(index)`
+- ##### 获取指定位置处字符的ASCII码 `charCodeAt(index)`
 
-- ##### 连接两个或多个字符串`concat()`
+- ##### 连接两个或多个字符串 `concat()`
 
 - ##### 截取字符串
 
@@ -4785,7 +5169,7 @@ const tree = [
 
   返回值是一个替换完毕的新字符串
 
-- ##### 切分字符串`split('分隔符')`
+- ##### 切分字符串 `split('分隔符')`
 
 - ##### 删除两端空白字符 `trim()`
 
@@ -4856,7 +5240,7 @@ const tree = [
 
  
 
-## 正则对象RegExp
+## 正则对象 RegExp
 
 - ##### 创建正则表达式
 
@@ -4873,7 +5257,7 @@ const tree = [
 
 
 
-## 唯一值集合Set
+## 唯一值集合 Set
 
 `Set `是唯一值的集合。不能提供索引。
 
@@ -4996,6 +5380,39 @@ const tree = [
   // ['height', '1.88']
   const paramObj = Object.fromEntries(queryParams)
   console.log(paramObj)			// {name: 'why', age: '18', height: '1.88'}
+  ```
+
+- Object.keys
+
+  Object.keys 的实现是使用 `for in`，for in 输出结果不包括 `symbol` 类型，要输出 `Symbol` 类型需要使用 `getOwnPropertySymbols` 方法
+
+  生成 key 数组的顺序
+
+  1. 创建一个空列表 keys，用于存放属性名
+  2. 属性名是合法数组索引值（正整数）的，按照升序依次存入列表（非正整数按照字符串处理）
+  3. 属性名是字符串类型的，按照创建的时间先后顺序依次存入列表
+  4. 属性名是 Symbol 类型的，也按照创建的时间先后顺序一次存入列表
+  5. 返回列表 keys
+
+  ```javascript
+  const obj= {};
+  
+  obj["d"] = "";
+  obj["a"] = ";
+  obj["b"] = ";
+  obj["c"] = "";
+  obj[4] = "";
+  obj[1] = "";
+  obj[3] = "";
+  obj[2] = "";
+  obj[0.9] = "";
+  obj[Symbol("a")] = "";
+  obj[Symbol("b")] = "";
+  obj[Symbol(2)] = "";
+  obj[Symbol(1)] = "";
+  
+  console.log(Object.keys(obj));
+  // => ['1', '2', '3', '4', 'd', 'a', 'b', 'c'. '0.9']
   ```
 
 
@@ -5929,6 +6346,149 @@ infoProxy.address = "北京市";
 // 广州市				->> 注册响应式函数时的执行结果
 // 北京市				->> 修改属性值时监听的执行结果
 ```
+
+
+
+## 元数据
+
+- 元数据是**附加在**对象、类、方法、属性、参数上的数据
+
+- 元数据用来帮助提供实现某种业务功能需要用到的数据
+
+- 使用元数据需要引入 reflect-metadata 第三方库
+
+  ```bash
+  npm i reflect-metadata
+  ```
+
+  ```javascript
+  import 'reflect-metadata'
+  ```
+
+- 为类或对象定义 / 获取元数据
+
+  `Reflect.defineMetadata(metaKey, metaValue, targetClassObject)`
+
+  `Reflect.getMetadata(metaKey, targetClassObject)`
+
+  ```javascript
+  let obj = {
+    username: 'jack'
+  }
+  // 定义元数据
+  Reflect.defineMetadata('metaObjKey', '我是对象元数据', obj)
+  // 获取元数据
+  Reflect.getMetadata('metaObjKey', obj)	// 我是对象元数据
+  // 是否存在元数据
+  Reflect.hasMetadata('metaObjKey', obj) 	// true
+  ```
+
+- 为方法定义 / 获取元数据
+
+  `Reflect.defineMetadata(metaKey, metaValue, targetPrototype, methodKey)`
+
+  `Refeclt.getMetadata(metaKey, targetPrototype, methodKey)`
+
+  ```javascript
+  class Info {
+    detail() {
+      console.log('信息')
+    }
+  }
+  // 定义元数据
+  // targetPrototype 参数是类的原型
+  Refect.defineMetadata('infoMetaKey', '这是信息方法', Info.prototype, 'detail')
+  // 获取元数据
+  Reflect.getMetadata('infoMetaKey', Info.prototype, 'detail')	// 这是信息方法
+  // 是否存在元数据
+  Reflect.hasMetadata('infoMetaKey', Info.prototype, 'detail')	// true
+  ```
+
+- 为属性定义 / 获取元数据
+
+  `Refeclt.defineMetadata(metaKey, metaValue, targetPrototype, propKey)`
+
+  `Refeclt.getMetadata(metaKey, targetPrototype, propKey)`
+
+  ```javascript
+  let obj = {
+    username: 'jack'
+  }
+  // 定义元数据
+  Refect.defineMetadata('usernameMetaKey', '这是用户名', obj, 'username')
+  // 获取元数据
+  Reflect.getMetadata('usernameMetaKey', obj, 'username')	// 这是用户名
+  ```
+
+- 使用装饰器定义元数据
+
+  ```typescript
+  @Reflect.metadata('classMetaKey', '都是地球人')
+  class People {
+    @Reflect.metadata('propMetaKey', '姓名不能包含非法汉字')
+    username = 'jack'
+    @Reflect.metadata('methodMetaKey', '吃西餐')
+    eat() {}
+  }
+  ```
+
+- 获取自有元数据，不能获取父类的元数据 `hasOwnMetadata`
+
+  ```javascript
+  @Reflect.metadata('classMetaKey', '都是地球人')
+  class People {
+    @Reflect.metadata('methodMetaKey', '吃西餐')
+    eat() {}
+  }
+  class ChinesePeople extends People {}
+  ```
+
+  ```javascript
+  Reflect.hasMetadata('classMetaKey', ChinesePeople.prototype, 'methodMetaKey')	// true
+  Reflect.hasOwnMetadata('classMetaKey', ChinesePeople.prototype, 'methodMetaKey')	// false
+  ```
+
+- 获取所有元数据 `getMetadataKeys`
+
+  ```typescript
+  class People {
+    @Reflect.metadata('firstname', '第一个名字')
+    @Reflect.metadata('lastname', '最后一个名字')
+    getFullName(name :string, age: number): string {
+      return "kevin"
+    }
+  }
+  ```
+
+  ```javascript
+  Reflect.getMetadataKeys(People.prototype, 'getFullName').forEach((metaKey) => {
+    console.log(metaKey)
+    Reflect.getMetadata(metakey, People.prototype, 'getFullName')
+  })
+  // 打印结果，包含内置元数据
+  // [
+  //   'design:returntype',
+  //   'design:paramtypes',
+  //   'design:type',
+  //   'lastname',
+  //   'firstname'
+  // ]
+  // 内置返回值类型 design:returntype	打印输出 [Function: String]
+  // 内置参数类型 design:paramtypes    打印输出 [Function: String], [Function: Number]
+  // 内置被元数据修饰的类型 design:type  打印输出 [Function: Function]
+  ```
+
+- 内置元数据
+
+  - `design:paramtypes`：参数数据类型组成的数组（构造器参数数据类型、方法参数数据类型）
+
+    ```javascript
+    const constructorParamType = Reflect.getMetadata('design:paramtypes', target)
+    ```
+
+  - `design:type `：属性 / 方法的数据类型
+
+  - `design:returntype`：方法返回值的数据类型
 
 
 
@@ -9728,6 +10288,8 @@ export const age = 18
    // 导入默认的导出
    import why from './foo.js'
    ```
+
+- 导出的值是**只读**的，而且是**引用传递**
 
 
 

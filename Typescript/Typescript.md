@@ -169,7 +169,7 @@
 
     ```json
   "strictNullChecks": true
-    ```
+  ```
 
 -   函数参数只支持逆变
 
@@ -586,7 +586,7 @@ let num: 1 | 2 | 3 = 1
 
 
 
-### 接口
+### 接口 interface
 
 - 接口是另一种定义对象类型的类型
 
@@ -711,47 +711,144 @@ interface Product {
 
 
 
-### type 类型
+### 类型 type
 
-- `type` 可以定义任何类型，包括基础类型、联合类型、交叉类型、元祖
-  `interfaxce` 只可以定义对象类型或接口当名字的函数类型
+#### 定义类型
 
-  ```typescript
-  // 定义基础类型
-  type num = number
-  // 定义联合类型
-  type baseType = string | number | symbol
-  // 定义联合类型（联合接口）
-  interface Car { brandNo: string }
-  interface Plane { No: string; brandNo: string }
-  type TypVechile = Carl | Plane
-  // 定义元组
-  interface car { brandNo: string }
-  interface Plane { No: string; brandNo: string }
-  type TypVechile = [car, Plane]
-  ```
-
-- `type` 没有继承功能
-  `interface` 可以 `extends` 一个或多个接口或类，也可以继承 `type`
-
-- `type` 使用交叉类型 `&` 可以让类型中的成员合并成一个新的 `type` 类型
-
-  `interface` 不能合并
+- 定义对象类型
 
   ```typescript
-  type Group = { groupName: string, memberNum: number }
-  type GroupInfoLag = { info: string, happen: string }
-  type GroupMemeber = Group & GroupInfoLog
-  
-  let data: GroupMemeber = {
-    groupName: '01',
-    memberNum: 10,
-    info: '集体爬山',
-    happen: '中途有组员恐高，有惊无险'
+  type TState = {
+    name: string;
+    age: number;
+    (x: number) => number;
+  }
+  // 与 interface 相同
+  interface IState {
+    name: string;
+    age: number;
+    (x: number) => number;
   }
   ```
 
-- 相同名称的 `interface` 可以合并声明，同名 `type` 会出现编译错误
+- 使用索引签名
+
+  ```typescript
+  type TDict = {
+    [key: string]: string
+  }
+  // 与 interface 相同
+  interface IDict {
+    [key: string]: string
+  }
+  ```
+
+- 定义函数类型
+
+  ```typescript
+  type TFn = (x: number) => string;
+  // 与 interface 相同
+  interface IFn {
+    (x: number) => string;
+  }
+  ```
+
+- 使用泛型
+
+  ```typescript
+  type TPair<T> = {
+    first: T;
+    second: T;
+  }
+  // 与 interface 相同
+  interface IPair<T> {
+    first: T;
+    second: T;
+  }
+  ```
+
+- 交叉类型 `&` 扩展类型
+
+  ```typescript
+  // 使用 & 来扩展接口
+  type TStateExtend = IState & { addition: string }
+  // interface 使用 extends 扩展接口
+  interface IStateExtend extends IState {
+    addition: string
+  }
+  ```
+
+  ```typescript
+  // 定义交叉类型
+  type Input = { /*....*/ }
+  type Output = { /*....*/ }
+  // 将 name 附加到 Input 和 Output 类型上
+  type NameVariable = (Input | Output) & { name: string }
+  ```
+
+#### 与接口的区别
+
+- `type` 可以定义任何类型
+
+  - `type` 可以定义**任何类型**，包括**基础类型、联合类型、交叉类型、映射类型、条件类型、元祖等**
+  - `interface` 只可以定义**对象类型**或接口当名字的**函数类型**
+
+  ```typescript
+  // 基础类型
+  type num = number
+  ```
+
+  ```typescript
+  // 联合类型
+  type baseType = string | number | symbol
+  // 联合接口
+  interface Car { brandNo: string }
+  interface Plane { No: string; brandNo: string }
+  type TypVechile = Carl | Plane
+  ```
+
+  ```typescript
+  // 元组
+  type Tuple = [number, number]
+  // 接口也可以定义元祖，但是会放弃所有的元祖方法，例如 contact
+  interface Tuple {
+    0: number;
+    1: number;
+    lenght: 2;
+  }
+  ```
+
+- `type` 不能继承，只能通过 `&` 扩展
+  
+  - `type` 没有继承功能，但是可以使用交叉类型 `&` 可以让类型中的成员合并成一个新的 `type` 类型
+  - `interface` 可以 **`extends` 一个或多个接口或类**，也**可以继承 `type`**
+  
+  ```typescript
+  // 类型合并接口
+  interface Age {
+    age: number
+  }
+  type User = { name: string } & User
+  ```
+  
+  ```typescript
+  // 类型合并类型
+  type Group = { groupName: string, memberNum: number }
+  type GroupInfoLag = { info: string, happen: string }
+  type GroupMemeber = Group & GroupInfoLog
+  ```
+  
+  ```typescript
+  type Name = { name: string }
+  // 接口继承类型
+  interface User extends Name {
+    age: number
+  }
+  ```
+  
+- `interface` 可以声明合并
+
+  **相同名称的 `interface` 可以合并声明**，同名 `type` 会出现编译错误
 
   ```typescript
   interface Error { name: string }
@@ -760,7 +857,7 @@ interface Product {
   let error: Error = { message: '空指针', name: 'NullPointException' }
   ```
 
-
+  > Typescript 使用合并来获得不同版本的 JavaScript 标准库，例如在 `Array` 接口在 lib.es5.d.ts 中定义，如果 tsconfig.json 中的 lib 属性中添加了 ES2015，那么就会包含 lib.es2015.d.ts 文件。其中会有另一个 `Array` 接口定义，其他会有新添加的 `find` 方法。通过合并两者，最终会得到一个完整的 `Array` 接口类型
 
 ### 类型断言和转换
 
@@ -1663,7 +1760,187 @@ createFactoryConstructor(User)
   }
   ```
 
-  
+
+
+
+## 元数据
+
+- 元数据是**附加在**对象、类、方法、属性、参数上的数据
+
+- 元数据用来帮助提供实现某种业务功能需要用到的数据
+
+- 使用元数据需要引入 reflect-metadata 第三方库
+
+  ```bash
+  npm i reflect-metadata
+  ```
+
+  ```javascript
+  import 'reflect-metadata'
+  ```
+
+
+
+### 类或对象元数据
+
+- 为类或对象定义 / 获取元数据
+
+  `Reflect.defineMetadata(metaKey, metaValue, targetClassObject)`
+
+  `Reflect.getMetadata(metaKey, targetClassObject)`
+
+  ```javascript
+  let obj = { username: 'jack' }
+  // 定义元数据
+  Reflect.defineMetadata('metaObjKey', '我是对象元数据', obj)
+  // 获取元数据
+  Reflect.getMetadata('metaObjKey', obj)	// 我是对象元数据
+  // 是否存在元数据
+  Reflect.hasMetadata('metaObjKey', obj) 	// true
+  ```
+
+
+
+### 方法元数据
+
+`Reflect.defineMetadata(metaKey, metaValue, targetPrototype, methodKey)`
+
+`Refeclt.getMetadata(metaKey, targetPrototype, methodKey)`
+
+```javascript
+class Info {
+  detail() {
+    console.log('信息')
+  }
+}
+// 定义元数据
+// targetPrototype 参数是类的原型
+Refect.defineMetadata('infoMetaKey', '这是信息方法', Info.prototype, 'detail')
+// 获取元数据
+Reflect.getMetadata('infoMetaKey', Info.prototype, 'detail')	// 这是信息方法
+// 是否存在元数据
+Reflect.hasMetadata('infoMetaKey', Info.prototype, 'detail')	// true
+```
+
+
+
+### 属性元数据
+
+`Refeclt.defineMetadata(metaKey, metaValue, targetPrototype, propKey)`
+
+`Refeclt.getMetadata(metaKey, targetPrototype, propKey)`
+
+```javascript
+let obj = {
+  username: 'jack'
+}
+// 定义元数据
+Refect.defineMetadata('usernameMetaKey', '这是用户名', obj, 'username')
+// 获取元数据
+Reflect.getMetadata('usernameMetaKey', obj, 'username')	// 这是用户名
+```
+
+
+
+### 元数据方法
+
+- 定义元数据 `defineMetadata`
+
+  ```typescript
+  // 为类或者对象上定义元数据
+  Reflect.defineMetadata(metaKey, metaValue, targetClassObject)
+  // 为方法定义元数据
+  Reflect.defineMetadata(metaKey, metaValue, targetPrototype, methodName)
+  // 为属性定义元数据
+  Reflect.defineMetadata(metaKey, metaValue, targetPrototype, propKey)
+  ```
+
+- 获取元数据 `getMetadata`，获取失败返回 `undefined`
+
+  ```typescript
+  // 获取定义在类或者对象上的元数据
+  Refect.getMetadata(metaKey, targetClassObject)
+  // 获取定义在方法上的元数据
+  Refeclt.getMetadata(metaKey, targetPrototype, methodName)
+  // 获取定义在属性上的元数据
+  Refeclt.getMetadata(metaKey, targetPrototype, propKey)
+  ```
+
+- 获取自有元数据，不能获取父类的元数据 `hasOwnMetadata`
+
+  ```javascript
+  @Reflect.metadata('classMetaKey', '都是地球人')
+  class People {
+    @Reflect.metadata('methodMetaKey', '吃西餐')
+    eat() {}
+  }
+  class ChinesePeople extends People {}
+  ```
+
+  ```javascript
+  Reflect.hasMetadata('classMetaKey', ChinesePeople.prototype, 'methodMetaKey')	// true
+  Reflect.hasOwnMetadata('classMetaKey', ChinesePeople.prototype, 'methodMetaKey')	// false
+  ```
+
+- 获取所有元数据 `getMetadataKeys`，包含内置元数据
+
+  ```typescript
+  class People {
+    @Reflect.metadata('firstname', '第一个名字')
+    @Reflect.metadata('lastname', '最后一个名字')
+    getFullName(name :string, age: number): string {
+      return "kevin"
+    }
+  }
+  ```
+
+  ```javascript
+  Reflect.getMetadataKeys(People.prototype, 'getFullName').forEach((metaKey) => {
+    console.log(metaKey)
+    Reflect.getMetadata(metakey, People.prototype, 'getFullName')
+  })
+  // 打印结果，包含内置元数据
+  // [
+  //   'design:returntype',
+  //   'design:paramtypes',
+  //   'design:type',
+  //   'lastname',
+  //   'firstname'
+  // ]
+  // 内置返回值类型 design:returntype	打印输出 [Function: String]
+  // 内置参数类型 design:paramtypes    打印输出 [Function: String], [Function: Number]
+  // 内置被元数据修饰的类型 design:type  打印输出 [Function: Function]
+  ```
+
+
+
+### 内置元数据
+
+- `design:paramtypes`：参数**数据类型**组成的数组（构造器 / 方法的参数数据类型）
+
+  ```javascript
+  const constructorParamType = Reflect.getMetadata('design:paramtypes', target)
+  ```
+
+- `design:type `：属性 / 方法的数据类型
+
+- `design:returntype`：方法返回值的数据类型
+
+
+
+### 装饰器定义元数据
+
+```typescript
+@Reflect.metadata('classMetaKey', '都是地球人')
+class People {
+  @Reflect.metadata('propMetaKey', '姓名不能包含非法汉字')
+  username = 'jack'
+  @Reflect.metadata('methodMetaKey', '吃西餐')
+  eat() {}
+}
+```
+
+
 
 ## 装饰器
 
@@ -1673,15 +1950,491 @@ createFactoryConstructor(User)
 
 - 常见的装饰器：**类装饰器、属性装饰器、方法装饰器、参数装饰器，元数据装饰器**
 
+- ts.config 中消除装饰器警告
+
+  ```json
+  "experimentDecorators": true,
+  "emitDecorarorMetadata": true,
+  ```
+
+
+
+### 类装饰器
+
+#### 无参数类装饰器
+
+- 函数**参数**就是**类构造函数本身**
+
+  ```typescript
+  // 将类交给装饰器去使用
+  @NoParamaterClassDecorator
+  class CustomerService {
+    name: string = '下单'
+    constructor() {}
+    buy() {
+      console.log(this.name + '购买')
+    }
+  }
+  ```
+  
+  ```typescript
+  // 参数就是类构造函数本身
+  function NoParamaterClassDecorator(targetClass: any) {
+    let targetClassObj = new targetClass();
+    targetClassObj.buy();
+    console.log('targetClass.name:', targetClass.name);
+    console.log(targetClass.prototype.constructor.name);
+    // 在类上通过原型获取方法
+    Object.keys(targetClass.prototype).forEach((methodName) => {
+      console.log('方法', methodName);
+      let dataprop = Object.getOwnPropertyDescriptor(targetClass.prototype, methodName)；
+      console.log('方法数据属性', dataprop);
+    });
+  }
+  ```
+  
 
 
 
 
+#### 带参数类装饰器
+
+- 带参数的高阶函数，**返回无参数的类装饰器**，利用闭包访问外部参数
+
+  ```typescript
+  // 高阶函数接受参数返回函数
+  function WithParamaterClassDecorator(params: any) {
+    // 返回无参数的装饰构造器
+    return function (targetClass: any) {
+      let targetClassobj = new targetClass();
+      targetClassobj.buy();
+      console.log(params);
+    }
+  }
+  ```
+
+  ```typescript
+  @WithParamaterClassDecorator('带参数的类装饰器')
+  class CustomerService {
+    name: string = '下单'
+    constructor() {}
+    buy() {
+      console.log(this.name + '购买')
+    }
+  }
+  ```
 
 
 
+#### 泛型工厂类继承装饰器
+
+- 类装饰器的**返回值**是**被装饰的类的构造函数**
+
+- 泛型工厂类继承装饰器，通过在装饰器中**创建并返回一个继承了被装饰类的子类**
+  从而用创建的子类去**替换掉原有类的构造函数**，到达监视被装饰类创建对象的过程
+
+- 使用泛型工厂类继承装饰器，对**创建对象的过程进行拦截**
+
+  使用带参数和无参数类装饰器都无法实现在创建对象的过程中进行拦截
+
+  ```typescript
+  // 创建类对象时打印日志装饰器
+  function LoggerInfoDecorator<T extends { new (...args: any): any }>(targetClass: T) {
+    // 创建一个子类继承被装饰的类，用子类去替换原本的父类
+    // 使用匿名类写法
+    return class extends targetClass { 
+      // 子类构造函数可以监视父类创建对象，并进行拦截
+      constructor(...args: any) {
+        super(...args)
+        console.log('日志信息:', targetClass);
+      }
+    }
+  }
+  ```
+
+  ```typescript
+  @LoggerInfoDecorator
+  class Test {
+    name: string;
+    constructor(name: string) {
+      this.name = name;
+    }
+  }
+  // 创建对象的时候，打印日志信息
+  // 执行的构造函数是被装饰器替换后的子类构造函数
+  const test = new Test();
+  // 输出：日志信息: Test
+  ```
+
+- 带参数的泛型工厂类继承装饰器
+
+  ```typescript
+  function Controller(path: string) {
+    return function <T extends { new (...args: any): any }>(targetClass: T) {
+      // 从原型中获取方法的元数据
+      Object.keys(targetClass.prototype).forEach((methodName) => {
+        const reqPath = Reflect.getMetadata('path', targetClass.prototype, methodName)
+       })
+    }
+  }
+  ```
+
+  ```typescript
+  @Controller('/')
+  class Controller {
+  }
+  ```
 
 
 
+### 方法装饰器
+
+```typescript
+type MethodDecorator = <T>
+  (target: Object, propertyKey: string | symbol, descriptor: TypedPropertyDescriptor<T>) 
+  => void | TypedPropertyDescriptor<T>
+```
+
+1. `target`：目标类的**原型**
+
+2. `propertyKey`：目标的方法名
+
+3. `descriptor`：目标方法的数据属性，数据属性中 **`value` 属性**就是**被修饰的方法本身**
+
+   `descriptor.value()`
 
 
+
+#### 无参数方法装饰器
+
+```typescript
+/**
+* @param targetClassPrototype  目标类的原型
+* @param methodName 目标的方法名
+* @param methodDecri 目标方法的数据属性
+*/
+function MyMethodDecorator(targetClassPrototype: any,
+                            methodName: string, 
+                            methodDescriptor: PropertyDescriptor): MethodDecorator {
+  console.log('目标类原型:', targetClassPrototype)
+  console.log('目标方法名:', methodName)
+  console.log('方法的数据属性:', methodDescriptor)
+  // 数据属性中的value属性代表了方法本身
+  // 执行被装饰器修饰的方法
+  methodDescriptor.value();		// 分配角色.....
+}
+```
+
+```typescript
+class RoleService {
+  @MyMethodDecorator
+  DistribRoles() {
+    console.log('分配角色.....');
+  }
+}
+```
+
+
+
+#### 有参数方法装饰器
+
+```typescript
+function MyMethodDecorator(reqPath: string): MethodDecorator {
+  return function (targetClassPrototype, methodName, methodDescriptor) {
+    // 在类中的方法上添加元数据
+    // 'path' 元数据 key，reqPath 元数据值，元数据放到 targetClassPrototype 原型方法上
+    Reflect.defineMetadata('path', reqPath, targetClassPrototype, methodName)
+    
+    console.log('装饰器参数', reqPath)
+    console.log('目标类原型:', targetClassPrototype)
+    console.log('目标方法名:', methodName)
+    console.log('方法的数据属性:', methodDescriptor)
+    // 数据属性中的value属性代表了方法本身
+    // 执行被装饰器修饰的方法
+    methodDescriptor.value();		// 分配角色.....
+  }
+}
+```
+
+```typescript
+class RoleService {
+  @MyMethodDecorator('/search')
+  DistribRoles() {
+    console.log('分配角色.....');
+  }
+}
+```
+
+
+
+#### 方法拦截器
+
+```typescript
+function MethodInterceptor(params: string) {
+  return function (targetClassPrototype: any, methodname: string, dataProps: PropertyDescriptor) {
+    // 保存原来的方法 (PropertyDescriptor.value 就是装饰器修饰的方法本身)
+    const targetMethod = dataProps.value
+    // 重写原来的方法，添加拦截内容
+    dataProps.value = function (...args: any[]) {
+      // 拦截范例：对函数参数进行去空格操作
+      args = args.map(arg => {
+        if (typeof arg === 'string') return StringUtil.trimSpace(arg)
+        return arg
+      })
+      console.log('前置拦截...')
+      // 调用原来的方法
+      targetMethod.apply(this, args)
+      console.log('后置拦截')
+    }
+  }
+}
+```
+
+```typescript
+class RoleService {
+  @MethodInterceptor
+  DistribRoles(userName: string) {
+    console.log('分配角色:' + userName);
+  }
+}
+```
+
+
+
+### 参数装饰器
+
+#### 方法参数装饰器
+
+```typescript
+function UrlParam(params: any) {
+  // targetClassPrototype: 类原型
+  // methodname: 方法名
+  // paramindex: 参数的位置，0开始
+  return function paramDecorator(targetClassPrototype: any, methodname: string, paramindex: number) {
+    console.log('targetClassPrototype:', targetClassPrototype)
+    console.log('methodname:', methodname)
+    console.log('paramindex:', paramindex )
+    targetClassPrototype.info = params
+  }
+}
+```
+
+```typescript
+class People {
+  eat(@Urlparam('地址信息') address: string, who: string) {}
+}
+```
+
+
+
+#### 构造器参数装饰器
+
+```typescript
+function InjectContructor(injectId: string): ParameterDecorator {
+  // targetClass 就为类本身，不是原型
+  return (targetClass, paramName, index) => {
+    // 使用内置元数据，获取 target 目标类上构造函数所有参数类型
+    // constructorParamArr 数组结果：[ [Function: UserService], [Function: String] ]
+    const constructorParamArr = Reflect.getMetadata('design:paramtypes', targetClass)
+    // 利用参数位置，获取被装饰的参数类型
+    // 为被装饰的构造器参数创建对象
+    const InjectConstructorClassObj = new constructorParamArr[index]()
+    // 保存在容器中
+    collectionInstance.set(injectId, InjectConstructorClassObj)
+  })
+}
+```
+
+```typescript
+class UserController {
+  // 依赖注入，创建和使用分离，创建在外部创建
+  constructor(@InjectContructor('userService') private userService: UserService, name: string) {}
+}
+```
+
+
+
+### 属性装饰器
+
+```typescript
+type PropertyDecorator = (target: Object, propertyKey: string | symbol) => void
+```
+
+1. `target`：目标类的**原型**
+2. `propertyKey`：属性名
+
+
+
+#### 带参数属性装饰器
+
+```typescript
+function loginProperty(attrValue: any) {
+  // targetClassPrototype 目标类的原型
+  // attrname 属性名
+  return function (targetClassPrototype: object, attrname: string | symbol) {
+    console.log('targetclassPrototype:targetclassPrototype', targetClassPrototype)
+    console.log('attrname:', attrname)
+    (targetClassPrototype.constructor as any).custLevelDescriptor = function () {
+      console.log('升级为管理员')
+    }
+  }
+}
+```
+
+```typescript
+class CustomerService {
+  public custname: string = "王五"
+  @loginProperty('登录')
+  public degree!: string
+}
+```
+
+
+
+#### 依赖注入实现
+
+```typescript
+export function Inject(injectId?: string): PropertyDecorator {
+  return (targetClassPrototype, propertykey) => {
+    // 通过元数据，获取装饰器修饰的属性的类型
+    // 通过内置元数据，获取属性类型
+    const propClass = Reflect.getMetadata('design:key', targetClassPrototype, propertykey)
+    const propClassObj = new propClass()
+  }
+}
+```
+
+```typescript
+class Controller {
+  @Inject('userService')
+  private userService: UserService
+}
+```
+
+
+
+### 装饰器执行顺序
+
+- 被修饰的目标上有多个装饰器，装饰器按照从下往上顺序执行
+
+- 属性装饰器 -> 方法参数装饰器 -> 方法装饰器 -> 构造器参数装饰器 -> 类装饰器
+
+  ```typescript
+  @UrlInfoDecorator
+  class URLInfo {
+    
+    constructor(@ConstructorDecorator("url") public uri: string) {}
+    
+    @UrIPropDecorator
+    public url: string = "https://www.baidu.com'
+    
+    @FirstMethodDecorator
+    methodOne(@FirstParamDecorator data: string) {
+      console.log(this.uri)
+    }
+    
+    @SecondMethodDecorator("OK")
+    methodTwo(@SecondParamDecorator('Hi') address: string) {
+      console.log(address)
+    }
+  }
+  // 执行属性装饰器, 属性名: url
+  // 执行第一个参数装饰器, 方法名: methodOne, 索引: 0
+  // 执行第一个方法装饰器, 方法名: methodOne
+  // 执行第二个参数装饰器, 方法名: methodTwo, 索引: 0
+  // 执行第一个方法装饰器, 方法名: methodTwo
+  // 构造器参数装饰器
+  // 类装饰器
+  ```
+
+  ```typescript
+  // 方法装饰器
+  function FirstMethodDecorator(targetClassPrototype: any, methodName: string) {
+    console.log("执行第一个方法装饰器")
+  }
+  // 方法装饰器
+  function SecondMethodDecorator(params: string) {
+    return function (targetClassPrototype: any, methodName: string) {
+      console.log("执行第二个方法装饰器")
+    }
+  }
+  // 参数装饰器
+  function FirstParamDecorator(targetClassPrototype: any, paramName: string, paramIndex: number) {
+    console.log("执行第一个参数装饰器")
+  }
+  // 参数装饰器
+  function SecondParamDecorator(params: string) {
+    return function(targetClassPrototype: any, paramName: string, paramIndex: number) {
+      console.log("执行第二个参数装饰器")
+    }
+  }
+  // 属性装饰器
+  function UrlPropDecorator(targetClassPrototype: any, attrName: any) {
+    console.log("执行属性装饰器")
+  }
+  // 类装饰器
+  function UrlInfoDecorator(targetClass: any) {
+    console.log("类装饰器")
+  }
+  // 构造器参数装饰器
+  function ConstructorDecorator(params: any) {
+    return function (targetClass: any, paramName: string, paramIndex: number) {
+      console.log("构造器参数装饰器")
+    }
+  }
+  ```
+
+- 利用装饰器执行顺序实现各装饰器联动
+
+  ```typescript
+  // 在类装饰器中，可以获取到方法装饰器中定义的元数据
+  @Controller('/')
+  class UserController {
+    
+    // 属性装饰器最先执行
+    @Inject("userService")
+    private userService?: UserService
+    
+    // 方法装饰器先于类装饰器执行
+    @Get('login')
+    public login(username: string, password: number) {
+    	userService.login()
+    }
+  }
+  ```
+
+  ```typescript
+  // 属性装饰器
+  function Inject(injectid: string): PropertyDecorator {
+    return (targetClassPrototype, propertykey) => {
+      const propClass = Reflect.getMetadata('design:key', targetClassPrototype, propertykey);
+      const propClassObj = new propClass();
+    }
+  }
+  ```
+
+  ```typescript
+  // 方法装饰器
+  function Get(reqPath: string): MethodDecorator {
+    return function (targetClassPrototype, methodname, dataprops) {
+      // 在方法装饰器上定义元数据 path
+      Reflect.defineMetadata("path", reqPath, targetClassPrototype, methodname)
+    }
+  }
+  ```
+
+  ```typescript
+  // 类装饰器
+  function Controller(rootPath: string) {
+    return function <T extends { new(...args: any): any }>(targetClass: T) {
+      // 获取类原型上定义的装饰器
+      // ts.cofing 的 target 属性要改成 es5
+      Object.keys(targetClass.prototype).forEach((methodName) =>{
+        const reqPath = Reflect.getMetadata("path", targetClass.prototype, methodName)
+        console.log('reqPath', reqPath)
+      })
+    }
+  }
+  ```
+
+  

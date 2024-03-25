@@ -768,6 +768,112 @@ export class AppComponent {
 
 
 
+## 环境文件
+
+> - 环境文件提供了一种根据部署环境配置应用程序设置的方式
+> - Angular 默认提供了两个环境文件：**environment.ts 用于开发环境**，**environment.prod.ts 用于生产环境**
+> - 文件包含了可以在整个应用程序中访问的变量
+> - 使用多个环境文件可以提高可维护性，并避免在每次环境切换时手动更改代码库
+> - 将敏感信息（如 API 密钥或数据库凭据）与代码库分开的优势
+> - 简化了在部署过程中更新配置值的流程
+
+- 环境文件
+
+  ```typescript
+  // src/environments/environment.staging.ts
+  export const environment = {
+    production: false,
+    apiUrl: process.env.API_URL,
+    debugMode: process.env.DEBUG_MODE === 'true',
+  };
+  ```
+
+- 修改 angular.json 文件以包含新的环境配置，并利用不同的环境文件构建应用
+
+  ```json
+  "configurations": {
+    "staging": {
+      "fileReplacements": [
+        {
+          "replace": "src/environments/environment.ts",
+          "with": "src/environments/environment.staging.ts"
+        }
+      ],
+      "optimization": true,
+      "outputHashing": "all",
+      // 其他配置...
+    },
+    "production": {
+      "fileReplacements": [
+        {
+          "replace": "src/environments/environment.ts",
+          "with": "src/environments/environment.prod.ts"
+        }
+      ],
+      "optimization": true,
+      "outputHashing": "all",
+      // 其他配置...
+    }
+  }
+  
+  ```
+
+  ```bash
+  ng build --configuration=staging
+  ng build --configuration=production
+  ng build --prod
+  ```
+
+- 利用 node 脚本自动化环境配置
+
+  自动化环境配置可以确保一致性，并减少在不同环境之间切换时出错的可能性
+
+  利用 Node.js 脚本读取 .env 文件并动态生成必要的 Angular 环境文件
+
+  - 定义 `.env` 文件存储环境变量
+
+    > - `.env` 文件是一个简单的文本文件，用于存储应用程序的环境变量
+    > - 遵循 KEY=VALUE 的语法，允许设置配置值，而无需在代码库中硬编码
+
+    ```env
+    API_URL=https://api.example.com
+    DEBUG_MODE=true
+    releaseVersion=1
+    ```
+
+  - 创建 generate-env.js，来读取 .env 文件并生成 Angular 环境文件
+
+    ```javascript
+    const fs = require('fs');
+    
+    // 读取并按行拆分为一个数组
+    const envConfig = fs.readFileSync('.env', 'utf8').split('\n');
+    const configObject = {};
+    envConfig.forEach((line) => {
+      // 将每一行按照等号 (=) 拆分为 key 和 value
+      const [key, value] = line.split('=');
+      configObject[key.trim()] = value.trim();
+    });
+    const environmentFileContent = `export const environment = {
+      production: ${configObject.PRODUCTION === 'true'},
+      apiUrl: '${configObject.API_URL}',
+      debugMode: ${configObject.DEBUG_MODE === 'true'},
+    };
+    `;
+    fs.writeFileSync('src/environments/environment.custom.ts', environmentFileContent);
+    ```
+
+  - 与 npm 脚本集成，运行脚本将会生成自定义环境文件
+
+    ```json
+    "scripts": {
+      "generate-env": "node generate-env.js",
+      "build:staging": "npm run generate-env && ng build --configuration=staging"
+    }
+    ```
+
+
+
 # 组件 Component
 
 ## 创建组件
@@ -1385,9 +1491,9 @@ export class MyComponent {
     // 属性的值默认为变量，变量直接在组件里定义即可
     // '[style.color]': "'red'" 设置字符串
     '(click)': 'onClick($event.target)', 	// 事件
-    'role': 'nav', 							// 属性
-    '[class.pressed]': 'isPressed', 		// 类
-    'class': 'mat-table'					// 类
+    'role': 'nav', 												// 属性
+    '[class.pressed]': 'isPressed', 		 // 类
+    'class': 'mat-table'									// 类
   }
 })
 export class DemoComponent {
@@ -1649,7 +1755,9 @@ ngOnChanges(changes: SimpleChanges) {
 
 - **组件的输入属性 `@Input` 变化时调用，可以被触发调用多次**，**第一次是在组件初始化之前**
 
-  没有 `@Input` 变量，不会触发 `ngOnChanges` 事件
+  **没有 `@Input` 变量，不会触发 `ngOnChanges` 事件**
+
+- 第一次 `ngOnChanges` 的调用是在接收到所有 `@Input` 属性之后触发（没接收到的 `@Input` 属性为 `undefined`）
 
 - 对于**基本数据类型**来说，只要**值发生变化就可以被检测**
 
@@ -1664,7 +1772,32 @@ ngOnChanges(changes: SimpleChanges) {
   - `SimpleChanges` 的子属性类型为 `SimpleChange`，**包含当前值，前一个值，是否是第一次改变**
 
 - 主要**用在父子组件传值中**，父组件给子组件传值的时候，以及父组件改变传值的数据时调用
+
 - 要注意父级改变传递值的情况，会导致 `ngOnChange` 在生命周期的任何时刻都可能被再次调用
+
+- 尽量使用 `ngOnChanges` 去处理 `@Input` 属性变化，而不是使用 `@Input` 属性的 `setter` 函数
+
+  - 使用 `setter` 会在**一次变化周期中调用两个回调函数**：当属性设置时，`setter` 被调用，`ngOnChanges` 被调用
+
+  - 如果  `setter` 函数中**并非仅涉及一个属性的时候，需要严格注意 `@Input` 属性的输入顺序**
+
+    而 `ngOnChanges` 会保证 `@Input` 属性都获取到了以后再执行
+
+    ```typescript
+    @Input() set menu(value: any[]) {
+      this._menu = value;
+    }
+    @Input() set cate(value: any) {
+      this._cate = value;
+      this._menu.filter((m) => m.cate === this._cate)
+    }
+    ```
+
+    ```html
+    <!-- 这两种参数输入顺序的执行结果是完全不同的 -->
+    <child [menu]="menu" [cate]="cate"></child>
+    <child [cate]="cate" [menu]="menu"></child>	<!-- 错误 -->
+    ```
 
 
 
@@ -1908,6 +2041,39 @@ export class ParentAndChildComponent implements OnInit { }
 
 
 
+### 获取组件静态属性 @Attribute
+
+- `@Attribute` 用于在组件构造函数中获取组件的**静态属性**
+
+  > - 输入属性由 `@Input` 装饰器标记，通过组件标签的属性来进行数据绑定
+  > - `@Attribute` 获取的是组件标签上的静态属性，不支持动态属性绑定
+
+  ```html
+  <app-protected-section role="admin">Admin-Only Content</app-protected-section>
+  ```
+
+  ```typescript
+  import { Component, Attribute } from '@angular/core';
+  
+  @Component({
+    selector: 'app-protected-section',
+    template: '<div *ngIf="isAuthorized">{{ content }}</div>'
+  })
+  export class ProtectedSectionComponent {
+    constructor(@Attribute('role') private requiredRole: string) {}
+  
+    content: string;
+    isAuthorized: boolean = false;
+  
+    ngOnInit() {
+      this.content = this.nativeElement.innerHTML;
+      this.isAuthorized = this.requiredRole === 'admin';
+    }
+  }
+  ```
+
+
+
 ## 脏值检测
 
 ### 脏值检测基本概念
@@ -1970,6 +2136,8 @@ export class ParentAndChildComponent implements OnInit { }
   }
   ```
   
+- 变更检测机制被设计为**在微任务队列清空后运行**，这确保视图仅在处理完所有微任务后才更新
+
 - 使用 `NgZone` 改变属性值
 
   ```typescript
@@ -2049,7 +2217,7 @@ export class ParentAndChildComponent implements OnInit { }
 
 Angular 引入 Zone.js 以处理变更检测
 
-具体来说，Zone.js 通过对所有常见的**异步 API 打上了“补丁” 以追踪所有的异步操作**，进而使 Angular 可以决定何时刷新 UI
+具体来说，Zone.js 通过对所有常见的**异步 API 打上了补丁以追踪所有的异步操作**，进而使 Angular 可以决定何时刷新 UI
 
 - 什么是 Zone
 
@@ -2654,6 +2822,26 @@ export class CdkPortalOverviewExample implements AfterViewInit {
   <div [innerHTML]="h"></div>
   ```
 
+  为了加强 **XSS 保护**，使用 `DomSanitizer` 服务来安全地处理 HTML 内容
+
+  ```typescript
+  import { Component } from '@angular/core';
+  import { DomSanitizer } from '@angular/platform-browser';
+  
+  @Component({
+    selector: 'app-safe-html',
+    template: `
+      <div [innerHTML]="safeHtml"></div>
+    `,
+  })
+  export class SafeHtmlComponent {
+    safeHtml: any;
+    constructor(private sanitizer: DomSanitizer) {
+      this.safeHtml = this.sanitizer.bypassSecurityTrustHtml(`<p>Hello, <strong>Angular</strong> is awesome!</p>`);
+    }
+  }
+  ```
+
 - 数据绑定容错处理
 
   ```html
@@ -3185,14 +3373,15 @@ this.imgs.ForEach(item => {
   class NgTemplateOutletExample {
     // 使用@ContentChild手动捕获模板
     @ContentChild(TemplateRef) name: TemplateRef<any>;
-    myContext = { data: 'World' };
+    myContext = { $implicit: 'World', name: 'Jack' };
   }
   ```
 
   ```html
   <wrapper>
-    <ng-template let-value="data">
+    <ng-template let-value let-name=name>
       <span>Hello {{ value }}!</span>
+      <span>Welcome {{ name }}!</span>
     </ng-template>
   </wrapper>
   ```
@@ -3235,6 +3424,8 @@ this.imgs.ForEach(item => {
     }
   }
   ```
+
+- `createEmbeddedView` 的第二参数 `context` 为嵌入视图的数据绑定上下文对象
 
 - 将模板插入到指定位置
 
@@ -4491,6 +4682,150 @@ export class AppComponet {
 
 
 
+#### 表单组件嵌套
+
+> 在单个父组件中，表单逻辑被包含在同一个组件中，但是如果想要**将其中一些逻辑分离到一个子组件中**怎么办呢
+>
+> ```typescript
+> export class FormGroupParentComponent {
+>   public form: FormGroup<IUserForm>;
+>   constructor() {
+>     this.form = new FormGroup<IUserForm>({
+>       name: new FormControl('Max'),
+>       age: new FormControl(20),
+>       address: new FormGroup<IAddress>({
+>         country: new FormControl('Poland'),
+>         city: new FormControl('Wroclaw'),
+>         contacts: new FormGroup<IContacts>({
+>           phone: new FormControl('123456789'),
+>           email: new FormControl('test@test.com'),
+>         }),
+>       })
+>     });
+>   }
+> }
+> ```
+>
+> 拆分前组件 html 模板
+>
+> ```html
+> <form [formGroup]="form">
+>   <span>User info</span>
+>   <div>
+>     <label for="name">Name:</label>
+>     <input type="text" formControlName="name" id="name">
+>   </div>
+>   <div formGroupName="address">
+>     <span>Address info</span>
+>     <div>
+>       <label for="country">Country:</label>
+>       <input type="text" formControlName="country" id="country">
+>     </div>
+>     <div>
+>       <label for="city">City:</label>
+>       <input type="text" formControlName="city" id="city">
+>     </div>
+>     <br/>
+>     <div formGroupName="contacts">
+>       <span>Contacts info</span>
+>       <div>
+>         <label for="phone">Phone:</label>
+>         <input type="text" formControlName="phone" id="phone">
+>       </div>
+>       <div>
+>         <label for="email">Email:</label>
+>         <input type="text" formControlName="email" id="email">
+>       </div>
+>     </div>
+>   </div>
+> </form>
+> ```
+
+- 如果使用子组件来封装部分表单逻辑，需要在 `@Component` 装饰器中添加 `viewProviders` 配置，该配置用于为组件提供 `FormGroupDirective` 访问权限
+
+  `FormGroupDirective` 在使用响应式表单时是必需的
+
+  `provide` 属性指示应提供的令牌或服务，`useExisting` 指定应使用现有的 `FormGroupDirective` 实例
+
+  ```typescript
+  @Component({
+    selector: 'app-child-form-group',
+    standalone: true,
+    imports: [CommonModule, ReactiveFormsModule, ChildInChildFormGroupComponent],
+    templateUrl: './child-form-group.component.html',
+    styleUrls: ['./child-form-group.component.scss'],
+    viewProviders: [{ provide: ControlContainer, useExisting: FormGroupDirective }]
+  })
+  export class ChildFormGroupComponent {}
+  ```
+
+  ```html
+  <div formGroupName="address">
+    <span>Address info</span>
+    <div>
+      <label for="country">Country:</label>
+      <input type="text" formControlName="country" id="country">
+    </div>
+    <div>
+      <label for="city">City:</label>
+      <input type="text" formControlName="city" id="city">
+    </div>
+    <br/>
+    <div formGroupName="contacts">
+      <span>Contacts info</span>
+      <div>
+        <label for="phone">Phone:</label>
+        <input type="text" formControlName="phone" id="phone">
+      </div>
+      <div>
+        <label for="email">Email:</label>
+        <input type="text" formControlName="email" id="email">
+      </div>
+    </div>
+  </div>
+  ```
+
+- 子组件依赖注入 `FormGroupDirective` 获得父组件表单的引用
+
+  ```typescript
+  @Component({
+    selector: 'app-child-in-child-form-group',
+    standalone: true,
+    imports: [CommonModule, ReactiveFormsModule],
+    templateUrl: './child-in-child-form-group.component.html',
+    styleUrls: ['./child-in-child-form-group.component.scss'],
+    viewProviders: [{ provide: ControlContainer, useExisting: FormGroupDirective }]
+  })
+  export class ChildInChildFormGroupComponent implements OnInit{
+    private formGroupDirective = inject(FormGroupDirective);
+    public parentForm!: FormGroup;
+    public contactsForm!: FormGroup;
+  
+    ngOnInit(): void {
+      this.parentForm = this.formGroupDirective.form;
+      // 使用 get 方法获取了名为 "contacts" 的嵌套 FormGroup
+      this.contactsForm = this.parentForm.get('address')?.get('contacts') as FormGroup;
+    }
+  }
+  ```
+
+  ```html
+  <div [formGroup]="contactsForm" >
+    <span>Contacts info</span>
+    <div>
+      <label for="phone">Phone:</label>
+      <input type="text" formControlName="phone" id="phone">
+    </div>
+    <div>
+      <label for="email">Email:</label>
+      <input type="text" formControlName="email" id="email">
+    </div>
+  
+  </div>
+  ```
+
+
+
 #### 控件状态样式类
 
 Angular 为控件的不同状态准备了相应的 CSS 样式类，可以使用这些类为表单添加表单控件的样式
@@ -5327,6 +5662,538 @@ export class GridItemImageDirective implements OnInit {
 
 
 
+## 常见自定义指令
+
+### 自定义表单验证
+
+```typescript
+@Directive({
+  selector: '[appPasswordValidator]',
+  providers: [
+    { provide: NG_VALIDATORS, useExisting: PasswordValidatorDirective, multi: true },
+  ],
+})
+export class PasswordValidatorDirective implements Validator {
+  @Input('appPasswordValidator') requiredPattern: string;
+  validate(control: AbstractControl): ValidationErrors | null {
+    if (control.value) {
+      const pattern = new RegExp(this.requiredPattern);
+      const isValid = pattern.test(control.value);
+      if (!isValid) {
+        return { passwordPattern: true };
+      }
+    }
+    return null;
+  }
+}
+```
+
+```html
+<input type="password" name="password" [(ngModel)]="user.password" appPasswordValidator="[A-Za-z]+[0-9]+"/>
+```
+
+
+
+### 自动对焦
+
+```typescript
+@Directive({
+  selector: '[appAutofocus]'
+})
+export class AutofocusDirective implements AfterViewInit {
+  constructor(private el: ElementRef) {}
+  ngAfterViewInit() {
+    this.el.nativeElement.focus();
+  }
+}
+```
+
+```html
+<input type="text" placeholder="Auto-focused input" appAutofocus />
+```
+
+
+
+### 图片懒加载
+
+仅在图片出现在视口中时加载图片
+
+```typescript
+@Directive({
+  selector: '[appLazyLoad]'
+})
+export class LazyLoadDirective {
+  constructor(private el: ElementRef, private renderer: Renderer2) {}
+
+  @HostListener('window:scroll', ['$event'])
+  onScroll() {
+    // 当元素位于视口中时，将 data-src 属性替换为 src 属性来加载图像
+    if (this.isElementInViewport()) {
+      this.loadImage();
+    }
+  }
+
+  private isElementInViewport(): boolean {
+    const rect = this.el.nativeElement.getBoundingClientRect();
+    return (
+      rect.top >= 0 &&
+      rect.left >= 0 &&
+      rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+      rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+  }
+
+  private loadImage() {
+    const dataSrc = this.el.nativeElement.getAttribute('data-src');
+    if (dataSrc) {
+      this.renderer.setAttribute(this.el.nativeElement, 'src', dataSrc);
+      this.el.nativeElement.removeAttribute('data-src');
+    }
+  }
+}
+```
+
+```html
+<!-- 使用 data-src 属性指定要延迟加载的图像源 -->
+<img src="placeholder.jpg" data-src="lazy-image.jpg" alt="Lazy-loaded image" appLazyLoad/>
+```
+
+
+
+### 元素拖拽
+
+```typescript
+@Directive({
+  selector: '[appDraggable]'
+})
+export class DraggableDirective {
+  private isDragging = false;
+
+  constructor(private el: ElementRef, private renderer: Renderer2) {
+    this.renderer.setStyle(this.el.nativeElement, 'cursor', 'grab');
+    this.renderer.setStyle(this.el.nativeElement, 'user-drag', 'none');
+  }
+
+  @HostListener('mousedown', ['$event'])
+  onMouseDown(event: MouseEvent) {
+    this.isDragging = true;
+    this.renderer.setStyle(this.el.nativeElement, 'cursor', 'grabbing');
+    event.preventDefault();
+  }
+
+  @HostListener('document:mouseup')
+  onMouseUp() {
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.renderer.setStyle(this.el.nativeElement, 'cursor', 'grab');
+    }
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onMouseMove(event: MouseEvent) {
+    if (this.isDragging) {
+      const offsetX = event.clientX - this.el.nativeElement.getBoundingClientRect().left;
+      const offsetY = event.clientY - this.el.nativeElement.getBoundingClientRect().top;
+      this.renderer.setStyle(this.el.nativeElement, 'position', 'absolute');
+      this.renderer.setStyle(this.el.nativeElement, 'left', `${offsetX}px`);
+      this.renderer.setStyle(this.el.nativeElement, 'top', `${offsetY}px`);
+    }
+  }
+}
+```
+
+```html
+<div appDraggable>Drag me around!</div>
+```
+
+
+
+### 外部点击
+
+处理点击特定元素外部的操作，比如下拉菜单或模态框，通过与页面的其他部分交互来关闭这些元素
+
+```typescript
+@Directive({
+  selector: '[appClickOutside]'
+})
+export class ClickOutsideDirective {
+  @Output() appClickOutside = new EventEmitter<void>();
+  constructor(private el: ElementRef) {}
+  @HostListener('document:click', ['$event'])
+  onClick(event: Event): void {
+    if (!this.el.nativeElement.contains(event.target)) {
+      this.appClickOutside.emit();
+    }
+  }
+}
+```
+
+```html
+<div appClickOutside (appClickOutside)="closeDropdown()">
+  <button (click)="toggleDropdown()">Toggle Dropdown</button>
+  <div *ngIf="dropdownOpen" class="dropdown">
+    Dropdown content
+  </div>
+</div>
+```
+
+
+
+### 确认对话框
+
+```typescript
+import { Directive, Input, TemplateRef, ViewContainerRef, HostListener } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { ConfirmDialogComponent } from './confirm-dialog/confirm-dialog.component';
+
+@Directive({
+  selector: '[appConfirmDialog]'
+})
+export class ConfirmDialogDirective {
+  @Input() confirmMessage: string;
+
+  constructor(
+    private dialog: MatDialog,
+    private templateRef: TemplateRef<any>,
+    private viewContainer: ViewContainerRef
+  ) {}
+
+  @HostListener('click', ['$event'])
+  onClick(event: Event): void {
+    event.preventDefault();
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      data: { message: this.confirmMessage }
+    });
+
+    dialogRef.afterClosed().subscribe((result) => {
+      if (result) {
+        this.viewContainer.createEmbeddedView(this.templateRef);
+      }
+    });
+  }
+}
+```
+
+```html
+<button [appConfirmDialog]="'Are you sure you want to perform this action?'">Delete</button>
+```
+
+
+
+### 无限滚动
+
+在处理大量数据列表时，向下滚动页面时加载内容
+
+```typescript
+@Directive({
+  selector: '[appInfiniteScroll]'
+})
+export class InfiniteScrollDirective {
+  @Input() scrollThreshold = 100;
+  @Output() scrolled = new EventEmitter<void>();
+  constructor(private el: ElementRef) {}
+  @HostListener('scroll', ['$event'])
+  onScroll(event: Event): void {
+    const element = event.target as HTMLElement;
+    const atBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + this.scrollThreshold;
+    if (atBottom) {
+      this.scrolled.emit();
+    }
+  }
+}
+```
+
+```html
+<div class="scrollable-content" appInfiniteScroll (scrolled)="loadMoreData()">
+  <!-- Your list of items -->
+</div>
+```
+
+
+
+### 突出显示
+
+```typescript
+@Directive({
+  selector: '[appHighlightSearch]'
+})
+export class HighlightSearchDirective implements OnChanges {
+  @Input() searchQuery: string;
+  constructor(private el: ElementRef) {}
+  ngOnChanges() {
+    if (this.searchQuery && this.searchQuery.length > 0) {
+      const text = this.el.nativeElement.innerText;
+      const regex = new RegExp(`(${this.escapeRegExp(this.searchQuery)})`, 'gi');
+      const highlightedText = text.replace(regex, '<mark>$1</mark>');
+      this.el.nativeElement.innerHTML = highlightedText;
+    }
+  }
+  private escapeRegExp(query: string): string {
+    return query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  }
+}
+```
+
+```html
+<p [appHighlightSearch]="searchQuery">
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed quisquam iste, qui ex ea voluptate velit
+</p>
+```
+
+
+
+### 响应式
+
+根据屏幕尺寸控制元素的可见性
+
+```typescript
+@Directive({
+  selector: '[appResponsive]'
+})
+export class ResponsiveDirective implements OnInit {
+  @Input() appResponsive: string; // Comma-separated screen size breakpoints (e.g., 'md, lg')
+  private currentScreenWidth: string = 'md'; // Default screen size
+
+  constructor(
+    private templateRef: TemplateRef<any>,
+    private viewContainer: ViewContainerRef
+  ) {}
+
+  ngOnInit() {
+    this.detectScreenSize();
+  }
+
+  private detectScreenSize() {
+    const screenWidth = this.getScreenWidth();
+    if (this.appResponsive.includes(screenWidth)) {
+      this.viewContainer.createEmbeddedView(this.templateRef);
+    } else {
+      this.viewContainer.clear();
+    }
+  }
+
+  private getScreenWidth(): string {
+    const width = window.innerWidth;
+    if (width >= 1200) {
+      return 'lg';
+    } else if (width >= 992) {
+      return 'md';
+    } else if (width >= 768) {
+      return 'sm';
+    } else {
+      return 'xs';
+    }
+  }
+}
+```
+
+```html
+<div [appResponsive]="'md, lg'">
+  This content is visible on medium and large screens.
+</div>
+```
+
+
+
+### 悬停提示
+
+```typescript
+@Directive({
+  selector: '[appTooltip]'
+})
+export class TooltipDirective implements OnInit {
+  @Input() appTooltip: string;
+
+  private tooltipElement: HTMLDivElement;
+  private isVisible: boolean = false;
+
+  constructor(private el: ElementRef, private renderer: Renderer2) {}
+
+  ngOnInit() {
+    this.createTooltipElement();
+  }
+
+  @HostListener('mouseenter')
+  onMouseEnter() {
+    this.showTooltip();
+  }
+
+  @HostListener('mouseleave')
+  onMouseLeave() {
+    this.hideTooltip();
+  }
+
+  private createTooltipElement() {
+    this.tooltipElement = this.renderer.createElement('div');
+    this.renderer.addClass(this.tooltipElement, 'tooltip');
+    this.tooltipElement.innerHTML = this.appTooltip;
+    this.renderer.setStyle(this.tooltipElement, 'display', 'none');
+    this.renderer.appendChild(this.el.nativeElement, this.tooltipElement);
+  }
+
+  private showTooltip() {
+    const rect = this.el.nativeElement.getBoundingClientRect();
+    const top = rect.top - this.tooltipElement.clientHeight - 10;
+    const left = rect.left + rect.width / 2 - this.tooltipElement.clientWidth / 2;
+
+    this.renderer.setStyle(this.tooltipElement, 'top', `${top}px`);
+    this.renderer.setStyle(this.tooltipElement, 'left', `${left}px`);
+    this.renderer.setStyle(this.tooltipElement, 'display', 'block');
+    this.isVisible = true;
+  }
+
+  private hideTooltip() {
+    this.renderer.setStyle(this.tooltipElement, 'display', 'none');
+    this.isVisible = false;
+  }
+}
+```
+
+```html
+<button [appTooltip]="'Click me to learn more'">Learn More</button>
+```
+
+
+
+### 禁用右键
+
+```typescript
+
+@Directive({
+  selector: '[appDisableRightClick]'
+})
+export class DisableRightClickDirective {
+  constructor() {}
+  @HostListener('contextmenu', ['$event'])
+  onRightClick(event: Event): void {
+    event.preventDefault();
+  }
+}
+```
+
+```html
+<div appDisableRightClick>
+  Right-clicking is disabled on this element.
+</div>
+```
+
+
+
+###  复制到剪贴板
+
+```typescript
+@Directive({
+  selector: '[appCopyToClipboard]'
+})
+export class CopyToClipboardDirective {
+  @Input() appCopyToClipboard: string;
+  constructor(private el: ElementRef) {}
+  @HostListener('click')
+  onClick() {
+    if (this.appCopyToClipboard) {
+      const textarea = document.createElement('textarea');
+      textarea.value = this.appCopyToClipboard;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  }
+}
+```
+
+```html
+<button [appCopyToClipboard]="'Text to copy'">Copy to Clipboard</button>
+```
+
+
+
+### 经过时间
+
+显示经过的时间（相对时间）
+
+```typescript
+@Directive({
+  selector: '[appTimeAgo]'
+})
+export class TimeAgoDirective implements OnChanges {
+  @Input() appTimeAgo: Date;
+
+  constructor(private el: ElementRef, private renderer: Renderer2) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.appTimeAgo) {
+      this.updateTimeAgo();
+    }
+  }
+
+  private updateTimeAgo(): void {
+    if (this.appTimeAgo instanceof Date) {
+      const timeDifference = Date.now() - this.appTimeAgo.getTime();
+      const secondsAgo = Math.floor(timeDifference / 1000);
+      let text: string;
+      if (secondsAgo < 60) {
+        text = 'just now';
+      } else if (secondsAgo < 3600) {
+        const minutes = Math.floor(secondsAgo / 60);
+        text = `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+      } else if (secondsAgo < 86400) {
+        const hours = Math.floor(secondsAgo / 3600);
+        text = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      } else {
+        const days = Math.floor(secondsAgo / 86400);
+        text = `${days} day${days > 1 ? 's' : ''} ago`;
+      }
+      this.renderer.setProperty(this.el.nativeElement, 'textContent', text);
+    }
+  }
+}
+```
+
+```html
+<p [appTimeAgo]="postDate"></p>
+```
+
+
+
+### 输入格式
+
+确保以特定格式输入数据
+
+```typescript
+@Directive({
+  selector: '[appInputMask]'
+})
+export class InputMaskDirective {
+  @Input() appInputMask: string = '';
+  constructor(private el: ElementRef) {}
+  @HostListener('input', ['$event']) onInput(event: InputEvent) {
+    const input = event.target as HTMLInputElement;
+    const originalValue = input.value.replace(/\D/g, '');
+    let maskedValue = '';
+    let valueIndex = 0;
+    for (let maskIndex = 0; maskIndex < this.appInputMask.length; maskIndex++) {
+      if (/\d/.test(this.appInputMask[maskIndex])) {
+        if (originalValue[valueIndex]) {
+          maskedValue += originalValue[valueIndex++];
+        } else {
+          break;
+        }
+      } else {
+        maskedValue += this.appInputMask[maskIndex];
+      }
+    }
+    input.value = maskedValue;
+  }
+}
+```
+
+```html
+<input type="text" [appInputMask]="'(999) 999-9999'">
+```
+
+
+
 
 # 管道 Pipe
 
@@ -5934,7 +6801,7 @@ export class MyFilterPipe implements PipeTransform {
 
 
 
-## 自定义管道
+## 实现自定义管道
 
 使用 `@Pipe` 注解标记一个类为管道，实现 `PipeTransform` 接口
 
@@ -5986,13 +6853,321 @@ transform(value: any, num?: number): any { }
 <div>{{ paragraph | summary: 20 }}</div>
 ```
 
-使用管道计算经历时间
+
+
+## 常见自定义管道
+
+### 数组过滤
+
+根据给定属性和值筛选数组
 
 ```typescript
-import { Pipe, PipeTransform } from '@angular/core';
+@Pipe({ name: 'filterArray' })
+export class FilterArrayPipe implements PipeTransform {
+  transform(items: any[], property: string, filterValue: any): any[] {
+    if (!items) return [];
+    return items.filter(item => item[property] === filterValue);
+  }
+}
+```
 
-@Pipe({ name: 'appAgo' })
-export class AgoPipe implements PipeTransform {
+```html
+<ul>
+  <li *ngFor="let item of items | filterArray:'category':'Electronics'">{{ item.name }}</li>
+</ul>
+```
+
+
+
+### 文本截断
+
+文本截断为指定的长度，截断后添加省略号
+
+```typescript
+@Pipe({ name: 'truncateText' })
+export class TruncateTextPipe implements PipeTransform {
+  transform(text: string, limit: number): string {
+    if (text.length <= limit) return text;
+    return text.slice(0, limit) + '...';
+  }
+}
+```
+
+```html
+<p>{{ 'This is a long text that should be truncated' | truncateText:20 }}</p>
+<!-- Output: "This is a long text..." -->
+```
+
+
+
+### 数组排序
+
+按升序或降序对数组进行排序
+
+```typescript
+@Pipe({ name: 'sortArray' })
+export class SortArrayPipe implements PipeTransform {
+  transform(array: any[], property: string, order: 'asc' | 'desc' = 'asc'): any[] {
+    if (!array) return [];
+    return array.sort((a, b) => {
+      if (order === 'asc') {
+        return a[property] < b[property] ? -1 : 1;
+      } else {
+        return b[property] < a[property] ? -1 : 1;
+      }
+    });
+  }
+}
+```
+
+```html
+<ul>
+  <li *ngFor="let item of items | sortArray:'price':'asc'">{{ item.name }} - {{ item.price }}</li>
+</ul>
+```
+
+
+
+### 数组乱序
+
+对数组的元素进行洗牌，创建一个随机顺序
+
+```typescript
+@Pipe({ name: 'arrayShuffle' })
+export class ArrayShufflePipe implements PipeTransform {
+  transform(array: any[]): any[] {
+    if (!array) return array.slice();
+    let currentIndex = array.length, randomIndex, temporaryValue;
+    while (currentIndex !== 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+    return array;
+  }
+}
+```
+
+```html
+<ul>
+  <li *ngFor="let item of items | arrayShuffle">{{ item }}</li>
+</ul>
+```
+
+
+
+### 首字母大写
+
+```typescript
+@Pipe({ name: 'uppercaseFirst' })
+export class UppercaseFirstPipe implements PipeTransform {
+  transform(value: string): string {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  }
+}
+```
+
+```html
+<p>{{ 'hello world' | uppercaseFirst }}</p>
+<!-- Output: "Hello world" -->
+```
+
+
+
+### 句子首字母大写
+
+```typescript
+@Pipe({ name: 'sentenceCase' })
+export class SentenceCasePipe implements PipeTransform {
+  transform(text: string): string {
+    if (!text) return '';
+    return text.replace(/(^\s*|\.\s*)([a-z])/g, (_, separator, letter) => separator + letter.toUpperCase());
+  }
+}
+```
+
+```html
+<p>{{ 'this is a sentence. this is another. the third.' | sentenceCase }}</p>
+<!-- Output: "This is a sentence. This is another. The third." -->
+```
+
+
+
+### 汇率转换
+
+```typescript
+@Pipe({ name: 'currencyConverter' })
+export class CurrencyConverterPipe implements PipeTransform {
+  transform(value: number, exchangeRate: number): number {
+    if (isNaN(value) || isNaN(exchangeRate)) return value;
+    return value * exchangeRate;
+  }
+}
+```
+
+```html
+<p>{{ 100 | currencyConverter:1.2 }}</p>
+<!-- Output: 120 -->
+```
+
+
+
+### 电话号码
+
+```typescript
+@Pipe({ name: 'phoneNumberFormatter' })
+export class PhoneNumberFormatterPipe implements PipeTransform {
+  transform(value: string): string {
+    if (!value || value.length !== 10) return value;
+    return `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
+  }
+}
+```
+
+```html
+<p>{{ '1234567890' | phoneNumberFormatter }}</p>
+<!-- Output: "(123) 456-7890" -->
+```
+
+
+
+### 隐私掩码
+
+添加分隔符和掩码字符，对电话号码进行格式化以保护隐私
+
+```typescript
+@Pipe({ name: 'phoneNumberMask' })
+export class PhoneNumberMaskPipe implements PipeTransform {
+  transform(phoneNumber: string): string {
+    if (!phoneNumber) return '';
+    // Add your custom logic for phone number masking and formatting
+    // Example: (123) ***-****
+  }
+}
+```
+
+```html
+<p>{{ '1234567890' | phoneNumberMask }}</p>
+<!-- Output: "(123) ***-****" -->
+```
+
+
+
+### 罗马数字
+
+```typescript
+@Pipe({ name: 'romanNumeral' })
+export class RomanNumeralPipe implements PipeTransform {
+  transform(arabicNumber: number): string {
+    if (isNaN(arabicNumber) || arabicNumber < 1 || arabicNumber > 3999) return '';
+    const romanNumerals = [
+      'M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'
+    ];
+    const values = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+    let roman = '';
+    for (let i = 0; i < romanNumerals.length; i++) {
+      while (arabicNumber >= values[i]) {
+        roman += romanNumerals[i];
+        arabicNumber -= values[i];
+      }
+    }
+    return roman;
+  }
+}
+```
+
+```html
+<p>{{ 1984 | romanNumeral }}</p>
+<!-- Output: "MCMLXXXIV" -->
+```
+
+
+
+### 文件大小
+
+```typescript
+@Pipe({ name: 'fileSize' })
+export class FileSizePipe implements PipeTransform {
+  transform(bytes: number): string {
+    if (isNaN(bytes) || bytes === 0) return '0 Bytes';
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${parseFloat((bytes / Math.pow(1024, i)).toFixed(2))} ${sizes[i]}`;
+  }
+}
+```
+
+```html
+<p>{{ 1024 | fileSize }}</p>
+<!-- Output: "1 KB" -->
+```
+
+
+
+### 屏蔽输入
+
+实时监视和操作用户输入，对用户输入的不符合格式的内容进行屏蔽
+
+```typescript
+@Pipe({ name: 'maskedInput' })
+export class MaskedInputPipe implements PipeTransform {
+  transform(input: string, mask: string): string {
+    if (!input || !mask) return input;
+    let result = '';
+    let inputIndex = 0;
+    for (let i = 0; i < mask.length; i++) {
+      if (mask[i] === '*') {
+        result += input[inputIndex] || '';
+        inputIndex++;
+      } else {
+        result += mask[i];
+      }
+    }
+    return result;
+  }
+}
+```
+
+```html
+<input [ngModel]="'1234567890'" [ngModelOptions]="{ updateOn: 'blur' }" [value]="'(***) ***-****' | maskedInput">
+<!-- As you type in the input field, it will be formatted like (123) 456-7890 -->
+```
+
+
+
+### 经过时间
+
+显示发生前时间（例如：3 小时前，昨天）
+
+```bash
+npm install date-fns
+```
+
+```typescript
+import { formatDistanceToNow } from 'date-fns';
+
+@Pipe({ name: 'timeAgo' })
+export class TimeAgoPipe implements PipeTransform {
+  transform(timestamp: number | Date): string {
+    if (!timestamp) return '';
+    return formatDistanceToNow(timestamp) + ' ago';
+  }
+}
+```
+
+```html
+<p>{{ someTimestamp | timeAgo }}</p>
+<!-- Example: "3 hours ago" or "yesterday" -->
+```
+
+不使用库实现
+
+```typescript
+@Pipe({ name: 'timeAgo' })
+export class TimeAgoPipe implements PipeTransform {
   // 参数1 要处理的数据 参数2 向管道传递的参数
   transform(value: any): any {
     if (value) {
@@ -6028,6 +7203,400 @@ export class AgoPipe implements PipeTransform {
 
 
 
+### 相对时间
+
+```bash
+npm install date-fns
+```
+
+```typescript
+import { formatDistanceToNow } from 'date-fns';
+
+@Pipe({ name: 'relativeTime' })
+export class RelativeTimePipe implements PipeTransform {
+  transform(timestamp: number | Date): string {
+    if (!timestamp) return '';
+    return formatDistanceToNow(timestamp, { addSuffix: true });
+  }
+}
+```
+
+```html
+<p>{{ someTimestamp | relativeTime }}</p>
+<!-- Example: "just now," "a few minutes ago," "yesterday," etc. -->
+```
+
+
+
+### 百分比变化
+
+计算两个值之间的百分比变化
+
+```typescript
+@Pipe({ name: 'percentChange' })
+export class PercentChangePipe implements PipeTransform {
+  transform(currentValue: number, previousValue: number): string {
+    if (isNaN(currentValue) || isNaN(previousValue)) return '';
+    const change = ((currentValue - previousValue) / Math.abs(previousValue)) * 100;
+    const sign = change >= 0 ? '+' : '-';
+    return `${sign}${change.toFixed(2)}%`;
+  }
+}
+```
+
+```html
+<p>{{ 85 | percentChange:100 }}</p>
+<!-- Output: "-15.00%" -->
+```
+
+
+
+### 提取首字母
+
+从全名中提取并显示首字母缩写，可以用于用户配置文件显示
+
+```typescript
+@Pipe({ name: 'initials' })
+export class InitialsPipe implements PipeTransform {
+  transform(fullName: string): string {
+    if (!fullName) return '';
+    const nameParts = fullName.split(' ');
+    return nameParts
+      .map(part => part.charAt(0).toUpperCase())
+      .join('');
+  }
+}
+```
+
+```html
+<p>{{ 'John Doe' | initials }}</p>
+<!-- Output: "JD" -->
+```
+
+
+
+### 显示纯文本
+
+从给定字符串中删除所有 HTML 标记，确保仅显示纯文本
+
+```typescript
+@Pipe({ name: 'stripHtmlTags' })
+export class StripHTMLTagsPipe implements PipeTransform {
+  transform(html: string): string {
+    if (!html) return '';
+    return html.replace(/<[^>]*>/g, '');
+  }
+}
+```
+
+```html
+<p>{{ '<p>This is <b>HTML</b> text</p>' | stripHtmlTags }}</p>
+<!-- Output: "This is HTML text" -->
+```
+
+
+
+### 驼峰转为空格
+
+将驼峰式（camelCase）或帕斯卡式（PascalCase）字符串转换为带有空格的可读句子
+
+```typescript
+@Pipe({ name: 'camelCaseToSpaces' })
+export class CamelCaseToSpacesPipe implements PipeTransform {
+  transform(camelCaseText: string): string {
+    if (!camelCaseText) return '';
+    return camelCaseText.replace(/([a-z])([A-Z])/g, '$1 $2');
+  }
+}
+```
+
+```html
+<p>{{ 'camelCaseExample' | camelCaseToSpaces }}</p>
+<!-- Output: "camel Case Example" -->
+```
+
+
+
+### 标题大小写
+
+将字符串转换为标题大小写，其中每个单词的第一个字母大写，其余字母为小写
+
+```typescript
+@Pipe({ name: 'titleCase' })
+export class TitleCasePipe implements PipeTransform {
+  transform(value: string): string {
+    if (!value) return '';
+    return value
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+}
+```
+
+```html
+<p>{{ 'this is a title case example' | titleCase }}</p>
+<!-- Output: "This Is A Title Case Example" -->
+```
+
+
+
+### 单复数计数单位
+
+当计数大于 1 时，它可以将 item 更改为 items
+
+```typescript
+@Pipe({ name: 'pluralize' })
+export class PluralizePipe implements PipeTransform {
+  transform(word: string, count: number): string {
+    if (!word) return '';
+    if (count === 1) {
+      return word;
+    } else {
+      // Simple rule for adding "s" to make it plural
+      return word + 's';
+    }
+  }
+}
+```
+
+```html
+<p>{{ 1 | pluralize:'item' }}</p>
+<!-- Output: "item" -->
+
+<p>{{ 5 | pluralize:'item' }}</p>
+<!-- Output: "items" -->
+```
+
+
+
+### 持续时间
+
+将持续时间（以秒为单位）转换为更易于阅读的格式，例如 2 小时 30 分钟
+
+```typescript
+@Pipe({ name: 'humanizeDuration' })
+export class HumanizeDurationPipe implements PipeTransform {
+  transform(durationInSeconds: number): string {
+    if (isNaN(durationInSeconds)) return '';
+    const hours = Math.floor(durationInSeconds / 3600);
+    const minutes = Math.floor((durationInSeconds % 3600) / 60);
+    let result = '';
+    if (hours > 0) {
+      result += `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    }
+    if (minutes > 0) {
+      if (result) result += ' and ';
+      result += `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+    }
+    return result || '0 minutes';
+  }
+}
+```
+
+```html
+<p>{{ 7200 | humanizeDuration }}</p>
+<!-- Output: "2 hours" -->
+<p>{{ 150 | humanizeDuration }}</p>
+<!-- Output: "2 hours and 30 minutes" -->
+<p>{{ 30 | humanizeDuration }}</p>
+<!-- Output: "30 minutes" -->
+<p>{{ 0 | humanizeDuration }}</p>
+<!-- Output: "0 minutes" -->
+```
+
+
+
+### Json 打印
+
+获取 JSON 对象并对其进行整形打印，使其在调试时更具可读性，将 `JSON.stringify` 方法与 `spacing` 参数一起使用
+
+```typescript
+@Pipe({ name: 'jsonPrettyPrint' })
+export class JSONPrettyPrintPipe implements PipeTransform {
+  transform(jsonObject: any): string {
+    if (!jsonObject) return '';
+    return JSON.stringify(jsonObject, null, 2); // 2 spaces for indentation
+  }
+}
+```
+
+```html
+<pre>{{ someJsonObject | jsonPrettyPrint }}</pre>
+```
+
+
+
+### 密码强度
+
+检查密码的强度，并提供有关其复杂性的反馈：弱、中、强
+
+```typescript
+@Pipe({ name: 'passwordStrength' })
+export class PasswordStrengthPipe implements PipeTransform {
+  transform(password: string): string {
+    if (!password) return '';
+    if (password.length < 6) {
+      return 'Weak';
+    } else if (password.length < 10) {
+      return 'Medium';
+    } else {
+      // You can add more criteria for a "Strong" password
+      return 'Strong';
+    }
+  }
+}
+```
+
+```html
+<p>{{ 'Pass123' | passwordStrength }}</p>
+<!-- Output: "Medium" -->
+<p>{{ 'StrongPassword123' | passwordStrength }}</p>
+<!-- Output: "Strong" -->
+```
+
+
+
+### 英语序数
+
+将数字转换为相应的序数表示（例如，1st、2nd、3rd、4th 等）
+
+```typescript
+@Pipe({ name: 'ordinalNumber' })
+export class OrdinalNumberPipe implements PipeTransform {
+  transform(number: number): string {
+    if (isNaN(number)) return '';
+    const lastDigit = number % 10;
+    if (lastDigit === 1 && number !== 11) {
+      return number + 'st';
+    } else if (lastDigit === 2 && number !== 12) {
+      return number + 'nd';
+    } else if (lastDigit === 3 && number !== 13) {
+      return number + 'rd';
+    } else {
+      return number + 'th';
+    }
+  }
+}
+```
+
+```html
+<p>{{ 1 | ordinalNumber }}</p>
+<!-- Output: "1st" -->
+<p>{{ 22 | ordinalNumber }}</p>
+<!-- Output: "22nd" -->
+<p>{{ 13 | ordinalNumber }}</p>
+<!-- Output: "13th" -->
+<p>{{ 7 | ordinalNumber }}</p>
+<!-- Output: "7th" -->
+```
+
+
+
+### Markdown 转换
+
+将 Markdown 文本转换为 HTML
+
+```bash
+npm install marked
+```
+
+```typescript
+import * as marked from 'marked';
+
+@Pipe({ name: 'markdownToHtml' })
+export class MarkdownToHTMLPipe implements PipeTransform {
+  transform(markdown: string): string {
+    if (!markdown) return '';
+    return marked(markdown);
+  }
+}
+```
+
+```html
+<div [innerHtml]="markdownText | markdownToHtml"></div>
+<!-- Assuming markdownText contains Markdown content -->
+```
+
+
+
+### 最佳文本颜色
+
+确定最佳的文本颜色（黑色或白色），以确保与背景颜色有良好的对比
+
+下方管道假设背景颜色以十六进制格式提供
+
+```typescript
+@Pipe({ name: 'colorContrast' })
+export class ColorContrastPipe implements PipeTransform {
+  transform(backgroundColor: string): string {
+    if (!backgroundColor) return '';
+    // Calculate the brightness of the background color
+    const r = parseInt(backgroundColor.slice(1, 3), 16);
+    const g = parseInt(backgroundColor.slice(3, 5), 16);
+    const b = parseInt(backgroundColor.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    // Determine the text color for good contrast
+    return brightness > 128 ? 'black' : 'white';
+  }
+}
+```
+
+```html
+<div [style.background-color]="'#3498db'" [style.color]="'#3498db' | colorContrast">
+  Text with contrast
+</div>
+```
+
+
+
+### CSV 解析为数组
+
+将 CSV（逗号分隔值）字符串解析为数组
+
+```typescript
+@Pipe({ name: 'csvToArray' })
+export class CSVToArrayPipe implements PipeTransform {
+  transform(csvData: string): string[] {
+    if (!csvData) return [];
+    // Split the CSV string into an array
+    return csvData.split(',');
+  }
+}
+```
+
+```html
+<ul>
+  <li *ngFor="let item of 'apple,banana,cherry' | csvToArray">{{ item }}</li>
+</ul>
+```
+
+
+
+### 随机占位图
+
+生成具有不同颜色和图案的随机占位图像，适用于测试
+
+```typescript
+@Pipe({ name: 'randomPlaceholderImage' })
+export class RandomPlaceholderImagePipe implements PipeTransform {
+  transform(width: number = 200, height: number = 150): string {
+    const colors = ['333333', '666666', '999999', 'CCCCCC'];
+    const patterns = ['abstract', 'animals', 'business', 'food', 'nature', 'people', 'sports', 'technics', 'transport'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
+    return `https://via.placeholder.com/${width}x${height}/${randomColor}/${randomPattern}`;
+  }
+}
+```
+
+```html
+<img [src]="'200x150' | randomPlaceholderImage"/>
+```
+
+
+
 # 服务 Service
 
 组件之间没法相互调用，可以把公共的方法放到服务中，实现**方法的跨组件共享**
@@ -6057,7 +7626,7 @@ export class AgoPipe implements PipeTransform {
   ```typescript
   import { StorageService } from './services/storage.service';
   @NgModule({
-    declarations: [AppComponent,SearchComponent,TodolistComponent   ],
+    declarations: [AppComponent,SearchComponent, TodolistComponent],
     imports: [BrowserModule,FormsModule],
     providers: [StorageService],			//引入并且配置服务
     bootstrap: [AppComponent]
@@ -6450,88 +8019,192 @@ this.http.get<Post[]>('/getAllPosts').subscribe(response => console.log(response
 
 ## 拦截器
 
-拦截器是 Angular 应用中**全局捕获和修改 HTTP 请求和响应的方式**（添加 Token，捕获 Error）
-
-拦截器将只拦截 `HttpClientModule` 模块发出的请求
-
-创建拦截器
-
-```bash
-ng g interceptor <name>
-```
-
 <img src="Angular.assets/image-20220111231714345.png" alt="image-20220111231714345" style="zoom:50%;" /> 
 
-- ##### 对请求进行截断
+- 拦截器是 Angular 应用中**全局捕获和修改 HTTP 请求和响应的方式**（添加 Token，捕获 Error）
 
-  ```typescript
-  import { Injectable } from '@angular/core';
-  import { HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
-  
-  @Injectable()
-  export class ParamInterceptor implements HttpInterceptor {
-    // 拦截方法 参数1: 请求(泛型指定的是请求体的类型) 参数2: 下一步的处理
-    intercept(req: HttpRequest<any>, next: HttpHandler) {
-      // 对请求消息进行处理
-      // 请求不能直接修改 克隆去修改请求
-      const modifiedReq = req.clone({
-        // 统一添加请求路径前缀
-        setParams: { icode: environment.icode },
-        // 统一添加Token
-        setHeaders: { Authorization: "Bearer XXXX" }
+
+- 拦截器将只拦截 `HttpClientModule` 模块发出的请求
+
+
+- 创建拦截器
+
+  ```bash
+  ng g interceptor <name> 
+  ```
+
+
+
+
+### 请求拦截
+
+```typescript
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
+
+@Injectable()
+export class ParamInterceptor implements HttpInterceptor {
+  // 拦截方法 参数1: 请求(泛型指定的是请求体的类型) 参数2: 下一步的处理
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    // 对请求消息进行处理
+    // 请求不能直接修改 克隆去修改请求
+    const modifiedReq = req.clone({
+      // 统一添加请求路径前缀
+      setParams: { icode: environment.icode },
+      // 统一添加Token
+      setHeaders: { Authorization: "Bearer XXXX" }
+    });
+    // 把修改后的请求回传给应用
+    return next.handle(modifiedReq);
+  }
+}
+```
+
+根模块引入
+
+```typescript
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+@NgModule({
+  providers: [
+    // 多个令牌 multi: true
+    { provide: HTTP_INTERCEPTORS, useClass: ParamInterceptor, multi: true }
+  ]
+})
+```
+
+
+
+### JWT 身份验证
+
+利用 HTTP 拦截器向 API 请求添加身份验证标头
+
+```typescript
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { Router } from '@angular/router';
+
+@Injectable()
+export class AuthInterceptor implements HttpInterceptor {
+  constructor(private router: Router) {}
+
+  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // 获取存储在本地存储中的认证令牌
+    const authToken = localStorage.getItem('authToken');
+
+    // 如果认证令牌存在，则向请求标头中添加认证标头
+    if (authToken) {
+      request = request.clone({
+        setHeaders: {
+          Authorization: `Bearer ${authToken}`
+        }
       });
-      // 把修改后的请求回传给应用
-      return next.handle(modifiedReq);
+    } else {
+      // 如果没有认证令牌，则重定向到登录页
+      this.router.navigate(['/login']);
+      // 停止发送请求
+      return throwError('No authentication token found.');
     }
+
+    // 继续处理请求
+    return next.handle(request).pipe(
+      catchError(error => {
+        // 在请求发生错误时执行适当的处理
+        // 这里可以进行错误日志记录等操作
+        return throwError(error);
+      })
+    );
   }
-  ```
+}
 
-  根模块引入
+```
 
-  ```typescript
-  import { HTTP_INTERCEPTORS } from '@angular/common/http';
-  @NgModule({
-    providers: [
-      // 多个令牌 multi: true
-      { provide: HTTP_INTERCEPTORS, useClass: ParamInterceptor, multi: true }
-    ]
-  })
-  ```
+```typescript
+@NgModule({
+  imports: [HttpClientModule],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: AuthInterceptor, multi: true }
+  ]
+})
+export class AppModule { }
+```
 
-- ##### 对响应进行截断
 
-  ```typescript
-  import { Injectable } from '@angular/core';
-  import { HttpEvent, HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
-  import { tap } from 'rxjs/operators';
-  
-  @Injectable()
-  export class ParamInterceptor implements HttpInterceptor {
-    // 拦截方法 参数1: 请求 参数2: 下一步的处理
-    intercept(req: HttpRequest<any>, next: HttpHandler) {
-      // 对响应消息进行处理
-      return next.handle(req).pipe(
-        tap((event: HttpEvent<any>) => {
-          if ( event instanceof HttpResponse && event.status >= 200 && event.status < 300 ) {
-            console.log('[此处假装弹出消息] 请求成功！');
-          }
-        })
-      );
-    }
+
+### 跨站点请求伪造保护 CSRF
+
+实现 CSRF 令牌并确保它们包含在每个 HTTP 请求中，以验证用户操作，后端服务器应生成并提供 CSRF 令牌，前端在后续请求中发送该令牌
+
+```typescript
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
+
+@Injectable()
+export class CsrfInterceptor implements HttpInterceptor {
+
+  intercept(request: HttpRequest<any>, next: HttpHandler) {
+    // Get the CSRF token from a secure source, e.g., cookie or server response
+    const csrfToken = 'your-csrf-token';
+
+    // Append CSRF token to the request headers
+    request = request.clone({
+      setHeaders: { 
+        'X-CSRF-TOKEN': csrfToken,
+      },
+    });
+
+    return next.handle(request);
   }
-  ```
+}
+```
 
-  根模块引入
+```typescript
+@NgModule({
+  imports: [HttpClientModule],
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: CsrfInterceptor, multi: true },
+  ],
+})
+export class MyModule {}
+```
 
-  ```typescript
-  import { HTTP_INTERCEPTORS } from '@angular/common/http';
-  @NgModule({
-    providers: [
-      // 多个令牌 multi: true
-      { provide: HTTP_INTERCEPTORS, useClass: NotificationInterceptor, multi: true }
-    ]
-  })
-  ```
+
+
+### 响应拦截
+
+```typescript
+import { Injectable } from '@angular/core';
+import { HttpEvent, HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
+import { tap } from 'rxjs/operators';
+
+@Injectable()
+export class ParamInterceptor implements HttpInterceptor {
+  // 拦截方法 参数1: 请求 参数2: 下一步的处理
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    // 对响应消息进行处理
+    return next.handle(req).pipe(
+      tap((event: HttpEvent<any>) => {
+        if ( event instanceof HttpResponse && event.status >= 200 && event.status < 300 ) {
+          console.log('[此处假装弹出消息] 请求成功！');
+        }
+      })
+    );
+  }
+}
+```
+
+根模块引入
+
+```typescript
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+@NgModule({
+  providers: [
+    // 多个令牌 multi: true
+    { provide: HTTP_INTERCEPTORS, useClass: NotificationInterceptor, multi: true }
+  ]
+})
+```
 
 
 
@@ -6586,6 +8259,583 @@ ng g interceptor <name>
      }
    }
    ```
+
+
+
+## 浏览器 API
+
+### DOM 交互
+
+- `ElementRef` 允许在组件类中直接访问组件模板中的 DOM 元素，使用 `ElementRef`，需要注入到组件的构造函数中
+
+  ```typescript
+  import { Component, ElementRef } from '@angular/core';
+  
+  export class MyComponent {
+    constructor(private elementRef: ElementRef) {} 
+  }
+  ```
+
+- `nativeElement` 属性允许直接访问组件模板中与组件本身相对应的主 DOM 元素的引用
+
+- `Renderer2` 抽象出直接的 DOM 操作，以确保应用程序与平台无关
+
+  ```typescript
+  @Component({
+    selector: 'app-my-component',
+    template: '<div #myDiv>My Div</div>',
+  })
+  export class MyComponent implements AfterViewInit {
+    constructor(private elementRef: ElementRef, private renderer: Renderer2) {}
+    ngAfterViewInit() {
+      this.renderer.setStyle(this.el.nativeElement, 'color', 'blue');
+    }
+  }
+  ```
+
+
+
+### 地理位置
+
+> 必须确保网站通过 HTTPS 提供服务，因为大多数浏览器只允许在安全的源上访问地理位置 API
+
+1. 更新 Angular 应用权限：在 src/polyfills.ts 文件中添加以下内容
+
+   ```typescript
+   /** Geolocation API **/
+   navigator.geolocation;
+   ```
+
+2. 创建服务来封装地理定位功能，地理位置 API 是异步的，取决于用户是否授予权限
+
+   > 用户可能拒绝访问位置，需要适当处理错误
+
+   > 可以考虑使用 @angular/google-maps 等库实现高级功能
+
+   ```typescript
+   @Injectable({
+     providedIn: 'root'
+   })
+   export class GeolocationService {
+     constructor() { }
+     getCurrentPosition(): Observable<GeolocationPosition> {
+       return new Observable((observer) => {
+         if (navigator.geolocation) {
+           navigator.geolocation.getCurrentPosition(
+             (position) => {
+               observer.next(position);
+               observer.complete();
+             },
+             (error) => {
+               observer.error(error);
+             }
+           );
+         } else {
+           observer.error('Geolocation not supported.');
+         }
+       });
+     }
+   }
+   ```
+
+   ```typescript
+   @Component({
+     selector: 'app-location',
+     template: `
+       <div>
+         <p>Latitude: {{ latitude }}</p>
+         <p>Longitude: {{ longitude }}</p>
+       </div>
+     `
+   })
+   export class LocationComponent implements OnInit {
+     public latitude: number;
+     public longitude: number;
+     public constructor(private geolocationService: GeolocationService) {}
+     public ngOnInit(): void {
+       this.geolocationService.getCurrentPosition().subscribe(
+         (position) => {
+           this.latitude = position.coords.latitude;
+           this.longitude = position.coords.longitude;
+         },
+         (error) => {
+           console.error('Error obtaining geolocation', error);
+         }
+       );
+     }
+   }
+   ```
+
+
+
+### 浏览器通知
+
+- 封装浏览器通知服务
+
+  ```typescript
+  @Injectable({
+    providedIn: 'root'
+  })
+  export class NotificationService {
+    public notify(title: string, options?: NotificationOptions): void {
+  
+      // 检查浏览器是否支持
+      if (!('Notification' in window)) {
+        console.log('This browser does not support desktop notification');
+        return;
+      }
+  
+      // 要显示通知，必须向用户申请并获得许可
+      // 通知权限有三种可能的状态：默认`default`、授予`granted`和 拒绝`denied`
+      if (Notification.permission === 'granted') {
+        new Notification(title, options);
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            new Notification(title, options);
+          }
+        });
+      }
+    }
+  }
+  ```
+
+  ```typescript
+  export class YourComponent {
+    constructor(private notificationService: NotificationService) {}
+    someMethod() {
+      this.notificationService.notify('Test Notification', { body: 'This is a test message' });
+    }
+  }
+  ```
+
+
+
+### 是否为浏览器环境
+
+- 可以使用 `isPlatformBrowser` 函数有条件地运行特定于浏览器的代码
+
+  ```typescript
+  import { isPlatformBrowser } from '@angular/common';
+  import { PLATFORM_ID } from '@angular/core';
+  export class YourComponent {
+    constructor(@Inject(PLATFORM_ID) private platformId: object) {
+      if (isPlatformBrowser(this.platformId)) {
+        // Browser-specific code
+      }
+    }
+  }
+  ```
+
+
+
+### Web Worker
+
+> - Web workers 被用于在后台线程中运行任何脚本，而不会干扰用户界面
+>
+> - 如果在用户端有繁重的计算任务，可以使用 web workers 来执行这些繁重的任务，以避免阻塞主线程，从而提高用户界面的响应性
+>
+> - Web Worker 可以通过与主线程之间的消息传递机制进行通信，以便传递数据和执行任务，但是不能直接访问页面的 DOM 元素或全局变量
+
+1. 使用 CLI 创建 Web worker
+
+   ```bash
+   ng generate web-worker <location>
+   ```
+
+2. 自动创建 tsconfig.worker.json
+
+   ```json
+   /* To learn more about this file see: https://angular.io/config/tsconfig. */
+   {
+     "extends": "./tsconfig.json",
+     "compilerOptions": {
+       "outDir": "./out-tsc/worker",
+       "lib": [
+         "es2018",
+         "webworker"
+       ],
+       "types": []
+     },
+     "include": [
+       "src/**/*.worker.ts"
+     ]
+   }
+   ```
+
+3. 自动创建 app.worker.ts，从 Web Worker 获取响应
+
+   ```typescript
+   /// <reference lib="webworker" />
+   addEventListener('message', ({ data }) => {
+     const response = `worker response to ${data}`;
+     postMessage(response);
+   });
+   ```
+
+4. 在 angular.json 中，将 `"webWorkerTsConfig": "tsconfig.worker.json"` 添加到 `build` > `options` 中，为 Web Worker 注册生成的 tsconfig 文件
+
+5. 使用 Web Worker
+
+   ```typescript
+   // app.worker.ts
+   /// <reference lib="webworker" />
+   
+   addEventListener('message', ({ data }) => {
+     const response = factorialCalculator(data);
+     // worker.postMessage(factorialInput) 向 Web worker 发送数据
+     postMessage(response);
+   });
+   
+   function factorialCalculator(num: number): number {
+     if (num < 0) {
+       return -1;
+     } else if (num == 0) {
+       return 1;
+     } else {
+       return (num * factorialCalculator(num - 1));
+     }
+   }
+   ```
+
+   ```typescript
+   @Component({
+     selector: 'app-root',
+     template: `
+       <input type="number" [(ngModel)]="factorialInput" (change)="calculateFactorial()"/>
+       <div>The response is {{ factorialResult }}</div>
+   	`,
+   })
+   export class AppComponent {
+     factorialResult!: number;
+     factorialInput: number = 1;
+   
+     constructor() {
+       this.calculateFactorial();
+     }
+   
+     calculateFactorial() {
+       if (typeof Worker !== 'undefined') {
+         // Create a new
+         const worker = new Worker(new URL('./app.worker', import.meta.url));
+         // worker.onmessage 属性中接收来自 worker 的响应
+         worker.onmessage = ({ data }) => {
+           this.factorialResult = data;
+         };
+         worker.postMessage(this.factorialInput);
+       } else {
+         // Web Workers are not supported in this environment.
+         // You should add a fallback so that your program still executes correctly.
+       }
+     }
+   }
+   ```
+
+
+
+### Service Worker
+
+> - Service Worker 是一种特殊的 JavaScript 脚本，运行在浏览器的后台，并在页面关闭后仍然保持活动状态
+> - 主要用于实现离线缓存、推送通知、网络代理等功能
+> - Service Worker 可以拦截页面发出的网络请求，并决定是否从缓存中获取响应，从而实现离线访问和提高网站性能
+> - Service Worker 通常用于构建渐进式网络应用程序 （PWA）
+
+#### 配置注册
+
+1. 安装 service-worker 和 pwa 依赖包
+
+   ```bash
+   npm install @angular/service-worker
+   ng add @angular/pwa
+   ```
+
+2. 在 main.ts 文件中注册 Service Worker
+
+   ```typescript
+   import { enableProdMode } from '@angular/core';
+   import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+   import { AppModule } from './app/app.module';
+   import { environment } from './environments/environment';
+   
+   if (environment.production) {
+     enableProdMode();
+   }
+   
+   // Register the Service Worker
+   if ('serviceWorker' in navigator) {
+     navigator.serviceWorker.register('/ngsw-worker.js')
+       .then(() => {
+       console.log('Service Worker registered successfully!');
+     })
+       .catch((error) => {
+       console.error('Error registering Service Worker:', error);
+     });
+   }
+   
+   platformBrowserDynamic().bootstrapModule(AppModule)
+     .catch((err) => console.error(err));
+   ```
+
+3. 在 ngsw-config.json 文件中，定义 `assetGroups` 指定应缓存哪些文件
+
+   >  Service Worker 可以在用户的设备上缓存静态资产，通过缓存 HTML、CSS、JavaScript 和图像等基本文件，可以确保的应用程序快速加载
+
+   ```json
+   {
+     "index": "/index.html",
+     "assetGroups": [
+       {
+         "name": "app",
+         "installMode": "prefetch",		// 采用预取模式确保尽快缓存
+         "resources": {
+           "files": [
+             "/favicon.ico",
+             "/index.html",
+             "/*.css",
+             "/*.js"
+           ]
+         }
+       },
+       {
+         "name": "images",
+         "installMode": "lazy",		// 采用lazy模式仅在请求时缓存
+         "updateMode": "prefetch",
+         "resources": {
+           "files": [
+             "/assets/**",
+             "/*.(png|jpg|jpeg|gif)"
+           ]
+         }
+       }
+     ]
+   }
+   ```
+
+
+
+#### 缓存控制
+
+Service Worker 允许在用户首次访问时缓存必要的资源，然后在用户脱机时从缓存中提供这些资源，启动离线功能
+
+- 缓存优先策略
+
+  将拦截应用发出的所有提取请求，首先检查缓存中是否已经存在请求的资源，如果存在，从缓存中提供。否则，从网络获取
+
+  ```typescript
+  // In your Service Worker script
+  self.addEventListener('fetch', (event) => {
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request);
+      })
+    );
+  });
+  ```
+
+- 网络优先策略
+
+  首先尝试从网络获取资源，如果网络请求成功，响应将返回到应用，如果网络请求失败，则从缓存中提供资源
+
+  ```typescript
+  // In your Service Worker script
+  self.addEventListener('fetch', (event) => {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match(event.request);
+      })
+    );
+  });
+  ```
+
+- 缓存到期的控制（Stale-While-Revalidate 策略）
+
+  请求资源时，Service Worker 首先提供缓存的版本（如果可用），同时发起网络请求以获取最新版本
+
+  缓存版本会立即显示给用户，提供快速响应，网络响应会在后台更新缓存以备将来请求
+
+  ```typescript
+  // In your Service Worker script
+  self.addEventListener('fetch', (event) => {
+    event.respondWith(
+      caches.open('my-cache').then((cache) => {
+        return cache.match(event.request).then((response) => {
+          const fetchPromise = fetch(event.request).then((networkResponse) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+          return response || fetchPromise;
+        });
+      })
+    );
+  });
+  
+  ```
+
+
+
+#### 推送通知
+
+Service Workers 能够处理推送通知并将其传送到用户的设备，即使应用未主动运行也是如此
+
+- 请求用户权限
+
+  在发送推送通知之前，需要请求用户的权限
+
+  ```typescript
+  // In your Angular component
+  if ('Notification' in window) {
+    Notification.requestPermission().then((permission) => {
+      if (permission === 'granted') {
+        // User has granted permission
+        // You can now subscribe to push notifications
+      }
+    });
+  }
+  ```
+
+- 订阅推送通知
+
+  一旦用户授予了权限，就可以订阅推送通知并获取一个唯一的订阅端点，然后，将此端点发送到服务器，以开始向用户发送推送通知
+
+  ```typescript
+  // In your Angular component
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    navigator.serviceWorker.ready.then((registration) => {
+      registration.pushManager.subscribe({ userVisibleOnly: true })
+        .then((subscription) => {
+          // Send the subscription endpoint to your server
+        })
+        .catch((error) => {
+          console.error('Error subscribing to push notifications:', error);
+        });
+    });
+  }
+  ```
+
+- 处理传入的推送通知
+
+  当收到推送通知时，Service Worker 会拦截该通知并触发推送事件，可以侦听此事件并处理传入的推送通知
+
+  ```typescript
+  // In your Service Worker script
+  self.addEventListener('push', (event) => {
+    const title = 'New Notification';
+    const options = {
+      body: event.data.text(),
+      icon: 'path/to/icon.png',
+    };
+  
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  });
+  ```
+
+
+
+#### 强制更新
+
+- 监听 `controllerchange` 事件，当安装了新版本的 Service Worker 并成为活动工作线程时，将触发此事件
+
+  ```typescript
+  // In your Angular component
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // A new version of the Service Worker is available
+      // You can display a notification to the user or refresh the app
+    });
+  }
+  ```
+
+- 取消注册当前 Service Worker 并重新加载页面来强制更新最新版本
+
+  ```typescript
+  // In your Angular component
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistration().then((registration) => {
+      if (registration) {
+        registration.unregister().then(() => {
+          window.location.reload();
+        });
+      }
+    });
+  }
+  ```
+
+
+
+#### 后台同步
+
+用户在离线时在应用中执行操作（例如提交表单），用在网络连接恢复后立即与服务器同步数据
+
+- 在 Service Worker 脚本中注册同步事件
+
+  ```typescript
+  // In your Service Worker script
+  self.addEventListener('sync', (event) => {
+    if (event.tag === 'syncData') {
+      event.waitUntil(syncData());
+    }
+  });
+  ```
+
+- 在 Angular 应用程序中调用 `registerSync` 触发后台同步
+
+  例如，当用户在离线时提交表单时，可以注册同步事件
+
+  ```typescript
+  // In your Angular component
+  if ('serviceWorker' in navigator && 'SyncManager' in window) {
+    navigator.serviceWorker.ready.then((registration) => {
+      return registration.sync.register('syncData');
+    });
+  }
+  ```
+
+  网络连接恢复后，Service Worker 将收到 `sync` 事件并调用相应的 `sync` 函数
+
+  在此函数中可以处理与服务器的数据同步
+
+  ```typescript
+  // In your Service Worker script
+  function syncData() {
+   // Perform data synchronization with the server
+  }
+  ```
+
+  
+
+#### 渐进式 Web 应用 （PWA）
+
+- 提示用户将应用添加到主屏幕
+
+  ```html
+  <!-- In your index.html -->
+  <link rel="manifest" href="/manifest.json">
+  ```
+
+- 允许在后台提取数据，即使应用程序未运行，这对于预加载内容或同步数据非常有用
+
+  ```typescript
+  // In your Service Worker script
+  self.addEventListener('fetch', (event) => {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        // Cache the response for future use
+        return response;
+      })
+    );
+  });
+  ```
+
+  ```typescript
+  // In your Angular component
+  if ('backgroundFetch' in self.registration) {
+    self.registration.backgroundFetch.fetch('myData', ['/api/data']);
+  }
+  ```
+
+
 
 
 
@@ -7914,7 +10164,7 @@ export class AppComponent {
 
 
 
-# 测试
+# 单元测试
 
 ## 测试环境
 
@@ -8119,6 +10369,59 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
 
 
 
+## 测试法则
+
+- 使用 AAA（Arrange, Act & Assert）模式构造测试内容
+
+  准备（Arrange）- 执行（Act）- 断言（Assert）
+
+- 使用声明的方式写代码，尽量使用类似人类语言的形式描述如 `expect` 或 `should` 而不是自己写代码
+
+- 坚持黑盒测试：只测 `public` 方法
+
+- 使用正确的测试替身，避免总用 `spy`，否则任何代码重构都要求搜索代码中的所有 mock 并相应地进行更新
+
+  例如测试应用程序在支付服务宕机时的合理表现，可以 mock 支付服务并触发一些无响应返回
+
+  反过来，如果 mock 正确支付服务，那么测试重点是内部的逻辑，它与应用的功能关系不大
+
+- 不要 foo，使用真实数据
+
+- 向测试单元传入所有可能的输入组合，以增加发现 bug 的可能
+
+  使用 fast-check 、JSVerify 、TestCheck.js 等测试库
+
+- 不要写全局的 fixtures 和 seeds，而是放在每个测试中
+
+  为了减轻复杂度，可以在每个测试中只初始化自己需要的数据，除非性能问非常显著
+
+  仅在全局放不会改变的数据，防止多个测试同时改变了同一个 seed 数据
+
+- 不要 `catch` 错误，`expect` 错误
+
+- 为测试用例打标签，这样就可以在测试时仅测试想要的子集
+
+  jasmine 将执行正则表达式，来选择要运行的测试用例
+
+  ```javascript
+  it('should travel forward #future', () => { 
+    expect(travelForward({now: 2016}, 15)).toEqual({now: 2031}) 
+  })
+  ```
+
+  ```bash
+  karma start --grep '#future'
+  ```
+
+  ```javascript
+  // karma.conf.js
+  client: { args: ['--grep', config.grep] }
+  ```
+
+- 
+
+
+
 ## 创建测试用例
 
 - `describe`：创建一个测试用例的集合，`describe` 可以嵌套，每个 `describe` 方法有其独立的作用域
@@ -8314,28 +10617,66 @@ Angular 框架提供了三大工具，帮助编写和运行单元测试，使用
 
 ## 全局钩子函数
 
-- `beforeEach`：在当前 `describe` 中，为**每个 `it` 测试**用例准备测试环境，先于每个 `it` 测试用例执行
+### beforeEach
+
+- 在当前 `describe` 中，为**每个 `it` 测试**用例准备测试环境，先于每个 `it` 测试用例执行
 
   `beforeEach(action: ImplementationCallback, timeout?: number): void `
 
   - `ImplementationCallback`：同步或异步回调函数
   - `timeout`：异步延迟时间
 
-- `beforeAll`：在当前 `describe` 中，**只准备一次**测试环境，先于每个 `it` 测试用例执行，每个用例不会重置数据
+- 如果调用 `.compileComponents` ，无论当前是否有外部模板或样式表，都将其包装在异步 `beforeEach` 块内
+
+  当为测试的 `NgModule` 编译带有 `templateUrl` 的组件，获取 URL 是异步的
+
+  ```typescript
+  describe('MyComponent', () => {
+    let component: MyComponent;
+    let fixture: ComponentFixture<MyComponent>;
+  
+    beforeEach(async(() => {
+      TestBed.configureTestingModule({
+        declarations: [MyComponent]
+      })
+        .compileComponents();
+    }));
+  
+    beforeEach(() => {
+      fixture = TestBed.createComponent(MyComponent);
+      component = fixture.componentInstance;
+      fixture.detectChanges();
+    });
+  });
+  ```
+
+
+
+### beforeAll
+
+- 在当前 `describe` 中，**只准备一次**测试环境，先于每个 `it` 测试用例执行，每个用例不会重置数据
 
   `beforeAll(action: ImplementationCallback, timeout?: number): void `
 
   - `ImplementationCallback`：同步或异步回调函数
   - `timeout`：异步延迟时间
 
-- `afterEach`：在当前 `describe` 中，**每个 `it` 测试用例执行后**，进行特定的变量的重置
+
+
+### afterEach
+
+- 在当前 `describe` 中，**每个 `it` 测试用例执行后**，进行特定的变量的重置
 
   `afterEach(action: ImplementationCallback, timeout?: number): void `
 
   - `ImplementationCallback`：同步或异步回调函数
   - `timeout`：异步延迟时间
 
-- `afterAll`：在当前 `describe` 中，**所有 `it` 测试用例执行后**，进行全局变量的重置
+
+
+### afterAll
+
+- 在当前 `describe` 中，**所有 `it` 测试用例执行后**，进行全局变量的重置
 
   `afterAll(action: ImplementationCallback, timeout?: number): void `
 
@@ -8836,106 +11177,61 @@ it('should create', () => {
 
 ## 异步测试
 
-```typescript
-import { fakeAsync, tick, flush } from '@angular/core/testing';
-```
+### done 回调函数
 
-- 使用 `fakeAsync()` 能使其中的测试代码**以同步的方式编写**
+- 传递给 `it` 的匿名函数的参数一个 `done` 回调，测试将在调用 `done` 回调时完成
 
-  `fakeAsync` 将包裹的测试任务安排到一个特殊的 fakeAsync test zone 中执行
+  如果回调从未被调用，测试将一直运行，直到超过 Jasmine 的超时时间间隔并失败
 
-  - 异步时间定时器 `tick()` 可以设置一个等待时长的参数，模拟时间的流逝
+  ```typescript
+  it('should demonstrate Jasmine:done', ((done) => {
+    const start = performance.now();
+    setTimeout(() => {
+      expect(1).toBe(1);
+      const end = performance.now() - start;
+      console.log(end); // expect ~3000ms
+      done();
+    }, 3000);
+  }));
+  ```
 
-    必须运行在 `fakeAsync` 中，功能等同于 `fixture.whenStable`
 
-    ```typescript
-    getIpInfo(): Observable<string> {
-      return of('192.168.1.1').pipe(delay(1000));
-    }
-    ngOnInit() {
-      this.getIpInfo().subscribe((value: string) => {
-        this.ipInfo = value;
-      });
-    }
-    ```
 
-    ```typescript
-    it('should show ip information', fakeAsync(() => {
-      // 第一个 detectChanges 不能在 beforeEach 中，因为 1000 毫秒必须发生在测试函数中
-      fixture.detectChanges();
-      // 模拟1000毫秒延迟，如果没有延迟时间，可以省略毫秒数
-      tick(1000);
-      fixture.detectChanges();
-      let ipAddressElement = fixture.nativeElement.querySelector('#ip-address').innerText;
-      expect(ipAddressElement).toEqual('192.168.1.1');
-    }));
-    ```
+### async 函数
 
-    使用 `whenStable` 测试异步，但是需要真的等待 1000 毫秒才能验证
+- `async` 函数用于**标记测试函数中包含异步操作**的情况
+- 使得测试函数能够被 Angular 测试框架正确地识别为包含异步操作，从而**等待异步操作完成后再继续执行下一个测试**
 
-    ```typescript
-    it('should show ip information - whenStable', () => {
-      return fixture.whenStable().then(() => {
-        fixture.detectChanges();
-        const ipAddressElement = fixture.nativeElement.querySelector('#ip-address').innerText;
-        expect(ipAddressElement).toEqual(mockIpInfoService.ipDataToReturn.ip);
-      });
-    });
-    ```
+- `it` 匿名函数包裹在 `async` 函数中，与回调 `done` 类似
 
-    可以使用多个 `tick` 调用来确保任务按顺序发生
+  在内部，`async` 函数控制着它自己的 `done` 回调，一旦所有预定的工作完成，它就会执行
 
-    ```typescript
-    it('should show ip information', fakeAsync(() => {
-      fixture.detectChanges();
-      tick(999);
-      fixture.detectChanges();
-      let ipAddressElement = fixture.nativeElement.querySelector('#ip-address').innerText;
-      expect(ipAddressElement).toEqual('');
-    
-      tick(1);
-      fixture.detectChanges();
-      ipAddressElement = fixture.nativeElement.querySelector('#ip-address').innerText;
-      expect(ipAddressElement).toEqual(mockIpInfoService.ipDataToReturn.ip);
-    }));
-    ```
+  ```typescript
+  import { async } from '@angular/core/testing';
+  ```
 
-  - `flush()` 的结束条件不是一个时间值，而是直到宏任务队列为空（`setTimouts`、`setIntervals` 等）
+  ```typescript
+  it('should demonstrate Angular:async', async(() => {
+    const start = performance.now();
+    setTimeout(() => {
+      expect(1).toBe(1);
+      const end = performance.now() - start;
+      console.log(end) // ~expect 3000ms
+    }, 3000);
+  }));
+  ```
 
-    ```html
-    <h1>{{ value }}</h1>
-    <button (click)="increment()" class="increment">Increment</button>
-    ```
 
-    ```typescript
-    value = 0;
-    increment() {
-      setTimeout(() => {
-        this.value += 1;
-      }, 5000);
-    }
-    ```
 
-    ```typescript
-    it('should increment in template', fakeAsync(() => {
-      const fixture = TestBed.createComponent(AppComponent);
-      fixture.debugElement
-        .query(By.css('button.increment'))
-        .triggerEventHandler('click', null);
-      flush();
-      fixture.detectChanges();
-      const value = fixture.debugElement.query(By.css('h1')).nativeElement.innerText;
-      expect(value).toEqual('1');
-    }));
-    ```
+### waitForAsync 函数
 
-- `waitForAsync()` 允许所有的异步调用都已完成时，才能运行期望，和 `fixture.whenStable()` 搭配使用
-  
+- **确保所有异步任务完成后**，**再运行测试期望**，和 `fixture.whenStable()` 搭配使用
+
   ```html
   <h1>{{ title }}</h1>
   <button (click)="setTitle()" class="set-title">Set Title</button>
   ```
-  
+
   ```typescript
   title!: string;
   setTitle() {
@@ -8946,7 +11242,7 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
     });
   }
   ```
-  
+
   ```typescript
   it('should display title', waitForAsync(() => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -8958,8 +11254,174 @@ import { fakeAsync, tick, flush } from '@angular/core/testing';
     });
   }));
   ```
+
+
+> - 当测试场景仅包含一个异步操作时，可以使用 `async` 函数
+> - 当测试场景涉及多个异步操作或需要等待整个测试块中的异步任务完成时，应该使用 `waitForAsync` 函数
+
+
+
+### fakeAsync 函数
+
+- `fakeAsync` 使用的是**模拟时间**，而 `done` 和 `async` 使用的是真实时间
+
+  `fakeAsync` 将包裹的测试任务安排到一个特殊的 *fakeAsync test zone* 中执行，会覆盖 Angular 内部用于控制变更管理的对象和行为
+
+- 运行在 `fakeAsync` 中的流程控制函数 `tick` 、`flush`
+
+  > `tick(milliseconds: number)`
+  >
+  > - **模拟时间的流逝，将时间流逝的控制权交给测试者**
+  >
+  > - 指定 `tick` 推进的时间，会**触发在指定时间之前计划的宏任务**
+  >
+  >   ```typescript
+  >   import { fakeAsync, tick } from '@angular/core/testing';
+  >   ```
+  >
+  >   ```typescript
+  >   it('should demonstrate Angular: fakeAsync', fakeAsync(() => {
+  >     const start = performance.now();
+  >     setTimeout(() => {
+  >       const end  = performance.now() - start;
+  >       console.log(end) // ~expect ~1ms
+  >     }, 3000);
+  >     // 模拟3000毫秒延迟，如果没有延迟时间，可以省略毫秒数
+  >     tick(3000);
+  >     expect(1).toBe(1);
+  >   }));
+  >   ```
+  >
+  > - 可以使用 `tick(0)` 触发当前时间点所有的宏任务
+  >
+  > - 可以使用**多个 `tick` 调用来确保任务按顺序发生**
+  >
+  >   ```typescript
+  >   class UserComponent { 
+  >     public userName: string;
+  >     public order: number;
+  >                                   
+  >     public getUserName(): Promise<string> {
+  >       return new Promise((resolve) => {
+  >         setTimeout(() => {
+  >           resolve('jack');
+  >         }, 1000);
+  >       });
+  >     }
+  >                                   
+  >     public getUserOrders(userName: string): Promise<number> {
+  >       return new Promise<number>((resolve) => {
+  >         setTimeout(() => {
+  >           resolve(3);
+  >         }, 2000);
+  >       });
+  >     }
+  >                                   
+  >     public getData(): void {
+  >       this.getUserName().then((name) => {
+  >         this.userName = name;
+  >         this.getUserOrders(name).then((order) => {
+  >           this.order = order;
+  >         });
+  >       });
+  >     }
+  >   }  
+  >   ```
+  >
+  >   ```typescript
+  >   it('should get data', fakeAsync(() => {
+  >     component.getData();
+  >                                   
+  >     tick(1000);
+  >     expect(component.userName).toBe('jack');
+  >     expect(component.order).toBe(undefined);
+  >                                   
+  >     tick(2000);
+  >     expect(component.order).toBe(3);
+  >   }));
+  >   ```
+
+  > `flush()`
+  >
+  > - 结束条件不是一个时间值，而是**直到宏任务队列为空**（`setTimouts`、`setIntervals` 等）
+  >
+  >   ```typescript
+  >   import { fakeAsync, flush } from '@angular/core/testing';
+  >   ```
+  >
+  >   ```typescript
+  >   value = 0;
+  >   increment() {
+  >     setTimeout(() => {
+  >       this.value += 1;
+  >     }, 5000);
+  >   }
+  >   ```
+  >
+  >   ```typescript
+  >   it('should increase', fakeAsync(() => {
+  >     component.increment();
+  >     component.increment();
+  >     component.increment();
+  >     component.increment();
+  >     component.increment();
+  >     component.increment();
+  >     flush();
+  >     expect(comp.value).toBe(6);
+  >   }));
+  >   ```
+
+  > `flushMicrotasks()`
+  >
+  > - 与 `flush` 相似，但是是**立即执行微任务队列中的所有任务，并清空微任务队列**（例如 `Promise` 的 `then` 回调和 `MutationObserver`）
+
+
+
+### whenStable 函数
+
+- `fixture` 的 `whenStable` 方法用于获取一个 `Promise`，在 `fixture` 稳定时解析
+
+  ```typescript
+  it('should show quote after getQuote (async)', async(() => {
+    fixture.detectChanges(); // ngOnInit()
+    expect(quoteEl.textContent).toBe('should show placeholder');
+    // // wait for async getQuote
+    fixture.whenStable().then(() => {
+      // // update view with quote
+      fixture.detectChanges();
+      expect(quoteEl.textContent).toBe(testQuote);
+    });
+  }));
+  ```
+
+- 在进行异步测试时，允许在**事件触发异步活动**或**异步变更检测**后恢复测试，确保在所有异步操作完成后再继续执行
+
+- `whenStable` **只对 `fixture` 级别的破坏性异步事件做出反应**
+
+  ```typescript
+  it('should be stable for component OnInit', async(() => {
+    const fixture = TestBed.createComponent(DemoComponent);
+    // 调用组件的 ngOnInit 方法
+    fixture.componentInstance.ngOnInit();
+    // 返回稳定状态
+    // 因此组件级别的异步事件可能不会触发 whenStable 方法的回调
+    expect(fixture.isStable()).toBe(true);
+  }));
   
+  it('should be unstable for fixture OnInit', async(() => {
+    const fixture = TestBed.createComponent(DemoComponent);
+    // 调用 fixture 的 detectChanges 方法（fixture 级别）
+    fixture.detectChanges();
+    // 返回不稳定状态
+    // 因为 detectChanges 方法可能会触发组件的其他异步事件，导致 fixture 的不稳定性
+    expect(fixture.isStable()).toBe(false);
+  }));
   
+  ```
+
+- 使用 `whenStable` 测试异步，需要等待真实的等待时长
+
+
 
 ## 测试间谍
 
@@ -9578,6 +12040,24 @@ describe('CounterComponent', () => {
   });
 });
 
+```
+
+
+
+### 动态样式测试
+
+```html
+<div [ngClass]="{ 'alert': isAlert, 'success': !isAlert }"></div>
+```
+
+```typescript
+it('should have the .success class if isAlert is set to false', () => {
+  component.isAlert = false;
+  fixture.detectChanges();
+  let classes: any = fixture.debugElement.query(By.css('div')).classes;
+  expect(classes.success).toBeTruthy();
+  expect(classes.alert).toBeFalsy();
+});
 ```
 
 
@@ -11078,9 +13558,13 @@ function isRef(r: any): r is Ref {
 
 ## 推断类型 infer
 
-- `infer` 表示在 `extends` 条件语句中，以占位符出现的，等到使用时才推断出来的数据类型
+- `infer` 表示**在 `extends` 条件语句中，以占位符出现**的，等到**使用时才推断出来的数据类型**
 
-- 获取参数类型
+  `infer` 关键字只允许存在于 `extends` 语句中
+
+- 获取函数参数类型
+
+  `infer` 出现在 `extends` 条件语句后的函数类型中的参数类型位置上
 
   ```typescript
   // User 为对象类型
@@ -11098,7 +13582,9 @@ function isRef(r: any): r is Ref {
   type ParaType = FuncParaType<FuncType>	// User
   ```
 
-- 获取返回值类型
+- 获取函数返回值类型
+
+  `infer` 出现在 `extends` 条件语句后的函数类型中的返回值类型上
 
   ```typescript
   type FuncType = (params: User) => string
@@ -11114,16 +13600,18 @@ function isRef(r: any): r is Ref {
 
 - 获取泛型的类型
 
+  `infer` 出现在类型的泛型具体化类型上
+  
   ```typescript
-  type ElementOfArray<T> = T extends Array<infer P> ? P : never
+type ElementOfArray<T> = T extends Array<infer P> ? P : never
   ```
-
+  
   ```typescript
   type ArrayItemType = ElementOfArray<Array<{ name: string, age: number }>>
-  // 类型输出为 { name: string, age: number }
+// 类型输出为 { name: string, age: number }
   ```
 
-  函数中使用
+- 函数中使用
 
   ```typescript
   function unref<T>(ref: T): T extends Ref<infer V> ? V : T {
@@ -11131,13 +13619,17 @@ function isRef(r: any): r is Ref {
     return isRef(ref) ? (ref.value as any) : ref
   }
   ```
-
+  
   ```typescript
   unref(ref(3))									//返回值类型为 number
   unref(ref('jack'))						// 返回值类型为 string
   unref(ref({ name: 'jack' }))	// 返回值类型为 { name: string }
   unref({ age: 29 })						// 返回值类型为 { age: number }
   ```
+
+- `infer` 构建带参数的工厂实例方法
+  - `infer` 获取构造器参数
+  - `infer` 获取构造
 
 
 
@@ -11597,7 +14089,7 @@ createFactoryConstructor(User)
 
 ## 装饰品
 
-装饰品/注解就是一个函数，但它是一个返回函数的函数
+装饰品 / 注解就是一个函数，但它是一个返回函数的函数
 
 是 TypeScript 的一个特性，不是 Angular 的特性   
 
@@ -11671,52 +14163,60 @@ createFactoryConstructor(User)
 
 
 
-
-# Rxjs 响应式编程
-
-rxjs 要**把事件或数据看成一个流**
-
-响应式编程就是随着事件流中的元素的变化随之做出相应的动作
-
-流的种类：无限，有限，单个，空
-
-所有的操作都是**异步**的
-
-```typescript
-import {Observable} from 'rxjs';
-import {map,filter} from 'rxjs/operators';
-
-let stream = new Observable<any>(observer => {
-  let count = 0;
-	setInterval(() => {
-		observer.next(count++);
-	}, 1000);
-});
-
-stream.pipe(
-	filter(val => val%2==0)
-).subscribe(value => console.log("filter>"+value));
-
-stream.pipe(
-	filter(val => val%2==0),
-	map(value => {
-		return value * value
-	})
-).subscribe(value => console.log("map>"+value));
-```
-
-- Angular6 以后使用以前的 rxjs 方法，必须安装 `rxjs-compat` 模块才可以使用 `map`、`filter` 方法
-
-
+# Rxjs
 
 ## 基本概念
 
-- **可观察对象** `Observable` ：类比 `Promise` 对象，**内部可以用于执行异步代码**，通过调用**内部提供的方法将异步代码执行的结果传递到可观察对象外部**
+### 函数响应式编程
 
-- **观察者** `Observer`：类比 `then` 方法中的回调函数，用于**接收可观察对象中传递出来数据**
-- **订阅** `Subscribe`：类比 `then` 方法，**通过订阅将可观察对象和观察者连接起来，当可观察对象发出数据时，订阅者可以接收到数据**
+- rxjs 要**把事件或数据看成一个流**，DOM 事件、WebSocket、AJAX、网页动画都可以看作是一个数据流
+- **响应式编程就是随着事件流中的元素的变化随之做出相应的动作**
+- 用数据流抽象现实问题，把复杂问题分解成简单问题的组合
+- 擅长处理异步操作，对数据采用 **推（push）** 的处理，被推送给对应的处理函数不用关心数据是同步产生的还是异步产生的
+- rxjs 结合了观察者模式和迭代者模式，rxjs 实现的是**推**式的迭代器实现
 
-<img src="Angular.assets/image-20220110230109796.png" alt="image-20220110230109796" style="zoom: 80%;" /> <img src="Angular.assets/image-20220110230123802.png" alt="image-20220110230123802" style="zoom:50%;" />
+
+
+### 观察者模式
+
+> - 观察者模式要解决的问题，就是在一个持续产生事件的系统中，分割功能，让不同模块只处理一部分逻辑
+> - 观察者模式将逻辑分为 **发布者** 和 **观察者**，发布者只负责产生事件，会通知所有注册的观察者，观察者只接收事件后处理，不关心数据是怎样产生的
+> - Rsjs 中 `Observable` 对象就是一个发布者，通过 `subscribe` 函数把发布者和观察者连接起来
+> - Rxjs 中 `subscribe` 的参数就是一个观察者
+
+- 可观察对象 `Observable`
+
+  类比 `Promise` 对象，**内部可以用于执行异步代码**，通过调用**内部提供的方法将异步代码执行的结果传递到可观察对象外部**
+
+- 观察者 `Observer`
+
+  类比 `then` 方法中的回调函数，用于**接收可观察对象中传递出来数据**
+
+- 订阅 `Subscribe`
+
+  类比 `then` 方法，**通过订阅将可观察对象和观察者连接起来，当可观察对象发出数据时，订阅者可以接收到数据**
+
+<img src="Angular.assets/image-20220110230109796.png" alt="image-20220110230109796" style="zoom: 80%;" /> 
+
+```javascript
+import { Observable } from 'rxjs'
+
+const observable = new Observable(observer => {
+  setTimeout(() => {
+    observer.next({ name: '张三' })
+  }, 2000)
+})
+
+const observer = {
+  next: value => {
+    console.log(value)
+  }
+}
+
+observable.subscribe(observer)
+```
+
+
 
 
 
@@ -11724,55 +14224,253 @@ stream.pipe(
 
 ### Observable
 
-**可观察对象是惰性的，只有被订阅后才会执行**
+#### 创建 Observable
 
-可观察对象**可以有 n 多订阅者**，**每次被订阅时都会得到执行**
+- `Observable` 对象是一个特殊的类，接受一个处理 `observer` 的函数，`observer` 对象只要求必须包含一个 `next` 函数属性，用于接收被推过来的数据
 
-```typescript
-const observable = new Observable(() => {
-  console.log("执行");
-})
-observable.subscribe();  // 执行
-observable.subscribe();  // 执行
-observable.subscribe();  // 执行
-```
+  ```javascript
+  // 作为参数传递给 Observable 构造函数，这个函数参数完全决定了 Observable 对象的行为
+  // 函数接受一个 observer 参数，在函数体内，调用参数 observer 的 next 函数，把数据「推」给 observer
+  const onSubscribe = observer => {
+    observer.next(1)
+    observer.next(2)
+    observer.next(3)
+  }
+  ```
 
-三种状态状态：`next`，`error`，`complete`
+  ```javascript
+  // 调用 Observable 构造函数，产生一个名为 source$ 的数据流对象
+  const source$ = new Observable(onSubscribe)
+  ```
 
-<img src="Angular.assets/image-20220108142409251.png" alt="image-20220108142409251" style="zoom:50%;" /> 
+  ```javascript
+  // 创造观察者 theObserver
+  const theObserver = {
+    next: item => console.log(item)
+  }
+  ```
 
-当调用了 `complete` 或 `error` 方法以后，就不能再次调用 `next`方法
+  ```javascript
+  // 通过 subscribe 函数将 theObserver 和 source$ 关联起来
+  // 在 subscribe 函数被调用的过程中，onSubscribe 被调用
+  source$.subscribe(theObserver)
+  
+  // 产生了连续的三个正整数输出
+  // 1
+  // 2
+  // 3
+  ```
 
-```typescript
-const observable = new Observable((observer) => {
-  let index = 0;
-  let timer = setInterval(() => {
-    //  在Observable对象内部可以多次调用 next方法向外发送数据
-    observer.next(index++);
-    if(index === 3) {
-      // 当所有数据发送完成以后，可以调用complete方法终止数据发送
-      // observer.complete();
-      // 当内部逻辑发送错误时，可以调用 error 方法将失败信息发送给订阅者，Observable 终止
-      observer.error("error");
-      clearInterval(timer);
+- **可观察对象是惰性的，只有被订阅后才会执行**
+
+- 可观察对象**可以有 n 多订阅者**，**每次被订阅时都会得到执行**
+
+  ```javascript
+  const observable = new Observable(() => {
+    console.log("执行");
+  })
+  observable.subscribe();  // 执行
+  observable.subscribe();  // 执行
+  observable.subscribe();  // 执行
+  ```
+
+
+
+#### 异步 Observable
+
+推送数据可以有时间间隔，对于观察者 `Observer`，只需要被动接受推送数据来处理，而不用关心数据何时产生
+
+```javascript
+const onSubscribe = observer => {
+  let number = 1;
+  const handle = setInterval(() => {
+    observer.next(number++);
+    if (number > 3) {
+      clearInterval(handle);
+      observer.complete();
     }
   }, 1000);
-});
+};
 
-const observer = {
-  next: (value) => {
-    console.log(value)
-  },
-  complete: () => {
-    console.log("complete")
-  },
-  error: (error) => {
-    console.log(error)
-  }
+const source$ = new Observable(onSubscribe)
+
+const theObserver = {
+  next: item => console.log(item)
 }
 
-observable.subscribe(observer);
+source$.subscribe(theObserver)
 ```
+
+`Observable` 可以**产生不会结束的数据**
+
+```javascript
+const onSubscribe = observer => {
+  let number = 1;
+  const handle = setInterval(() => {
+    observer.next(number++);
+  }, 1000);
+};
+```
+
+
+
+#### Observable 三种状态
+
+- 三种状态：`next`，`error`，`complete`
+
+  ```javascript
+  // Observable 的行为，决定观察者对象的函数如何被调用
+  new Observable(observer => {
+    // 调用 观察者 的 next 函数
+    observer.next(1);
+    // 调用 观察者 的 complete 函数
+    observer.complete();
+  }).subscribe({
+    next: item => console.log(item),
+    error: err => console.log(err),
+    complete: () => console.log('No More Data'),
+  })
+  // 1
+  // No More Data
+  ```
+
+  ```javascript
+  new Observable(observer => {
+    // 调用 观察者 的 next 函数
+    observer.next(1);
+    // 调用 观察者 的 error 函数
+    observer.error('Someting Wrong');
+    // 无效
+    observer.complete();
+  }).subscribe({
+    next: item => console.log(item),
+    error: err => console.log(err),
+    complete: () => console.log('No More Data'),
+  })
+  // 1
+  // Someting Wrong
+  ```
+
+- 当调用了 `complete` 或 `error` 方法以后，就不能再次调用 `next`、`complete` 或 `error` 任意方法
+
+  > `Observable` 对象**只有一种终结状态**，要么是**完结** `complete`，要么是**出错** `error`
+  >
+  > 进入出错状态， `Observable` 对象就终结了，不会调用对应 `Observer` 的 `next` 和 `complete `
+  >
+  > 进入完结状态，也不能再调用 `Observer` 的 `next` 和 `error`
+
+  ```typescript
+  const observable = new Observable((observer) => {
+    let index = 0;
+    let timer = setInterval(() => {
+      //  在Observable对象内部可以多次调用 next方法向外发送数据
+      observer.next(index++);
+      if(index === 3) {
+        // 当所有数据发送完成以后，可以调用complete方法终止数据发送
+        // observer.complete();
+        // 当内部逻辑发送错误时，可以调用 error 方法将失败信息发送给订阅者，Observable 终止
+        observer.error("error");
+        clearInterval(timer);
+      }
+    }, 1000);
+  });
+  
+  observable.subscribe({
+    next: (value) => console.log(value),
+    complete: () => console.log("complete"),
+    error: (error) => console.log(error)
+  });
+  ```
+
+  > `Observable` 构造函数参数中的 `observer` 并不是传给 `subscribe` 的参数 ，而是对  `subscribe` 的参数的包装
+  >
+  > 即使在 `observer.error` 被调用之后强行调用 `observer.complete`，也不会真正调用到 `subscribe` 的 `complete` 函数
+
+- `subscribe` 可以接受一个 `Observer` 对象作为参数，也可以接受函数作为参数
+
+  - 接受 `Observer` 对象
+
+    ```javascript
+    source$.subscribe({
+      next: (value) => console.log(value),
+      error: (error) => console.log(error),
+      complete: () => console.log("complete")
+    });
+    ```
+
+  - 接受函数：第一个参数如果是函数类型，就被认为是 `next`，第二个函数参数被认为是 `error`，第三个函数参数被认为是 `complete`
+
+    ```javascript
+    source$.subscribe(
+      item => console.log(item),
+      err => console.log(err),
+      () => console.log('No More Data')
+    );
+    ```
+
+    不需要的处理可以用 `null` 占位置
+
+    ```javascript
+    source$.subscribe(
+      item => console.log(item),
+      null,
+      complete: () => console.log('No More Data')
+    );
+    ```
+
+
+
+#### 退订 Observable
+
+- `Observable` 对象接受的处理 `observer` 的函数，可以返回一个对象，对象上可以有一个 `unsubscribe` 函数
+
+  ```javascript
+  const onSubscribe = observer => {
+    let number = 1;
+    const handle = setInterval(() => {
+      observer.next(number++);
+    }, 1000);
+    return {
+      unsubscribe: () => {
+        clearInterval(handle);
+      }
+    };
+  };
+  const source$ = new Observable(onSubscribe);
+  const subscription = source$.subscribe(item => console.log(item));
+  // 在 3.5 秒之后做退订的动作
+  setTimeout(() => {
+    subscription.unsubscribe();
+  }, 3500);
+  // 1
+  // 2
+  // 3
+  ```
+
+- 调用 `unsubscribe` 函数，只是**当前订阅不再接受到被推送的数据**，`Observable` 并没有终结，因为始终没有调用 `complete`
+
+
+
+#### Hot 和 Cold Observable
+
+> 一个 `Observable` 对象有两个 `Observer` 对象来订阅，而且这两个 `Observer` 对象并不是同时订阅，
+>
+> 第一个 `Observer` 对象订阅 N 秒钟之后，第二个 `Observer` 对象才订阅同一个 `Observable` 对象，
+>
+> 而且，在这 N 秒钟之内，`Observable` 对象已经吐出了一些数据
+>
+> 针对于后订阅上的 `Observer`，如何处理错过的数据？
+>
+> 1. **Hot Observable**：允许错过，**只接受从订阅那一刻开始 `Observable` 产生的数据**
+> 2. **Cold Observable**：不能错过，**需要获取 `Observable ` 之前产生的数据**
+
+- Cold Observable：每次订阅都要产生一个新的生产者
+
+  每一次 `subscribe` 都产生一个生产者，生产者产生的数据通过 `next` 函数传递给订阅的 `Observer`
+
+- Hot Observable：每次订阅的时候，已经有一个热的生产者准备好了
+
+  生产者的创建和 `subscribe` 调用没有关系，`subscribe` 调用只是让 `Observer` 连接上生产者而已
 
 
 
@@ -11843,31 +14541,67 @@ setTimeout(() => {
 
 ## 操作符
 
-**数据流**：**从可观察对象内部输出的数据就是数据流**，可观察对象内部可以向外部源源不断的输出数据
+### 操作符简介
 
-**操作符**：用于**操作数据流**，可以将对象数据流进行转换，过滤等操作
+> 现实中复杂的问题，并不会创造一个数据流之后就直接通过 `subscribe` 接上一个 `Observer`
+>
+> 往往需要对这个数据流做一系列处理，然后才交给 `Observer`
+>
+> 像一个管道，数据从管道的一段流入，途径管道各个环节，当数据到达 `Observer` 的时候，已经被管道操作过
+>
+> 有的数据已经被中途过滤抛弃掉了，有的数据已经被改变了原来的形态，而且最后的数据可能来自多个数据源
+>
+> 最后 `Observer` 只需要处理能够走到终点的数据
+
+- 数据流
+
+  从可观察对象内部输出的数据就是数据流，可观察对象内部可以向外部源源不断的输出数据
+
+- 操作符
+
+  用于**操作数据流**，可以**将对象数据流进行转换，过滤等操作**，对于每一个操作符，连接的就是上游和下游
+
+  **操作符是返回一个 `Observable` 对象的函数**
+
+  <img src="Angular.assets/v2-e733fa3e169d2cec2c57cedf064c3e2d.jpg" alt="img" style="zoom: 33%;" /> <img src="Angular.assets/v2-3b0a6951eaee3335c69df64d91d7b5f7.jpg" alt="img" style="zoom: 33%;" />
+
+- 弹珠图
+
+  <img src="Angular.assets/v2-b5f951c38d1a907357b4f24c12c192d7.jpg" alt="img" style="zoom: 50%;" /> 
+
+  <img src="Angular.assets/v2-69fa904c6cbac629fae91bdd87472c92.jpg" alt="img" style="zoom: 50%;" /> 
+
+  - 符号 `|` 代表的是数据流的完结，对应调用 `complete` 函数
+
+  - 符号 `×` 代表数据流中的异常，对应于调用 `error` 函数
+
+  <img src="Angular.assets/v2-598eb2840881223746a3f035d94cc65e.jpg" alt="img" style="zoom:50%;" /> 
+
+  - 多条时间轴代表上下游的数据流，根据上游数据流产生下游数据流
+
+  主要的操作符的弹珠图：https://rxmarbles.com/
+
+  产生弹珠图：[https://rxviz.com/](http://rxviz.com/)
+
+
 
 ### 创建操作符
 
 负责创建一个 `Observable` 对象
 
-#### from
+<img src="Angular.assets/v2-8291de26e10fe3d9827687b580d2c912.jpg" alt="img" style="zoom:67%;" /> 
 
-**从数组等可迭代对象(如字符串)或 `Promise` 事件等创建一个 `Observable`**
 
-```javascript
-import { from } from 'rxjs'
 
-from<T>(input: any, scheduler?: SchedulerLike): Observable<T>
-/*
-  input：输入值
-  scheduler：调度器
-*/
-```
+#### from 转化 Promise 或可迭代对象
 
 <img src="Angular.assets/from.png" style="zoom: 45%;" /> 
 
-- ##### 数组转换为 `Observable`
+- 从数组等**可迭代对象**（如字符串）或 `Promise` 事件等创建一个 `Observable`
+
+- 当 `from` 转化的数据完成的时候（`promise` 也只有一个结果）， `Observable` 会立即完成
+
+- 数组转换为 `Observable`
 
   ```javascript
   const array = [10, 20, 30];
@@ -11879,21 +14613,30 @@ from<T>(input: any, scheduler?: SchedulerLike): Observable<T>
   // 30
   ```
 
-- ##### `Promise` 转换为 `Observable`（也可以使用 `fromPromise` 操作符）
+- `Promise` 转换为 `Observable`
 
   ```javascript
   const result = from(
     new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve('Hello RxJS!');
-      },3000)
+      }, 3000)
     }));
   result.subscribe(x => console.log(x));
   
   // Hello RxJS!
   ```
 
-- ##### 无限迭代转换为 `Observable`
+- `Promise` 失败的时候， `Observable` 对象也会立即失败
+
+  ```typescript
+  const result = from(Promise.reject('oops'));
+  result.subscribe({
+    error: data => console.log(data),
+  });
+  ```
+  
+- 生成器 `generator` 转换为 `Observable`
 
   ```javascript
   function* generateDoubles(seed) {
@@ -11903,7 +14646,6 @@ from<T>(input: any, scheduler?: SchedulerLike): Observable<T>
        i = 2 * i; // double it
      }
   }
-  
   const iterator = generateDoubles(3);
   const result = from(iterator).pipe(take(5));
   result.subscribe(x => console.log(x));
@@ -11915,45 +14657,27 @@ from<T>(input: any, scheduler?: SchedulerLike): Observable<T>
   // 48
   ```
 
-- ##### 使用异步调度程序
+- `arguments` 转换为 `Observable`
 
-  ```javascript
-  console.log('start');
-  const array = [10, 20, 30];
-  const result = from(array, asyncScheduler);
-  result.subscribe(x => console.log(x));
-  console.log('end');
-  
-  // start
-  // end
-  // 10
-  // 20
-  // 30
+  ```typescript
+  function toObservable() {
+    return from(arguments);
+  }
+  const source$ = toObservable(1, 2, 3)
   ```
 
-  
 
-#### fromEvent
 
-将**事件**( DOM 事件 或 Node 的 `EventEmitter` 事件)**转换成 `Observable` 对象**
-
-被订阅的时候事件处理函数会被添加，当取消订阅的时候会将事件处理函数移除
-
-```javascript
-import { fromEvent } from 'rxjs'
-
-fromEvent<T>(target: FromEventTarget<T>, eventName: string, options?: EventListenerOptions | ((...args: any[]) => T), resultSelector?: (...args: any[]) => T): Observable<T>
-/*
-  target: DOM事件，EventEmitter事件等事件目标
-  eventName: 要监听的事件名称
-  options: 传递给addEventListener的参数
-  resultSelector: 处理操作结果的回调函数 (不推荐使用，该方法建议移到pipe的map中)
-*/
-```
+#### fromEvent 转化DOM事件
 
 <img src="Angular.assets/fromEvent.png" alt="fromEvent" style="zoom:45%;" /> 
 
-- ##### 鼠标点击事件转换为 `observable`
+- 将事件（ DOM 事件 或 Node 的 `EventEmitter` 事件）转换成 `Observable` 对象
+- 被**订阅的时候事件处理函数会被添加**，当**取消订阅的时候会将事件处理函数移除**
+- 第一个参数是事件源，即特定的 DOM 元素，第二个参数是 DOM 事件名字符串
+- `fromEvent` 产生的是 Hot Observable，数据的产生和订阅是无关的
+
+- 鼠标点击事件转换为 `observable`
 
   ```javascript
   const source = fromEvent(document, 'click');
@@ -11963,36 +14687,49 @@ fromEvent<T>(target: FromEventTarget<T>, eventName: string, options?: EventListe
   // Event time: 7276.390000000001
   ```
 
+- 添加 `addEventListener` 选项
+
+  ```typescript
+  const clicksInDocument = fromEvent(document, 'click', { capture: true });
+  clicksInDocument.subscribe(() => console.log('document'));
+  ```
+
+- Node `EventEmitter` 事件转换为  `observable`
+
+  ```typescript
+  const emitter = new EventEmitter();
+  // 事件名称为 msg
+  const source$ = fromEvent(emitter, 'msg');
+  source$.subscribe(value => console.log(value));
+  
+  emitter.emit('msg', 1);
+  emitter.emit('msg', 2);
+  emitter.emit('another-msg', 'oops');
+  emitter.emit('msg', 3);
+  
+  // 1
+  // 2
+  // 3
+  ```
 
 
-#### fromEventPattern
 
-从一个基于 `addHandler` / `removeHandler` 方法的类事件创建 `Observable`
-
-可以将注册监听 `addHandler` 及移除监听 `removeHandler` 两种方法依序传入 `fromEventPattern` 来建立 `Observable` 的事件实例
-
-`addHandler` 方法在被订阅的时候调用，`removeHandler` 方法在取消订阅的时候被调用
-
-```javascript
-import { fromEventPattern } from 'rxjs'
-
-fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandler?: (handler: NodeEventHandler, signal?: any) => void, resultSelector?: (...args: any[]) => T): Observable<T | T[]>
-/*
-  addHandler: 注册监听函数
-  removeHandler: 移除监听函数
-  resultSelector: 处理操作结果的回调函数
-*/
-```
+#### fromEventPattern 转化任意事件
 
 <img src="Angular.assets/fromEventPattern.png" alt="fromEventPattern" style="zoom:45%;" /> 
 
-- ##### DOM 点击事件转换为 `observable`
+- 从一个基于 `addHandler` / `removeHandler` 方法的类事件创建 `Observable`
+- 可以将注册监听 `addHandler` 及移除监听 `removeHandler` 两种方法依序传入 `fromEventPattern` 来建立 `Observable` 的事件实例
+- `addHandler` 方法在被订阅的时候调用，`removeHandler` 方法在取消订阅的时候被调用
+- `addHandler` 和 `removeHandler`  两个参数都是函数，具体动作可以任意定义，所以可以非常灵活
+
+- DOM 点击事件转换为 `observable`
 
   ```javascript
-  function addClickHandler(handler) {
+  const addClickHandler = (handler) => {
     document.addEventListener('click', handler);
   }
-  function removeClickHandler(handler) {
+  const removeClickHandler = (handler) => {
     document.removeEventListener('click', handler);
   }
   const clicks = fromEventPattern(
@@ -12002,7 +14739,60 @@ fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandle
   clicks.subscribe(x => console.log(x));
   ```
 
-- ##### 自定义类事件转换为 `observable`
+- 取消订阅时执行清理操作
+
+  ```typescript
+  fromEventPattern(
+    handler => {
+      const intervalId = setInterval(() => { this.timerValue++ }, 1000); // 1秒间隔
+      handler(intervalId);
+    },
+    (_, intervalId) => {
+      clearInterval(intervalId);
+      // 在取消订阅时手动执行清理工作
+      console.log('Cleaning up...');
+    }
+  )
+  ```
+  
+  ```typescript
+  // 传入文件地址，然后返回一个流，流中的数据就是每行数据的结果
+  const fs = require('fs')
+  const readline = require('readline')
+  
+  function getLines(filePath) {
+    const stream = fs.createReadStream(filePath)
+    const rl = readline.createInterface({ input: stream });
+    return fromEventPattern(
+      handler => {
+        rl.on('line', (...args) => {
+          console.log('read line')
+          handler(...args)
+        });
+      },
+      handler => {
+        // 在流结束的时候关闭流和取消事件监听
+        rl.on('close', (...args) => {
+          console.log('close', ...args)
+          handler(...args)
+        });
+      }
+    ).pipe(
+      finalize(() => {
+        console.log('finalize')
+        stream.close()
+        rl.removeAllListeners()
+        rl.close()
+      }));
+  }
+  getLines('./t.txt').pipe(
+    take(3)
+  ).subscribe(line => {
+    console.log('line', line)
+  })
+  ```
+  
+- 自定义类事件转换为 `observable`
 
   ```javascript
   const listeners = [];
@@ -12011,7 +14801,7 @@ fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandle
       listeners.push(listener);
     }
     removeListener(listener) {
-  	listeners.splice(listeners.indexOf(listener), 1)
+      listeners.splice(listeners.indexOf(listener), 1)
     }
     emit(value) {
       listeners.forEach(listener => listener(value));
@@ -12019,15 +14809,15 @@ fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandle
   }
   const foo = new Foo();
   fromEventPattern(
-      listener => foo.registerListener(listener)),
-      listener => foo.removeListener(listener)
+    listener => foo.registerListener(listener),
+    listener => foo.removeListener(listener)
   ).subscribe();
   foo.emit(1);
   
   // 1
   ```
 
-- ##### 结合可以通过回调进行通讯的 API
+- 结合可以通过回调进行通讯的 API
 
   ```javascript
   // WebWorker API
@@ -12041,66 +14831,77 @@ fromEventPattern<T>(addHandler: (handler: NodeEventHandler) => any, removeHandle
   // workerMessage
   ```
 
-  
 
-#### interval
 
-创建一个 `Observable`，定期发出**自增的数字**
 
-```javascript
-import { interval } from 'rxjs'
-
-interval(period: number = 0, scheduler: SchedulerLike = async): Observable<number>
-/*
-  period: 时间间隔ms，或者调度器的内部时钟决定的时间单位
-  scheduler: 调度器
-*/
-```
+#### interval 时间间隔序列
 
 <img src="Angular.assets/interval.png" alt="img" style="zoom:45%;" /> 
 
-- ##### 周期性处理数据
+- 创建一个 `Observable`，定期发出**自增的数字**
+
+- **参数为产生数据的间隔毫秒数**，返回的 `Observable` 就按照这个时间间隔输出递增的整数序列，从 `0` 开始
+
+  ```typescript
+  interval(1000).subscribe(console.log)
+  // 1 秒时吐出数据 0
+  // 2 秒时吐出数据 1
+  // 3 秒时吐出数据 2
+  // ...
+  ```
+  
+- `interval` 产生的数据流不会完结，要想停止这个数据序列，就必须要做退订的动作
+
+- 可以用于模拟定时器、轮询请求、定期执行任务等
 
   ```javascript
   // 每 10 秒获取一次数据
   interval(10000).pipe(
-    flatMap(i => fetch("https://server/stockTicker")
+    switchMap(i => fetch("https://server/stockTicker")
   ).subscribe(updateChart)
+  ```
+
+- 借助 `interval` 和 `map` 的组合，对发出的整数进行转换
+
+  ```typescript
+  interval(1000).pipe(
+    map(value => value * 10) // 将值乘以10
+  );
+  ```
+
+- `interval` 和 `startWith` 组合，默认时间计数前运行一次，与 `timer(0, 60000)` 相同
+
+  ```typescript
+  // Poll every 1 min
+  interval(60000).pipe(
+    startWith(0),
+    switchMap(() =>  this.service.longPollingData$(params)),
+    map(res => res.data)
+  );
   ```
 
 
 
-#### timer
-
-创建一个 `Observable`，**在初始延迟时间后，开始定期发出自增的数字，或初始延迟时间后行为终止**
-
-就像是 `interval`, 但是可以指定什么时候开始发送
-
-```javascript
-import { timer } from 'rxjs'
-
-timer(dueTime: number | Date = 0, intervalOrScheduler?: number | SchedulerLike, scheduler: SchedulerLike = asyncScheduler): Observable<number>
-/*
-  dueTime: 初始延迟时间
-  intervalOrScheduler: 时间间隔ms
-  scheduler: 调度器
-*/
-```
+#### timer 延迟数据
 
 <img src="Angular.assets/timer.png" alt="img" style="zoom:45%;" /> 
 
-- ##### 3 秒后开始一个新的 `observable`
+- 创建一个 `Observable`，在给定的**持续时间之后**，**每隔指定的时间发射一个递增的数字**序列，**或持续时间之后发出一个值并完成**
 
-  ```javascript
+- 第一个参数指定一个**毫秒数**，产生的 `Observable` 对象**在指定毫秒之后会吐出一个数据 `0`，然后立刻完结**
+
+  ```typescript
   const source = of(1, 2, 3);
+  // 3 秒后发出一个值，然后完成
   const result = timer(3000).pipe(
     concatMapTo(source)
   ).subscribe(console.log);
   ```
 
-- ##### 1 分钟后终止流
+- 如果明确延时产生数据的时间间隔，那就应该用数值作为参数，如果明确的是一个时间点，那用 `Date` 对象是最佳选择
 
-  ```javascript
+  ```typescript
+  // 接受一个`Date`
   const currentDate = new Date();
   const startOfNextMinute = new Date(
     currentDate.getFullYear(),
@@ -12109,42 +14910,59 @@ timer(dueTime: number | Date = 0, intervalOrScheduler?: number | SchedulerLike, 
     currentDate.getHours(),
     currentDate.getMinutes() + 1,
   )
-  const source = interval(1000);
-  const result = source.pipe(
+  // 1 分钟后终止流
+  const result = interval(1000).pipe(
     takeUntil(timer(startOfNextMinute))
   );
   result.subscribe(console.log);
   ```
 
-- ##### 每隔 1 秒发出自增的数字，3 秒后开始发送
+  ```typescript
+  const now = new Date();
+  const later = new Data(now.getTime() + 1000)
+  timer(later).subscribe(console.log);
+  ```
 
-  ```javascript
+- 第二个参数指定**各数据之间的时间间隔**，如果使用第二个参数，会产生一个持续吐出数据的 `Observable` 对象
+
+  类似 `interval`，但是可以指定什么时候开始发送
+
+  从被订阅到产生第一个数据 `0` 的时间间隔，依然由第一个参数决定
+
+  ```typescript
+  // 每隔 1 秒发出自增的数字，3 秒后开始发送
   const numbers = timer(3000, 1000);
   numbers.subscribe(x => console.log(x));
   ```
 
+- 如果 timer 的第一个参数和第二个参数一样，和 `interval` 的功能完全一样
+
+  `interval` 是间隔时间参数相同时 `timer` 的一种简写的方法
+
+  ```typescript
+  const source1$ = interval(1000);
+  const source2$ = timer(1000, 1000);
+  ```
+
+- `timer`  创建的数据是异步的，即使是 `timer(0)`
 
 
-#### of
 
-创建一个 `Observable`，会**依次发出提供的参数，然后完成**
-
-```javascript
-import { of } from 'rxjs'
-
-of<T>(...args: (SchedulerLike | T)[]): Observable<T>
-/*
-  args: next发出的值
-*/
-```
+#### of 列举数据
 
 <img src="Angular.assets/of.png" style="zoom:45%;" /> 
 
-- ##### 同步传递值
+- 创建一个 `Observable`，会**依次发出提供的参数，然后完成**
 
-```javascript
-of("a", "b", [], {}, true, 20)
-.subscribe(
+
+- `of` 操作符是**同步**的，适用于在创建 `Observable` 时立即提供值
+- `of` 产生的是 Cold Observable，对于每一个 `Observer` **都会重复吐出同样的一组数据，可以反复使用**
+
+- 如果需要在异步操作中发射值，可以考虑使用 `defer` 
+
+
+```typescript
+of("a", "b", [], {}, true, 20).subscribe(
   next => console.log(next),
   err => console.log(err),
   () => console.log('complete')
@@ -12161,65 +14979,126 @@ of("a", "b", [], {}, true, 20)
 
 
 
-#### range
+#### defer
 
-创建一个 `Observable`，**发出指定范围内的连续整数序列**
+接受一个**返回 `Observable` 的函数**，`defer` 中的代码仅在**订阅时执行**，而不是在创建时执行
 
-默认情况下，**不使用调度器仅仅同步的发送通知**
+每次订阅都产生新的 `Observable` 实例
 
-```javascript
-import { range } from 'rxjs'
+<img src="Angular.assets/defer.png" alt="defer marble diagram" style="zoom:50%;" /> 
 
-range(start: number, count?: number, scheduler?: SchedulerLike): Observable<number>
-/*
-  start: 序列中的第一个整数值
-  count: 要生成序列的长度
-  scheduler: 调度器
-*/
+```typescript
+const s1 = of(new Date()); // will capture current date time
+const s2 = defer(() => of(new Date())); // will capture date time at the moment of subscription
 ```
+
+```typescript
+const source = Observable.defer(() => Observable.of(
+  Math.floor(Math.random() * 100)
+));
+```
+
+
+
+#### iif
+
+根据条件订阅两个 `Observable` 中的其中一个
+
+
+
+#### range 指定范围
 
 <img src="Angular.assets/range.png" alt="img" style="zoom:45%;" /> 
 
-- ##### 发出从 1 到 10 的数
+- 创建一个 `Observable`，**发出指定范围内的连续整数序列**，可以选择范围的起始值和长度，每次递增 `1`
+
+  第一个参数还可以是任何数字
 
   ```javascript
-  const numbers = range(1, 10);
-  numbers.subscribe(x => console.log(x));
+  const source$ = range(1.5, 3);
+  // 1.5、2.5、3.5
+  ```
+
+  不支持递增序列的定制，只可以递增 `1`
+
+- 默认情况下，不使用调度器仅仅**同步**的发送通知 
+
+- 方法内部并不是一次发出 `length` 个数值，而是发送了 `length` 次，每次发送一个数值。也就是内部调用了 `length` 次 `next` 方法
+
+> 发出从 1 到 10 的数
+>
+> ```javascript
+> const numbers = range(1, 10);
+> numbers.subscribe(x => console.log(x));
+> 
+> // 输出: 1,2,3,4,5,6,7,8,9,10
+> ```
+
+
+
+#### EMPTY 完成空数据流
+
+<img src="Angular.assets/empty.png" alt="empty marble diagram" style="zoom:50%;" /> 
+
+- `EMPTY` 是一个 `Observable` 对象，它会**立即发出 `complete` 通知**，而**不发出任何 `next` 通知**
+
+- 创建立即完成的 `Observable`
+
+  ```typescript
+  EMPTY.subscribe({
+    next: () => console.log('Next'),
+    complete: () => console.log('Complete!')
+  });
+  // Complete!
+  ```
   
-  // 输出: 1,2,3,4,5,6,7,8,9,10
+- 条件触发 `Observable` 完成
+
+  ```typescript
+  fromEvent(document, 'click').pipe(
+    switchMap(() => {
+      // 在条件满足时，返回一个立即完成的 Observable
+      return someCondition ? EMPTY : of('Clicked!');
+    })
+  );
   ```
 
 
 
-#### throwError
+#### NEVER 永不完成空数据流
 
-创建一个 `Observable`，不向观察者发出任何项目，**立马发出错误通知**
+<img src="Angular.assets/never.png" alt="never marble diagram" style="zoom: 45%;" /> 
 
-可以被用来**和其他 `Observables` 组合, 比如在 `mergeMap`，`concatMap` 中使用**
+- 创建一个永远不会发出任何值，也不完成，也不产生错误的 `Observable`
 
-```javascript
-import { throwError } from 'rxjs';
+  ```typescript
+  NEVER.subscribe({
+    next: () => console.log('This will never be called'),
+    complete: () => console.log('This will never be called either'),
+  });
+  // 永远不会结束或产生任何值
+  ```
 
-throwError(errorOrErrorFactory: any, scheduler?: SchedulerLike): Observable<never>
-/*
-  errorOrErrorFactory: 错误通知
-  scheduler: 调度器
-*/
-```
+- 某些场合，例如编写测试用例时，可能需要模拟一个永远不会结束的流，即不产生任何值，也不会完成时，可以使用`NEVER`
+
+
+
+#### throwError 抛出错误
 
 <img src="Angular.assets/throw.png" alt="img" style="zoom:45%;" /> 
 
-- ##### 和其他 `Observables` 组合，抛出错误
+- 创建一个 `Observable`，不向观察者发出任何项目，**订阅时立马发出错误通知**
+
+- 可以被用来**和其他 `Observables` 组合, 比如在 `mergeMap`，`concatMap` 内部中抛出错误**
 
   ```javascript
   // mergeMap:把二维的 observable 转成一维，并且能够同时处理所有的 observable
   interval(1000).pipe(
     mergeMap(x => x === 2
-      ? throwError('Twos are bad')
+      ? throwError(() => 'Twos are bad')
       : of('a', 'b', 'c')
     ),
   ).subscribe(x => console.log(x), e => console.error(e));
-  
   // a
   // b
   // c
@@ -12228,36 +15107,118 @@ throwError(errorOrErrorFactory: any, scheduler?: SchedulerLike): Observable<neve
   // c
   // Twos are bad
   ```
-
-  ```javascript
-  const result = concat(of(7), throwError(new Error('oops!')));
-  result.subscribe(x => console.log(x), e => console.error(e));
   
+  ```javascript
+  concat(
+    of(7),
+    throwError(() => new Error('oops!'))
+  ).subscribe(x => {
+    console.log(x), e => console.error(e)
+  });
   // 7
   // Error: oops!
   ```
-
-  ```javascript
-  const delays$ = of(1000, 2000, Infinity, 3000);
-  delays$.pipe(
-     concatMap(ms => {
-       if (ms < 10000) {
-         return timer(ms);
-       } else {
-         return throwError(() => new Error(`Invalid time ${ms}`));
-         // 等价于：
-         // throw new Error(`Invalid time ${ms}`);
-       }
-     })
-  ).subscribe({
-     next: console.log,
-     error: console.error
-  });
   
+  ```javascript
+  of(1000, 2000, Infinity, 3000).pipe(
+    concatMap(ms => {
+      if (ms < 10000) {
+        return timer(ms);
+      } else {
+        // 等价于：
+        // throw new Error(`Invalid time ${ms}`);
+        return throwError(() => new Error(`Invalid time ${ms}`));
+      }
+    })
+  ).subscribe({
+    next: console.log,
+    error: console.error
+  });
   // 0
   // 0
   // Error: Invalid time Infinity
   ```
+
+
+
+#### generate 循环创建
+
+<img src="Angular.assets/generate.png" alt="generate" style="zoom:45%;" /> 
+
+- `generate` 创建一个类似 `for` 循环的流，**设定一个初始值，每次递增这个值，直到满足某个条件的时候才中止循环**，**在每次循环迭代时发出一个值**
+
+  ```javascript
+  // 产生一个比 10 小的所有偶数的平方
+  const result = [];
+  for (let i = 2; i < 10; i += 2) {
+    result.push(i＊i);
+  }
+  ```
+
+  ```javascript
+  // 使用 generate
+  const source$ = generate(
+    2,											 // 初始值，相当于 for 循环中的 i=2
+    value => value < 10,		// 继续的条件，相当于 for 中的条件判断 
+    value => value + 2,			// 每次值的递增 
+    value => value * value // 产生的结果 
+  );
+  ```
+
+- `generate` 操作符通过运行一个基于状态的循环生成 `Observable` 序列的元素，使用指定的调度程序发送观察者消息
+
+  ```typescript
+  const observable = generate(
+    initialState,       // 初始状态，表示循环的起始值
+    condition,          // 条件函数，每次迭代都会调用，接受值并测试条件是否成立，返回 false 时停止生成
+    iterate,            // 迭代函数，每次迭代都会调用，用于更新状态
+    resultSelector,     // 结果选择器函数，每次迭代都会调用，返回生成的元素
+    scheduler           // 可选的调度程序，用于控制观察者的消息发送
+  );
+  ```
+
+  - 初始状态、条件函数、迭代函数，这三个参数直接**对应于传统 `for` 循环中的三个表达式**
+
+    第一个表达式初始化某个状态；第二个测试循环是否可以执行下一次迭代；第三个说明定义的值将如何在每一步中被修改
+
+  - 首先条件函数被执行，如果返回 `true`，那么 `Observable` 发出当前存储的值，在第一次迭代时为初始值
+
+    最后用 `iterate` 函数更新该值
+
+  - 如果在某一点上条件返回 `false`，那么 `Observable` 在那一刻完成
+
+  - 第四个参数可以传递一个映射函数，映射由 `Observable` 发出的值
+
+  - 调度器决定循环的下一次迭代何时发生，决定 `Observable` 何时发出下一个值
+
+    当默认没有传递调度器时，值会同步发出
+
+- 使用对象参数
+
+  ```typescript
+  const result = generate({
+    initialState: 0,
+    condition(value) { return value < 3; },
+    iterate(value) { return value + 1; },
+    resultSelector(value) { return value * 1000; }
+  });
+  ```
+
+> 使用 `generate` 产生不限于数值序列的数据流
+>
+> ```javascript
+> const range = (start, count, step) => {
+>   const max = start + count;
+>   return generate({
+>     initialState: start,
+>     condition: value => value < max,
+>     iterate: value => value + step,
+>     resultSelector: value => value,
+>   });
+> };
+> range(1, 10, 2).subscribe(console.log)
+> // 1 3 5 7 9
+> ```
 
 
 
@@ -12269,62 +15230,166 @@ throwError(errorOrErrorFactory: any, scheduler?: SchedulerLike): Observable<neve
 
 `bindNodeCallback`
 
-`defer`
-
-`generate`
-
-`iif`
 
 
+### 合并操作符
 
-### 组合建立操作符
+> - 可将多个 `Observable` 对象组合成一个 `Observable` 对象
+>
+> - 不少合并类操作符都有两种形式，既提供静态操作符，又提供实例操作符
+>
+>   两个平等关系的数据流合并在一起，适合用静态操作符
+>
+>   拥有主次关系，例如 source2$ 汇入了 source1$，适合用实例操作符
 
-可将多个 `Observable` 对象组合成一个 `Observable` 对象
+<img src="Angular.assets/v2-3a4813acc3b11dca1a5053ce6f5a1032.jpg" alt="img" style="zoom:67%;" /> 
 
-#### combineLatest
 
-**组合多个 `Observables` 来创建一个 `Observable`**，**返回根据每个输入 `Observable` 的最新值计算得出的数组**
 
-1. **顺序订阅**每个输入 `Observable`
-2. **等待**每个输入都**至少发出一个值后**才会发出初始值
-3. 每个输入所发出的值**只保留最新的**
-4. 某个输入**不产生新数据**(包含完成情况)，就**反复使用最后一次产生的数据**
-5. **任一输入发生错误**，会立马返回错误状态，所有的其他输入**都会被解除订阅**
-6. 某个输入没有发出值就**完成**了，返回的 `Observable` 会立马完成
-
-```javascript
-import { combineLatest } from 'rxjs'
-
-combineLatest<O extends ObservableInput<any>, R>(...args: any[]): Observable<R> | Observable<ObservedValueOf<O>[]>
-/*
-  args: 接受一个Observables数组
-*/
-    
-combineLatest(sources: readonly any[], resultSelector: (...values: A) => R): Observable<R>
-/*
-  args: 接受一个Observables数组
-  resultSelector: 处理操作结果的回调函数
-*/
-```
+#### combineLatest 合并最新
 
 <img src="Angular.assets/combineLatest.png" alt="combineLatest marble diagram" style="zoom:40%;" /> 
 
-- ##### 计算多个因子的结果
+- 组合多个 `Observables` 来创建一个 `Observable`，返回根据**每个输入 `Observable` 的最新值**计算得出的**数组**
+
+  > 1. **顺序订阅**每个输入 `Observable`，**等待每个输入都至少发出一个值后才会发出初始值**，凑不齐完整的数据集合，只能等待
+  > 2. 当**上游任何 `Observable` 发出值时**，从**每个输入 `Observable` 中拿最后一次产生的数据**，把这些**数据组合起来传给下游**
+  > 3. 每个输入所发出的值**只保留最新的**，如果某个上游 `Observable` **不产生新数据**（包含完成情况），就**反复使用这个上游最后一次产生的数据**
+  > 4. 返回数组的长度和输入的个数一致，**顺序和输入的顺序一致**，对象的**结构和输入的结构一致**
+  > 5. **任一输入发生错误**，会立马返回错误状态，所有的其他输入**都会被解除订阅**
+  > 6. 单独某个输入的完成不会让返回的 `Observable` 完成，**所有上游都完成之后，才会给下游 `complete` 信号**
+  > 7. 但是如果某个输入**没有发出值就完成**了，返回的 `Observable` 会立马完成
+
+- `combineLatest` 主要应用于**处理多个长期存在的可观察对象**，彼此相互依赖进行某种计算等
+
+  ```typescript
+  const redTotal = document.getElementById('red-total');
+  const blackTotal = document.getElementById('black-total');
+  const total = document.getElementById('total');
+  const addOneClick$ = id => fromEvent(document.getElementById(id), 'click').pipe(
+    // map every click to 1
+    mapTo(1),
+    // keep a running total
+    scan((acc, curr) => acc + curr, 0),
+    startWith(0)
+  );
+  combineLatest([addOneClick$('red'), addOneClick$('black')]).subscribe(
+    ([red, black]: any) => {
+      redTotal.innerHTML = red;
+      blackTotal.innerHTML = black;
+      total.innerHTML = red + black;
+    }
+  );
+  ```
+
+- 如果可观察对象只会发出一个值，或者只需要在完成之前获取每个可观察对象的最后一个值，最好使用 `forkJoin`
+
+- `combineLatest` 产生的流依赖于上游多个流，同时上游多个流又共同依赖于另一个流，这时可能会产生**多重依赖问题**
+
+  > 如果**输入 `Observable` 对象之间有依赖关系**，就会发生**多个输入 `Observable` 对象同时产生数据**的情况，就会出现 **glitch 现象**
+  >
+  > <img src="Angular.assets/v2-361f74ba8aa40bf568c16e788086d9e0.jpg" alt="img" style="zoom: 80%;" /> 箭头方向代表的是 `Observable` 对象的依赖方向，和数据的流向正好相反
+  >
+  > ```typescript
+  > const original$ = timer(0, 1000);	// 每隔 1000 毫秒产生一个递增数值序列
+  > const source1$ = original$.pipe(map(x => x + 'a'));	// 会产生 0a、1a、2a 这样的序列
+  > const source2$ = original$.pipe(map(x => x + 'b')); // 会产生 0b、1b、2b 这样的序列
+  > const result$ = combineLatest([source1$, source2$]);
+  > result$.subscribe(console.log)
+  > 
+  > // ["0a", "0b"]
+  > // ...1s 后
+  > // ["1a", "0b"]
+  > // ["1a", "1b"]
+  > // ...1s 后
+  > // ["2a", "1b"]
+  > // ["2a", "2b"]
+  > // ...1s 后
+  > // ["3a", "2b"]
+  > // ["3a", "3b"]
+  > // ...
+  > ```
+  >
+  > original$ 每一秒钟只产生一个数据，但是在 `combineLatest` 之后却产生了两个数据
+  >
+  > 直观上来说，当 original$ 吐出数据 1 的时候，输出应该是  [ '1a', '1b' ]，但是却得到了两个输出
+  >
+  > - 这种现象称为 **glitch**，glitch 发生是因为**多个上游 `Observable` 同时吐出一个数据**
+  >
+  >   <img src="Angular.assets/v2-41db69372aa80511a56dab79c3d080f4.jpg" alt="img" style="zoom:67%;" /> 
+  >
+  > - 如果需要**解决 glitch 问题，需要使用 `withLatestFrom` 操作符**
+  >
+  > - glitch 现象虽然存在，但是并不一定会造成 bug，从用户感知角度，可能完全注意不到，不过可能引起太多不必要的渲染，从而影响性能
+  >
+  >   ```typescript
+  >   const event$ = fromEvent(document.body, 'click');
+  >   const x$ = event$.pipe(map(e => e.x));
+  >   const y$ = event$.pipe(map(e => e.y));
+  >   // 获得鼠标事件的 x 和 y 坐标值
+  >   const result$ = combineLatest([x$, y$], (x, y) => `x: ${x}, y: ${y}`);
+  >   result$.subscribe((location) => {
+  >     console.log('#render', location);
+  >     document.querySelector('#text').innerText = location;
+  >   });
+  >   // 由于 event$ 被 x$ 和 y$ 共同依赖，点击三次，出现 5 条日志
+  >   // #render x: 191, y: 119
+  >   // #render x: 135, y: 119
+  >   // #render x: 135, y: 165 
+  >   // #render x: 137, y: 165
+  >   // #render x: 137, y: 82
+  >   ```
+  >
+  >   使用 `withLatestFrom` 操作符修复
+  >
+  >   ```typescript
+  >   const result$ = x$.pipe(withLatestFrom(y$, (x, y) => `x: ${x}, y: ${y}`));
+  >   ```
+
+- `combineLatest` 合并同步数据流现象
+
+  > 1. 先开始订阅 source1$，因为是同步数据流，在被订阅时就会吐出所有数据，最后一个吐出的数据是 c
+  > 2. 订阅 source2$，当 source2$ 开始吐出数据时，和 source1$ 的最后一个数据 c 组合传给下游
+  > 3. source2$ 虽然依然是同步数据流，但它每产生一个数据，都会有准备好的 source1$ 的最新数据
+  > 4. 因此，source2$ 产生的每个数据都会引发下游一个数据的产生
+
+  ```typescript
+  const source1$ = of('a', 'b', 'c');
+  const source2$ = of(1, 2, 3);
+  combineLatest([source1$, source2$]).subscribe(console.log)
+  // 结果：
+  // ["c", 1]
+  // ["c", 2]
+  // ["c", 3]
+  ```
+
+  ```typescript
+  const source1$ = of('a', 'b', 'c');
+  const source2$ = of(1, 2, 3);
+  const source3$ = of('x', 'y');
+  combineLatest([source1$, source2$, source3$]).subscribe(console.log)
+  // 结果：
+  // [ 'c', 3, 'x' ]
+  // [ 'c', 3, 'y' ]
+  // source1$ 和 source2$ 被订阅得早，它们吐出最后一个数据之前 combineLatest 都凑不齐所有参与 Observable 对象的最新数据
+  ```
+
+- 结合多个可观察对象
 
   ```javascript
   const weight = of(70, 72, 76, 79, 75);
   const height = of(1.76, 1.77, 1.78);
-  const bmi = combineLatest([weight, height]).pipe(
+  // 使用回调函数的写法
+  // const bmi = combineLatest([weight, height], (w, h) => w / (h * h));
+  // 使用管道写法
+  combineLatest([weight, height]).pipe(
     map(([w, h]) => {
       console.log('weight:' + w + ",height:" + h);
       return w / (h * h);
     }),
-  );
-  // 使用回调函数的写法
-  // const bmi = combineLatest([weight, height], (w, h) => w / (h * h));
-  bmi.subscribe(x => console.log('BMI is ' + x));
+  ).subscribe(x => console.log('BMI is ' + x));
   
-  // weight值立即发出，没有延迟
+  // weight 值立即发出，没有延迟：
   // weight:75,height:1.76
   // BMI is 24.212293388429753
   // weight:75,height:1.77
@@ -12333,7 +15398,14 @@ combineLatest(sources: readonly any[], resultSelector: (...values: A) => R): Obs
   // BMI is 23.671253629592222
   ```
 
-- ##### 结合多个 `Observables`
+  ```typescript
+  // 使用回调函数的写法
+  const weight = of(70, 72, 76, 79, 75);
+  const height = of(1.76, 1.77, 1.78);
+  const bmi = combineLatest([weight, height], (w, h) => w / (h * h));
+  ```
+
+- 结合多个**长期存在的可观察对象**
 
   ```javascript
   const firstTimer = timer(0, 1000); // 从现在开始，每隔1秒发出0, 1, 2...
@@ -12347,7 +15419,10 @@ combineLatest(sources: readonly any[], resultSelector: (...values: A) => R): Obs
   // [2, 1] after 2s
   ```
 
-  ```javascript
+
+- 结合可观察对象字典
+
+  ```typescript
   const observables = {
     a: of(1).pipe(delay(1000), startWith(0)),
     b: of(5).pipe(delay(5000), startWith(0)),
@@ -12356,6 +15431,7 @@ combineLatest(sources: readonly any[], resultSelector: (...values: A) => R): Obs
   const combined = combineLatest(observables);
   combined.subscribe(value => console.log(value));
   
+  // 输出结果为对象
   // {a: 0, b: 0, c: 0} immediately
   // {a: 1, b: 0, c: 0} after 1s
   // {a: 1, b: 5, c: 0} after 5s
@@ -12364,65 +15440,137 @@ combineLatest(sources: readonly any[], resultSelector: (...values: A) => R): Obs
 
 
 
-#### forkJoin
+#### withLatestFrom 上游驱动合并最新
 
-将所有 `Observable` 对象最后**发出来的最后一个数据合并**成 `Observable`
+ <img src="Angular.assets/withLatestFrom.png" alt="withLatestFrom marble diagram" style="zoom:40%;" />
 
-`forkJoin` 操作符的作用类似于 `promise.all()`，等待每个输入 `Observable` **都完成后，合并返回**它们最后发出的值的列表
+- 调用 `withLatestFrom` 的**源 `Observable` 起到主导数据产生节奏的作用**，作为**参数的 `Observable` 只能贡献数据**，不能控制产生数据的时机
 
-1. **所有输入都完成后，只会触发一次，然后立即完结**，合并发出每个流**最后一个值**
+- 当源 `Observable` 发出新值时，`withLatestFrom` 会获取参数 `Observable` 的最新值，并将与源 `Observable` 的值组合成一个新的值
 
-2. 返回数组的长度和输入的个数一致，**顺序和输入的顺序一致**，对象的结构和输入的结构一致
+  ```typescript
+  // 每隔 2 秒钟产生 0、100、200……
+  const source1$ = timer(0, 2000).pipe(map(x => 100 * x));
+  // 每隔 1 秒钟产生一个从 0 开始的递增数字
+  const source2$ = timer(500, 1000);、
+  // 输出的百位数由 source1$ 贡献，个位数由 source2$ 贡献
+  const result$ = source1$.pipe(withLatestFrom(source2$, (a, b) => a + b));
+  result$.subscribe(console.log)
+  // 结果
+  // ...2s later
+  // 101
+  // ...2s later
+  // 203
+  // ...2s later
+  // 305
+  // ...2s later
+  // 407
+  ```
 
-3. 任何输入**发生错误**，会立马返回错误状态，所有的其他输入**都会被解除订阅**
-4. 任一输入没有发出值就**完成**了，返回的 `Observable` 会立马完成
+  > <img src="Angular.assets/v2-adf8a1b7024dfb80129203734fbe7d22.jpg" alt="img" style="zoom: 50%;" /> 
+  >
+  > 1. 0 毫秒，source1$ 吐出数据 100，source2$ 没有吐出数据，不会给下游产生数据
+  > 2. 500 毫秒，source2$ 吐出数据 0，但是 source2$ 不触发给下游传递数据，不会给下游产生数据
+  > 3. 1500 毫秒，source2$ 吐出数据 1，同样不会给下游产生数据
+  > 4. 2000 毫秒，source1$ 吐出数据 100，加上 source2$ 吐出的最后一个数据 1，传给下游的数据 101
+  > 5. 2500 毫秒，source2$ 吐出数据 2，不会给下游产生数据
+  > 6. 3500 毫秒，source2$ 吐出数据 3，不会给下游产生数据
+  > 7. 4000 毫秒，source1$ 吐出数据 200，加上 source2$ 吐出的最后一个数据 3，传给下游的的数据 203
 
-**一般用在只发送一个元素的流的情况**，像 **HTTP 请求**或者**页面加载**，发起多个请求，让请求并行运行，在所有流收到响应时执行某些任务
+- `withLatestFrom` 只会取参数 `Observable` 的最新值，如果参数 `Observable` 在源 `Observable` 发出值之前没有发出任何值，那么将不会产生组合
 
-不过**需要保证多个接口都能够成功返回结果**，使用 `forkJoin` 不好监听具体错误
+- `combineLatest` 和 `withLatestFrom` 的选择
 
-```javascript
-import { forkJoin } from 'rxjs';
+  - 如果要合并完全独立的 `Observable` 对象，使用 `combineLatest`
+  - 如何要把一个 `Observable` 对象映射成新的数据流，同时要从其他 `Observable` 对象获取最新数据，用 `withLatestFrom`
 
-forkJoin(...args: any[]): Observable<any>
-/*
-  args: 接受一个Observables数组
-*/
+- 使用 `withLatestFrom` 解决 `combineLatest` 的 glitch 问题
 
-forkJoin(sources: readonly any[], resultSelector: (...values: A) => R): Observable<R>
-/*
-  args: 接受一个Observables数组
-  resultSelector: 处理操作结果的回调函数
-*/
-```
+  ```typescript
+  const original$ = timer(0, 1000);
+  const source1$ = original$.map(x => x + 'a');
+  const source2$ = original$.map(x => x + 'b');
+  const result$ = source1$.pipe(withLatestFrom(source2$));
+  result$.subscribe(console.log)
+  // [ '0a', '0b' ]
+  // [ '1a', '1b' ]
+  // [ '2a', '2b' ]
+  // [ '3a', '3b' ] 
+  ```
+
+
+
+#### forkJoin 等待完成合并
 
 <img src="Angular.assets/forkJoin.png" alt="forkJoin" style="zoom:40%;" /> 
 
-- ##### 同时进行 `http` 请求
+- 将所有 `Observable` 对象最后**发出来的最后一个数据合并**成 `Observable`
 
-  ```javascript
-  user = [];
-  account = [];
-  getSomeInfo(users, account){
-      // 执行某些任务
-  }
+- `forkJoin` 操作符的**作用类似于 `promise.all()`**，等待每个输入 `Observable` **都完成后，合并返回**它们最后发出的值的列表
+
+  > 1. **所有输入都完成后，只会触发一次，然后立即完结**，合并发出每个流**最后一个值**
+  >
+  > 2. 返回数组的长度和输入的个数一致，**顺序和输入的顺序一致**，对象的**结构和输入的结构一致**
+  >
+  > 3. 任何输入**发生错误**，会立马返回错误状态，所有的其他输入**都会被解除订阅**
+  > 4. 任一输入没有发出值就**完成**了，返回的 `Observable` 会立马完成
   
+- **一般用在只发送一个元素的流的情况**，只关心每个可观察对象最后发出的值时
+
+  像 **HTTP 请求**或者**页面加载**，发起多个请求，让请求并行运行，在所有流收到响应时执行某些任务
+  
+  ```typescript
   forkJoin(
     fetch("https://server/user/1"),
     fetch("https://server/account/1")
-  ).subscribe((data) => {
-      // 返回结果将被按顺序放在一个数组中
-      if (data[0].code === ErrorCodeEnum.SUCCESS) {
-          this.user = data[0].data;
-      }
-      if (data[1].code === ErrorCodeEnum.SUCCESS) {
-          this.account = data[1].data.result;
-      }
-      this.getSomeInfo(this.user, this.account);
-  });
+  ).subscribe(([user, account]) => console.log(user, account));
   ```
-
-- ##### 结合多个 `Observables`
+  
+  ```typescript
+  // 如果会发送多个数据，只会完结之后把最后一个数据合并
+  const source1$ = interval(1000).pipe(map(x => x + 'a'), take(1));
+  const source2$ = interval(1000).pipe(map(x => x + 'b'), take(3));
+  const concated$ = forkJoin([source1$, source2$]);
+  concated$.subscribe({
+    next: console.log,
+    complete: () => console.log('complete')
+  })
+  // ["0a", "2b"]
+  // complete
+  ```
+  
+  **需要保证多个接口都能够成功返回结果**，使用 `forkJoin` 不好监听具体错误
+  
+  ```javascript
+  // 在外部处理异常
+  fokJoin(
+    //emit 'Hello' immediately
+    of('Hello'),
+    //emit 'World' after 1 second
+    of('World').pipe(delay(1000)),
+    // throw error
+    throwError('This will error')
+  ).pipe(catchError(error => of(error)))
+  .subscribe(val => console.log(val));
+  
+  // This will error
+  ```
+  
+  ```javascript
+  // 在输入内部处理异常，成功获得返回值
+  forkJoin(
+    //emit 'Hello' immediately
+    of('Hello'),
+    //emit 'World' after 1 second
+    of('World').pipe(delay(1000)),
+    // throw error
+    throwError('This will error').pipe(catchError(error => of(error)))
+  ).subscribe(val => console.log(val));
+  
+  // ["Hello", "World", "This will error"]
+  ```
+  
+- 结合多个 `Observables`
 
   ```javascript
   // 字典对象
@@ -12456,67 +15604,818 @@ forkJoin(sources: readonly any[], resultSelector: (...values: A) => R): Observab
   // "This is how it ends!" immediately after
   ```
 
-- ##### 异常情况处理
 
-  ```javascript
-  // 在外部处理异常
-  forkJoin(
-    //emit 'Hello' immediately
-    of('Hello'),
-    //emit 'World' after 1 second
-    of('World').pipe(delay(1000)),
-    // throw error
-    throwError('This will error')
-  ).pipe(catchError(error => of(error)))
-  .subscribe(val => console.log(val));
+
+#### zip 一对一合并
+
+<img src="Angular.assets/image-20231110232129566.png" alt="image-20231110232129566" style="zoom:67%;" /> 
+
+- 将多个 `Observable` 组合以创建一个 `Observable`，在所有可观察对象发出值后，以**数组形式**发出这些值
+
+- 像拉链一样，以**成对的方式**组合来自多个可观察对象的值
+
+  > 1. `zip` 会立即订阅所有上游 `Observable` 
+  >
+  > 2. `zip` 只会在**所有输入可观察对象都发出**相应值时**才会发出一个值**，像拉链一样做到**一对一咬合**
+  >
+  > 3. 如果一个可观察对象发出的值比另一个多，**未匹配的值将被暂时保留，等待另一个可观察对象发出其下一个值**
+  >
+  > 4. **当任何一个 `Observable` 完成时**，`zip` **只要给这个完结的 `Observable` 对象吐出的所有数据找到配对的数据**，那么 `zip` **就会完成**
+  >
+  >    <img src="Angular.assets/v2-f6a4185c3cf12ba8931cd2fd0adba2a9.jpg" alt="img" style="zoom: 45%;" /> 
+  >
+  > 5. `zip` 在完结的时候，会退订所有的上游数据
+
+- 吐出数据最少的上游 `Observable` 决定了 `zip` 产生的数据个数
+
+  > 例如有三个上游分别为 source1$、source2$、source3$
+  >
+  > 1. source1$ 吐出 3 个数据后完结，source2$ 吐出 4 个数据后完结，source3$ 永不完结
+  >
+  >    通过 `zip` 合并三者产生的 `Observable` 对象只产生 3 个数据
+  >
+  > 2. 假如 source2$ 在时间上要比 source1$ 早完结
+  >
+  >    `zip` 会等待 source1$ 吐出数据，但最终 source1$ 没有产生数据而是完结
+  >
+  >    `zip` 会白等，最后会丢弃 source2$ 产生的最后一个数据
+
+- `zip` 支持多个上游 `Observable` 对象，并不仅仅是两个上游数据
+
+- `zip` 可能会造成数据积压，对于超大量的数据流，使用 `zip` 需要考虑潜在的**内存压力**问题
+
+  > 如果某个上游 source1$ 吐出数据的速度很快，而另一个上游 source2$ 吐出数据的速度很慢
+  >
+  > 那 `zip` 就不得不**先存储** source1$ **吐出的数据**，等着和 source2$ 未来吐出的数据配对
+  >
+  > 假如 source2$ 迟迟不吐出数据，那么 `zip` 就会一直保存 source1$ 没有配对的数据
+  >
+  > 最后 `zip` 积压的数据就会越来越多，占用的内存也就越来越多
+
+- `zip` 和 `combineLatest` 的区别
+
+  - `zip` 等待所有输入流都发出它们的第 n 个值，一旦满足这个条件，它就会将所有这些第 n 个值进行组合，并发出第 n 个组合值
+
+  - `combineLatest` 每当任何输入流发出一个值时，它会组合每个输入流发出的最新值
+
+- 组合按照顺序的多个流
+
+  ```typescript
+  const documentEvent = eventName =>
+    fromEvent(document, eventName).pipe(
+      map((e: MouseEvent) => ({ x: e.clientX, y: e.clientY }))
+    );
+  zip(documentEvent('mousedown'), documentEvent('mouseup')).subscribe(e =>
+    console.log(JSON.stringify(e))
+  );
+  ```
   
-  // This will error
+  ```typescript
+  const sourceObservable1 = interval(1000); // 1秒发出一个值
+  const sourceObservable2 = interval(2000); // 2秒发出一个值
+  
+  zip(sourceObservable1, sourceObservable2).subscribe(([value1, value2]) => {
+    console.log(`Combined values: ${value1}, ${value2}`);
+  });
+  
+  // Combined values: 0, 0
+  // Combined values: 1, 1
+  // Combined values: 2, 2
+  // ...
   ```
 
-  ```javascript
-  // 在输入内部处理异常，成功获得返回值
-  forkJoin(
-    //emit 'Hello' immediately
-    of('Hello'),
-    //emit 'World' after 1 second
-    of('World').pipe(delay(1000)),
-    // throw error
-    throwError('This will error').pipe(catchError(error => of(error)))
-  ).subscribe(val => console.log(val));
+
+
+#### concat 首尾相连
+
+<img src="Angular.assets/image-20231111141846823.png" alt="image-20231111141846823" style="zoom: 67%;" /> 
+
+- 合并数据流，**按顺序一个接一个发出值**：先让第一个数据流发出值，**完成后**再让第二个数据流发出值，进行**整体合并**
+
+  > 1. **前一个** `Observable` 发出的所有项都**会在后一个** `Observable` 发出的任何项**之前被发出**
+  > 2. **等待订阅**每个的 `Observable`，**直到前一个 `Observable` 完成**
+  > 3. 如果**前一个 `Observable` 永远不完成**，**后续的 `Observable` 将永远不会发出任何值**
+  > 4. 前一个完成的时候，`concat` 会调用 `unsubscribe`，然后调用下一个的 `subscribe`
+
+- `concat` 和 `merge` 的区别
+
+  - `concat` 会**按照顺序订阅**，适用于需要按**照特定顺序连接 `Observables`** 的场景
+  - `merge` **按照实际发射顺序**，可以在**任何时刻接收到任何 `Observable` 的值，不考虑顺序**
+
+- 按顺序执行多个异步操作
+
+  ```typescript
+  const task1 = of('Task 1 Completed').pipe(delay(2000));
+  const task2 = of('Task 2 Completed').pipe(delay(1000));
+  const task3 = of('Task 3 Completed');
   
-  // ["Hello", "World", "This will error"]
+  concat(task1, task2, task3).subscribe(result => console.log(result));
+  // Task 1 Completed
+  // Task 2 Completed
+  // Task 3 Completed
+  ```
+
+  ```typescript
+  // 模拟检查用户名的异步任务
+  const checkUsername = of('Username checked').pipe(delay(2000));
+  // 模拟检查密码的异步任务
+  const checkPassword = of('Password checked').pipe(delay(1000));
+  
+  concat(checkUsername, checkPassword).subscribe(result => console.log(result));
+  ```
+
+- 确保连接的 `Observable` 最终会完成，以避免潜在的无限等待
+
+  ```typescript
+  concat(interval(1000), of('This', 'Never', 'Runs')).subscribe(console.log);
+  // 0 1 2 3 ...
+  // 第二个流永远不会被连接
   ```
 
 
 
-#### zip
+#### merge 数据汇流
 
-将多个 `Observable` 组合以创建一个 `Observable`，
+<img src="Angular.assets/merge.png" alt="merge marble diagram" style="zoom: 33%;" /> 
+
+- **交错合并**多个 `Observable`，输出**合并为一个单一的流**
+
+  > 1. `merge` 会在第一时间订阅所有上游 `Observable`，采用**先到先得策略**，**任何 `Observable` 发出值时立即发出值**
+  > 2. `merge` **不关心 `Observable` 的发射顺序**，输出 `Observable` 中的值的顺序可能与输入 `Observable` 的订阅顺序不同
+  > 3. 如果任何一个输入**发出错误**，**合并的流将立即发出错误通知**，不会等待其他 `Observable` 发出值
+  > 4. 如果任何一个 `Observable` **完成**，`merge` 将**继续订阅和合并其他** `Observable` 的值
+  > 5. 只有在**上游所有 `Observable` 都完成时，才会完成**
+
+- `merge` 只对异步产生的数据流有意义
+
+  合并的如果是同步的数据，产生的效果和 `concat` 一样
+
+  ```typescript
+  const source1 = of(1, 2, 3);
+  const source2 = of(4, 5, 6);
+  const merged$ = merge(source1, source2);
+  // 1 2 3 4 5 6
+  ```
+
+- `concat` 和 `merge` 的区别
+
+  - `merge`：更关心观察者尽快接收到值，而不是按照顺序接收值
+  - `concat`：更关心顺序
+  
+- 合并为一个 `Observable`
+
+  ```typescript
+  // 模拟多个用户的消息流
+  const user1Messages$ = fromEvent(document.getElementById('user1'), 'input').pipe(
+    map(message => ({ user: 'User 1', message }))
+  );
+  const user2Messages$ = fromEvent(document.getElementById('user2'), 'input').pipe(
+    map(message => ({ user: 'User 2', message }))
+  );
+  const user3Messages$ = fromEvent(document.getElementById('user3'), 'input').pipe(
+    map(message => ({ user: 'User 3', message }))
+  );
+  // 合并多个用户的消息流
+  const mergedMessages$ = merge(user1Messages$, user2Messages$, user3Messages$);
+  
+  // 订阅合并后的消息流
+  mergedMessages$.subscribe(message => console.log(message));
+  ```
+
+- 不等待前一个 `Observable` 完成
+
+  ```typescript
+  const observable1 = of('Observable 1 completed').pipe(delay(2000));
+  const observable2 = interval(1000);
+  
+  merge(observable1, observable2).subscribe(
+    value => console.log(value),
+    null,
+    () => console.log('Merge completed')
+  );
+  // 0
+  // Observable 1 completed
+  // 1
+  // 2
+  // ...
+  ```
+
+
+- `merge` 有一个可选参数 `concurrent`，用于指定可**以同时合并的 `Observable` 对象个数**
+
+  有多个 `Observables` 需要同时订阅，但希望限制同时订阅的数量，可以使用 `concurrent` 参数来实现
+
+  如果当前订阅的 `Observable` **数量已达到了 `concurrent` 参数指定的值，会等待其中的一个完成**（或取消订阅）后，**才会订阅下一个**
+
+  ```typescript
+  const source1$ = timer(0, 1000).map(x => x + 'A');
+  const source2$ = timer(500, 1000).map(x => x + 'B');
+  const source3$ = timer(1000, 1000).map(x => x + 'C');
+  const merged$ = source1$.merge(source2$, source3$, 2);
+  // source1$ 和 source2$ 不会完结，source3$ 中的数据永远不会获得进入 merged$ 的机会
+  ```
 
 
 
+#### race 赢者通吃
+
+<img src="Angular.assets/race.png" alt="race marble diagram" style="zoom:43%;" /> 
+
+- 接收并**同时执行**多个可观察对象，只将**最快**发出的数据流传递给订阅者
+
+- `race` 适用于**只关心第一个发出值的场景**
+
+  > 1. 订阅时，**立即订阅所有**源 `Observable`，一旦**其中一个源发出值**，将**取消订阅其他源**
+  > 2. 生成的 `Observable` 将**转发获胜源的所有通知**，包括错误和完成通知
+  > 3. 其中一个源在发出第一个通知之前抛出错误，`race` 返回的 `Observable` 也会立即抛出错误，不再等待其他源
+
+```typescript
+const example = race(
+  interval(1500),
+  interval(1000).pipe(mapTo('1s won!')),
+  interval(2000),
+  interval(2500)
+);
+const subscribe = example.subscribe(val => console.log(val));
+// 1s won!
+// 1s won! ....
+```
 
 
 
+#### startWith 初始值
+
+<img src="Angular.assets/startWith.png" alt="startWith marble diagram" style="zoom:45%;" /> 
+
+- 订阅的 `Observable` 发出任何其他项之前发出一个特定的初始项，这个初始值会成为 `Observable` 的**第一个发出的值**
+
+  ```typescript
+  const original$ = timer(0, 1000);
+  const result$ = original$.pipe(startWith('start'));
+  result$.subscribe(console.log)
+  // start
+  // 0
+  // 1
+  ```
+
+- `startWith` 发出的数据是**同步**的
+
+- `startWith` 支持多个参数
+
+- `startWith ` 的功能可以通过 `concat` 来实现，如果需要异步发送初始值只能利用 `concat`
+
+  ```typescript
+  const original$ = timer(0, 1000);
+  const result$ = concat([of('start'), original$]);
+  ```
+
+  endWith 的功能也可以使用  `concat` 来实现
 
 
 
+### 高阶合并操作符
+
+> - 高阶 `Observable`，指的是**产生的数据依然是 `Observable` 的 `Observable`**
+>
+>   <img src="Angular.assets/v2-91a521cc1e25e79b450a508d9d922f64.jpg" alt="img" style="zoom:33%;" /> 
+>
+>   ```typescript
+>   // 高阶 Observable 对象
+>   const ho$ = interval(1000).pipe(
+>     take(2),
+>     map(x => interval(1500).pipe(
+>       map(y => x + ':' + y),
+>       take(2))
+>     ),
+>   )
+>   ```
+>
+> - 相对于高阶 `Observable`，普通的 `Observable`，称为**一阶 `Observable`**
+>
+> - 高阶 `Observable` 产生的数据，一般称为**内部 `Observable`**
+>
+> - 高阶 `Observable` 完结，不代表内部 `Observable` 完结，**内部 `Observable` 有自己的生命周期**
+>
+> - 高阶 `Observable` 的本质是用管理数据的方式来管理多个 `Observable` 对象
+>
+> - 高阶合并就是把**一个高阶 `Observable` 的所有内部 `Observable` 都组合起来**
+
+> - `concat` 对于 `concatAll`，`merge` 对于 `mergeAll`，`zip` 对于 `zipAll`，`combineLatest` 对于 `combineLatestAll`
+> - **后缀为 All** 的操作符，所有的**内部 `Observable` 对象的地位都是平等**的
+> - 带 All 的操作符输入 `Observable` 对象是以上游高阶 `Observable` 对象产生的内部 `Observable` 对象形式出现
 
 
 
+#### concatAll 串联内部流
+
+<img src="Angular.assets/concatAll.svg" alt="concatAll marble diagram" style="zoom: 60%;" /> 
+
+- `concatAll` 会把高阶 `Observable` 中的内部 `Observable` 做 `concat` 的操作
+
+  > 1. `concatAll` 会**按顺序订阅**高阶 `Observable` 中的每个内部 `Observable`
+  > 2. 确保在前一个内部 `Observable` **完成**后**再订阅下一个**内部 `Observable`
+  > 3. 如果任一内部 `Observable` 发生了**异常**，会**停止订阅后续**的内部 `Observable`
+  > 4. 当**所有内部 `Observable` 都完成后**，`concatAll` **发出完成通知**
+
+- 将高阶 `Observable` 中的内部 `Observable` 进行串联，一个完成后再连接下一个
+
+  ```typescript
+  const source$ = of(
+    of('Task 1').pipe(delay(1000)),
+    of('Task 2').pipe(delay(500)),
+    of('Task 3').pipe(delay(1500))
+  );
+  const result$ = source$.pipe(concatAll());
+  result$.subscribe(console.log)
+  // Task 1
+  // Task 2
+  // Task 3
+  ```
+
+- 只有当前一个内部 `Observable` 完结的时候，才会去订阅下一个内部 `Observable`
+
+  ```typescript
+  const ho$ = interval(1000).pipe(
+    take(2),
+    map(x => interval(1500).pipe(
+      map(y => x + ':' + y),
+      take(2))
+    ),
+    concatAll(),
+  )
+  ho$.subscribe(console.log)
+  // 0:0
+  // 0:1
+  // 1:0
+  // 1:1
+  ```
+
+  > <img src="Angular.assets/v2-c3720211f77929ff1549fbd7a7fba87a.jpg" alt="img" style="zoom: 45%;" /> 
+  >
+  > - 1:0 数据在第一个内部 `Observable` 的 0:1 之前就产生了，但在经过 `concatAll` 之后 1:0 出现在 0:1 之后
+  > - 这是因为 `concatAll` 首先会等待第一个内部 `Observable` 完结的时候，才会去订阅第二个内部 `Observable`
+  > - 虽然高阶 `Observable` 已经产生了第二个内部 `Observable`，不代表 `concatAll` 会立刻去订阅，因为这个 `Observable` 是懒执行
+
+- ` concatAll` 合并的速度赶不上新产生的内部 `Observable` 的速度，会造成内部 `Observable` 的积压
+
+  > 如果高阶 `Observable` 持续不断产生内部 `Observable`，但是内部 `Observable` 又异步产生数据
+  >
+  > 当 `concatAll` 消耗内部 `Observable` 的速度永远追不上产生内部 `Observable` 对象的速度时
+  >
+  > 会造成内部 `Observable` 对象的积压，最终这样的积压就是内存泄露
+
+- 使用 `concatAll` 顺序处理多个 HTTP 请求
+
+  ```typescript
+  const endpoints = ['api1', 'api2', 'api3'];
+  const requests$ = from(endpoints).pipe(
+    map(endpoint => ajax.getJSON(endpoint)),
+    concatAll()
+  );
+  ```
 
 
 
+#### mergeAll 并行内部流
+
+<img src="Angular.assets/mergeAll.png" alt="mergeAll marble diagram" style="zoom:45%;" /> 
+
+- `mergeAll` 会把高阶 `Observable` 中的多个内部 `Observable` 做 `merge` 的操作
+
+  > 1. `mergeAll` 会**同时订阅**并处理高阶 `Observable` 中的所有内部 `Observable`
+  > 2. 当任何一个内部 `Observable` **发出值时**，`mergeAll` 将这个值**传递给下游观察者**
+  > 3. 如果任何一个内部 `Observable` **完成**，**不会影响订阅其他**内部 `Observable`
+  > 4. 如果任何一个内部 `Observable` **抛出错误**，`mergeAll` 将**立即停止处理其他**内部 `Observable`，并将异常传递给下游观察者
+
+- `mergeAll` **不会等待内部 `Observable` 完成后再订阅下一个**，而是**同时订阅所有**内部 `Observable`，将**值并行合并成一个流**
+
+  ```typescript
+  const ho$ = interval(1000).pipe(
+    take(2),
+    map(x => interval(1500).pipe(
+      map(y => x + ':' + y),
+      take(2))
+    ),
+    mergeAll(),
+  )
+  ho$.subscribe(console.log)
+  // 0:0
+  // 1:0
+  // 0:1
+  // 1:1
+  ```
+
+  > <img src="Angular.assets/v2-fc80f34aa53738599b5bbf52a0f5c50e.jpg" alt="img" style="zoom:45%;" /> 
+  >
+  > `mergeAll` 只要发现上游产生一个内部 `Observable` 就会立刻订阅，并从中抽取收据
+  >
+  > 所以第二个内部 `Observable` 产生的数据 1:0 会出现在第一个内部 `Observable` 产生的数据 0:1 之前
+
+- 使用 `mergeAll` 并发处理多个 HTTP 请求
+
+  ```typescript
+  const endpoints = ['api1', 'api2', 'api3'];
+  const requests$ = from(endpoints).pipe(
+    map(endpoint => ajax.getJSON(endpoint)),
+    mergeAll()
+  );
+  ```
 
 
 
+#### zipAll 配对内部流
+
+> ```lua
+> 内部 Observable 1:  --a--b--c----d--|
+> 内部 Observable 2:  ----1----2----3----|
+> 内部 Observable 3:  ----x----y----z----|
+> 
+> zipAll 结果: --------------[a,1,x]--[b,2,y]--[c,3,z]--|
+> ```
+
+- `zipAll` 会把高阶 `Observable` 中的每个内部 `Observable` 进行一对一的配对
+
+  > 1. `zipAll` 会订阅高阶 `Observable` 中的每个内部 `Observable`
+  > 2. `zipAll` 会等待每个内部 `Observable` 发出一个值，然后将这些值进行配对
+  > 3. 如果任何一个内部 `Observable` 完成，其他内部 `Observable` 还没有发出值时，将等待其他 `Observable` 发出值或完成
+  > 4. 如果任何一个内部 `Observable` 发生错误，`zipAll` 将立即停止处理其他内部 `Observable`，并将异常传递给下游观察者
+
+- 如果上游高阶 `Observable` 永不完结，`zipAll` 只能等待上游完结，这样才能确定内部 `Observable` 对象的数量
 
 
 
+#### combineLatestAll 合并最新内部流
+
+> ```lua
+> 内部 Observable 1:  --a--b--c----d------|
+> 内部 Observable 2:  ----1----2---3------|
+> 内部 Observable 3:  ----x---y----z------|
+> 
+> combineLatestAll 结果: --[a,1,x]--[b,1,x]--[c,1,x]--[c,2,x]--[c,3,x]--[d,3,x]--[d,3,y]--[d,3,z]--|
+> ```
+
+- `combineLatest` 会等待高阶 `Observable` 中的每个内部 `Observable` 发出值后，将这些值进行合并，发出组合后的结果
+
+  > 1. `combineLatestAll` 会订阅高阶 `Observable` 中的每个内部 `Observable`
+  > 2. 会等待每个内部 `Observable` 发出至少一个值，然后将这些值进行组合
+  > 3. 一旦所有内部 `Observable` 都发出了值，会将最新值进行组合成一个新的 `Observable` 发出
+  > 4. 内部 `Observable` 发出新值时，立即将所有内部 `Observables` 的最新值进行组合并发出
+  > 5. 所有内部 `Observable` 都完成后，才会完成
+  > 6. 如果任何一个内部 `Observable` 发生了错误，立即解除订阅其他内部 `Observable`
+
+- 上游高阶 `Observable` 完结之后才能开始给下游产生数据，因为只有确定了内部 `Observable` 的个数，才能拼凑出第一个传给下游的数据
+
+- 使用 `combineLatestAll` 处理多个 HTTP 请求
+
+  ```typescript
+  // 发出一个请求，这个请求会返回一个数组；然后再根据这个数组中的每个 item 再发出一个异步请求，返回一个值；最后整理成一个数组返回
+  const fetch1 = () => {
+    return timer(1000).pipe(switchMap(() => of([1, 2, 3, 4])));
+  };
+  const fetch2 = (num) => {
+    return timer(1000).pipe(switchMap(() => of(num * num)));
+  };
+  fetch1().pipe(
+    map(fetch2),
+    combineLatestAll()
+  ).subscribe(console.log);
+  ```
 
 
 
+#### switchAll 切换最新内部流
 
+<img src="Angular.assets/switchAll.png" alt="switchAll marble diagram" style="zoom:45%;" /> 
+
+- `switchAll` 总是**切换到最新的内部 `Observable` 对象获取数据**
+
+  > 1. 每当上游高阶 `Observable` **产生一个内部 `Observable` 对象**，`switchAll` **都会立刻订阅最新的内部 `Observable` 对象**
+  > 2. 如果已经订阅了之前的内部 `Observable` 对象，就会**退订过时的内部 `Observable` 对象**，开始**订阅最新的内部 `Observable` 对象**
+  > 3. `switchAll` 产生的 `Observable` **完结**必须满足：**上游高阶 `Observable` 已经完结，当前内部 `Observable` 已经完结**
+  > 4. 内部 `Observable` 发生错误时，整个高阶 `Observable` 都会结束
+
+- `switchAll` 像是抢山头的游戏，谁抢到了山头，就一直占着山头，直到山头被其他对手抢占，可以确保**始终只有一个内部 `Observable` 被订阅**
+
+
+
+#### exhaustAll 等待内部流完成后切换
+
+<img src="Angular.assets/exhaustAll.svg" alt="exhaustAll marble diagram" style="zoom:67%;" /> 
+
+- 在耗尽当前内部 `Observable` 的数据之前不会切换到下一个内部 `Observable` 对象 
+
+  > 1. 每当上游高阶 `Observable` 产生一个内部 `Observable` 对象，`exhaustAll` 都会立即订阅该内部 `Observable` 对象
+  > 2. 如果**当前内部 `Observable` 正在进行中，`exhaustAll` 将忽略所有后续的内部 `Observable` 对象，直到当前内部 `Observable` 完结**
+  > 3. `exhaustAll` 产生的 `Observable` 完结条件为：上游高阶 `Observable` 已经完结，并且当前内部 `Observable` 已经完结
+  > 4. 如果任何内部 `Observable` 发生错误，整个高阶 `Observable` 都会结束
+
+- 当前一个内部 `Observable` 还没有完结，而新的 `Observable` 又已经产生时，**`exhaustAll` 的策略和 `switchAll` 相反**
+
+  - `switchAll` 选择新产生的内部 `Observable` 对象
+  - `exhaustAll` 则选择前一个内部 `Observable` 对象
+
+- 始终只接收最新的数据
+
+  ```typescript
+  const clicks$ = fromEvent(document, "click");
+  const higherOrder$ = clicks$.pipe(
+      map(() => interval(1000).pipe(take(4))),
+  );
+  // 触发点击事件，内部流将订阅并触发定时器并且在4秒后完成
+  // 如果在4秒内再次点击，将会忽略第二个内部流
+  // 第一个内部流完成后，再次点击，新的内部流会被订阅
+  const result$ = higherOrder$.pipe(exhaustAll());
+  result$.subscribe((x) => console.log(x));
+  ```
+
+
+
+### 聚合操作符
+
+> 聚合操作符必定**会遍历上游 `Observable` 对象中吐出的所有数据才给下游传递数据**
+>
+> 也就是说，**只有在上游完结的时候，才给下游传递唯一数据**
+
+
+
+#### count 统计数据个数
+
+<img src="Angular.assets/count.png" alt="count marble diagram" style="zoom:45%;" /> 
+
+- `count` 操作符用于**统计上游 `Observable` 对象吐出的所有数据个数**
+
+  > 1. 在**上游 `Observable` 完结后，会发出**一个单一的值的新 `Observable`，表示**上游 `Observable` 发出的值的数量**
+  > 2. 如果上游 `Observable` 以错误终止，`count` 将传递此错误通知，而不会首先发出一个值
+  > 3. 如果上游 `Observable` 不终止，`count` 不会发出值，也不会终止
+
+  ```typescript
+  // 计算第一次点击发生之前经过了多少秒
+  const clicks = fromEvent(document, 'click');
+  const result = interval(1000).pipe(
+    takeUntil(clicks),
+    count(),
+  );
+  result.subscribe(x => console.log(x));
+  ```
+
+- `count` 操作符可以传递一个谓词函数 `predicate` 作为可选参数，用于**筛选要计数的值**，只有符合谓词函数条件的值才会被计数
+
+  ```typescript
+  const numbers = range(1, 7);
+  const result = numbers.pipe(count(i => i % 2 === 1));
+  result.subscribe(x => console.log(x));
+  // 4
+  ```
+
+
+
+#### max / min 统计最大最小值
+
+<img src="https://rxjs.dev/assets/images/marble-diagrams/max.png" alt="max marble diagram" style="zoom: 33%;" /> <img src="Angular.assets/min.png" alt="min marble diagram" style="zoom: 33%;" />
+
+- `max` 操作符是取得上游 `Observable` 吐出所有数据的最大值，而 `min` 操作符是取得最小值
+
+  ```typescript
+  of(5, 4, 7, 2, 8)
+    .pipe(max())
+    .subscribe(x => console.log(x));
+  // 8
+  ```
+
+- `max` 和 `min` 也**只有等到上游的 `Observable` 对象完结才能产生结果**
+
+- 如果上游 `Observable` 吐出的是**复杂类型**，`max` 和 `min` 操作符必须**指定一个比较函数作为参数**
+
+  `function（a, b）{}` 如果 **`a` 和 `b` 相同返回 `0`**；如果 **`a > b` 返回正数**；如果 **`a < b` 返回负数**
+
+  ```typescript
+  of(
+    { age: 7, name: 'Foo' },
+    { age: 5, name: 'Bar' },
+    { age: 9, name: 'Beer' }
+  ).pipe(
+    min((a, b) => a.age < b.age ? -1 : 1)
+  ).subscribe(x => console.log(x.name));
+  ```
+
+
+
+#### reduce 规约统计
+
+<img src="Angular.assets/reduce.png" alt="reduce marble diagram" style="zoom:45%;" /> 
+
+- `reduce` 操作符接受一个**累加器函数作为参数**，**对上游发出的值进行累加操作**，并得到一个最终的累加结果，这个结果可以**根据累加器函数的定义进行定制**
+
+  > 1. 对**上游 `Observable` 发出的每个值依次调用这个规约函数**，并将当前的累加结果与当前值结合，产生一个新的累加结果
+  > 2. 这个新的累加结果又会作为下一次调用累加器函数的参数之一，与下一个值结合
+  > 3. 以此类推，遍历上游推送的所有的元素，**将上游 `Observable` 发出的所有值组合在一起**
+
+  ```typescript
+  products$.pipe(
+    map((product: Product) => product.price),
+    reduce((accumulator: number, nextPrice: number) => accumulator + nextPrice)
+  ).subscribe((sum: number) => console.log(sum));
+  ```
+
+- `reduce` **只会在源 `Observable` 完成时发出一个值**，相当于应用了操作符 `scan`，然后是操作符 `last`
+
+- `reduce` 还有一个可选参数种子值 `seed`，如果**指定了种子值，则该值将用作累加器的初始值**，如果**未指定，则上游的第一个数据将用作种子**
+
+  ```typescript
+  // 计算 5 秒内发生的点击事件次数
+  fromEvent(document, 'click').pipe(
+    takeUntil(interval(5000)),
+    map(() => 1),
+    reduce((acc, one) => acc + one, 0)
+  ).subscribe(x => console.log(x));
+  ```
+
+
+
+### 条件布尔操作符
+
+> 条件布尔类操作符会根据上游 `Observable` 对象的某些条件产生一个新的**布尔值的 `Observable` 对象**
+>
+> 操作符会应用一个**判定函数**，返回一个布尔类型的结果
+>
+> 判定函数有**三个参数，分别为被判定的数据，序号和上游 `Observable`**
+
+
+
+#### every 满足所有
+
+<img src="Angular.assets/every.png" alt="every marble diagram" style="zoom:45%;" /> 
+
+- 返回一个上游 `Observable` 中的每个项是否满足指定条件的布尔值 `Observable`
+
+  > 1. `every` 要求一个判定函数作为参数，上**游 `Observable` 吐出的每一个数据都会被这个判定函数检验**
+  > 2. 如果所有数据的判定结果都是 `true`，在**上游 `Observable` 对象完结的时候**，`every` 产生的新 `Observable` 对象**会吐出一个唯一的布尔值 `true`**
+  > 3. 只要上游吐出的数据中**有一个数据检验为 `false`**，不用等到上游 `Observable` 完结，`every` 产生的 `Observable` 对象就**会立刻吐出 `false`**
+  > 4. 对一个永不完结的 `Observable` 对象使用 `every` 操作符，产生的新 `Observable` 对象也是永不完结的
+
+  ```typescript
+  concat(
+    fakeRequest(1),
+    fakeRequest('invalid payload'),
+    fakeRequest(2)
+  ).pipe(
+    every(e => e.code === 200),
+    tap(e => log(`all request successful: ${e}`))
+  ).subscribe();
+  ```
+
+
+
+#### find 满足条件首值
+
+<img src="Angular.assets/find.png" alt="find marble diagram" style="zoom:45%;" /> 
+
+- 在上游 `Observable` 中查找满足指定条件的第一个值，并将其发出
+
+  > 1. 找到上游 `Observable` 对象中**满足判定条件的第一个数据**，产生的 `Observable` 对象在**吐出数据之后会立刻完结**
+  > 2. 上游 `Observable` 中始终**没有出现满足判定条件的数据**，`find` 会**吐出 `undefined` 后完结**
+  > 3. 上游 `Observable` 始终**不完结**，而且**没有吐出满足判定条件的数据**，那么 `find` 产生的 `Observable` 对象**永远不会完结**
+
+  ```typescript
+  from([
+    { id: 1, name: 'Alice', age: 25 },
+    { id: 2, name: 'Bob', age: 17 },
+    { id: 3, name: 'Charlie', age: 20 },
+    { id: 4, name: 'David', age: 16 },
+    { id: 5, name: 'Eva', age: 22 }
+  ]).pipe(
+    find(user => user.age > 18)
+  )
+  ```
+
+- `find`、 `filter`、 `first` 的区别
+
+  > - `find` 只会发射源 `Observable` 中满足条件的第一个值，然后立即完成，未找到任何匹配项，会在完成时发出 `undefined`
+  > - `filter` 会发射源 `Observable` 中满足条件的所有值，直到源 `Observable` 完成或发生错误
+  > - `first` 只会发射源 `Observable` 中满足条件的第一个值，然后立即完成，未找到任何匹配项，会发出错误通知
+
+
+
+#### findIndex 满足条件首个索引
+
+<img src="Angular.assets/findIndex.png" alt="findIndex marble diagram" style="zoom:45%;" /> 
+
+- `findIndex` 操作符与 `find` 操作符类似，不同之处在于发出的是**满足条件的值在上游 `Observable` 中的索引**，而不是值本身
+
+  ```typescript
+  const clicks = fromEvent(document, 'click');
+  const result = clicks.pipe(findIndex(ev => (<HTMLElement>ev.target).tagName === 'DIV'));
+  result.subscribe(x => console.log(x));
+  ```
+
+- 如果没有找到满足条件的数据，会在完成时发出 `-1`
+
+
+
+### 辅助操作符
+
+#### repeat 重复订阅
+
+在上游 `Observable` **结束时重新订阅**上游 `Observable` 
+
+> - **接收到 `complete` 事件时，才会做退订并重新订阅的动作**
+> - ` repeat` 的**重复功能依赖于上游的完结时机**，要**保证上游 `Observable` 对象最终一定会完结**
+> - ` repeat` 返回的是全新的 `Observable` 对象，上游 `Observable` 实际上被订阅了 `repeat(n)` 次
+> - 无参数 `repeat()` 代表无限次的重复
+
+<img src="Angular.assets/image-20231225220023031.png" alt="image-20231225220023031" style="zoom:67%;" /> 
+
+> `repeat` 和 `retry` 的区别
+>
+> - `retry` 操作符用于在**发生错误时重新订阅源** `Observable`
+>
+>   当源 `Observable` 发生错误时，`retry` 会重新订阅，而不会重新执行错误的部分
+>
+>   用于在 `Observable` 流发生错误时进行重试，比如网络请求失败后的重试操作
+>
+> - `repeat` 会在源 `Observable` 完成时，重新订阅并重新执行源 `Observable`
+>
+>   适用于对一个 `Observable` 流进行重复执行的情况，比如周期性任务或循环操作
+
+- 定期轮询
+
+  ```typescript
+  const pollData = ajax('/api/data').pipe(
+    repeat(), // 无限重复
+    delay(5000) // 5秒延迟
+  );
+  pollData.subscribe(response => console.log(response));
+  ```
+
+- 检测鼠标事件
+
+  ```typescript
+  const mouseDown$ = fromEvent(document, 'mousedown');
+  const mouseUp$ = fromEvent(document, "mouseup");
+  const mouseMove$ = fromEvent(document, "mousemove");
+  const mouseHold$ = mouseDown$.pipe(
+    switchMap(downEvent => {
+      // 维持鼠标按下两秒，视为 mouse hold
+      return timer(2000).pipe(
+        switchMap(time => of('HOLD'))
+      );
+    }),
+    takeUntil(merge(mouseUp$, mouseMove$)),	// 鼠标抬起或移动完成 mouse hold 事件
+    repeat()
+  );
+  const mouseMove$ = mouseDown$.pipe(
+  	switchMap()
+  )
+  ```
+
+- 利用  `scan` 和 `repeat` 实现秒表计时器
+
+  `scan` 将保持递增计数，`repeat` 将以 1 秒的延迟重复订阅
+
+  ```html
+  <button #start>Start/Restart Timer</button>
+  <button #resume [disabled]="!(stop$ | async)">Resume Timer</button>
+  <button (click)="stoptimer()">Stop Timer</button>
+  <div>Timer Count: {{ timer$ | async }}</div>
+  ```
+
+  ```typescript
+  class AppComponent {
+    @ViewChild('start', { static: false }) start: ElementRef;
+    @ViewChild('resume', { static: false }) resume: ElementRef;
+  
+    stop$ = new Subject<boolean>();
+    timer$: Observable<number>;
+    current: number = 0;
+  
+    ngAfterViewInit() {
+      merge(
+        fromEvent(this.resume.nativeElement, 'click').pipe(
+          map(() => this.current)
+        ),
+        fromEvent(this.start.nativeElement, 'click').pipe(map(() => 0))
+      ).subscribe((beginCount: number) => {
+        this.current = beginCount;
+        this.startTimer();
+      });
+    }
+  
+    startTimer() {
+      this.timer$ = of(true).pipe(
+        scan(
+          (acc, curr) => ((acc = acc + this.current), this.current++),
+          this.current
+        ),
+        repeat({ delay: 1000 }),
+        takeUntil(this.stop$)
+      );
+    }
+  
+    stoptimer() {
+      this.stop$.next(true);
+    }
+  }
+  ```
 
 
 
@@ -12527,111 +16426,11 @@ forkJoin(sources: readonly any[], resultSelector: (...values: A) => R): Observab
 
 ## 辅助方法
 
-### range
-
-`range(start, length)` , 调用方法后返回 `observable` 对象，被订阅后会发出指定范围的数据
-
-方法内部并不是一次发出 `length` 个数值，而是发送了 `length` 次，每次发送一个数值。也就是内部调用了 `length` 次 `next` 方法
-
-<img src="Angular.assets/image-20220111085845329.png" alt="image-20220111085845329" style="zoom:67%;" /> 
-
-```typescript
-import { range } from 'rxjs'
-range(0, 5).subscribe(n => console.log(n))
-
-// 1
-// 2
-// 3
-// 4
-```
-
-
-
-
-
-### forkjoin
-
-是 Rx 版本的 `Promise.all()` ，即表示等到所有的 `Observable` 都完成后，才一次性返回值
-
-<img src="Angular.assets/image-20220111121037815.png" alt="image-20220111121037815" style="zoom:67%;" /> 
-
-```typescript
-import axios from 'axios';
-import { from, forkJoin } from 'rxjs';
-
-axios.interceotor.response.use(response => response.data)
-
-forkJoin({
-    goods: from(axios.get("http://localhost:3005/goods")),
-    category: from(axios.get("http://localhost:3005/category"))
-}).subscribe(console.log)
-
-
-```
-
-
-
-### fromEvent
-
-将事件转换为 `Observable`
-
-```typescript
-import { fromEvent } from 'rxjs'
-
-const btn = document.getElementById("btn")
-fromEvent(btn, 'clilck').subscribe(e => e.console.log(e))
-// 获取事件元
-fromEvent(btn, 'clilck')
-    .pipe(map(event => event.traget))
-    .subscribe(e => e.console.log(e))
-```
-
-
-
-### interval、timer
-
-`interval`：每隔一段事件发出一个数值，数值递增
-
-<img src="Angular.assets/image-20220111133745862.png" alt="image-20220111133745862" style="zoom:67%;" /> 
-
-```typescript
-import { interval } from 'rxjs'
-
-interval(1000).subscribe(n => console.log(n))
-```
-
-`timer`：间隔时间过去以后发出数值，行为终止，或间隔时间发出数值后，继续按第二个参数的时间间隔继续发出
-
-<img src="Angular.assets/image-20220111134041713.png" alt="image-20220111134041713" style="zoom:67%;" /> 
-
-```typescript
-import { timer } from 'rxjs'
-
-timer(2000).subscribe(n => console.log(n))
-timer(0, 1000).subscribe(n => console.log(n))
-```
-
-
-
-### of
-
-将参数列表作为数据流返回
-
-<img src="Angular.assets/image-20220111150119202.png" alt="image-20220111150119202" style="zoom:67%;" /> 
-
-```typescript
-of("a", "b", [], {}, true, 20).subscribe(v => console.log(v))
-```
-
- 
-
 ### distinctUntilChanged
 
 **检测数据源当前发出的数据流是否和上次发出的相同**，如相同，跳过，**不相同，发出**
 
 <img src="Angular.assets/image-20220111151038124.png" alt="image-20220111151038124" style="zoom:67%;" /> 
-
-
 
 ```typescript
 import { of } from 'rxjs'
@@ -12670,6 +16469,23 @@ interval(1000)
 ```
 
 `mapTo`：对数据流进行转换，不关心原有值，**可以直接传入要转换后的值**
+
+
+
+### filter
+
+对数据流进行过滤
+
+<img src="Angular.assets/image-20231029180315428.png" alt="image-20231029180315428" style="zoom: 40%;" /> 
+
+```typescript
+import { range } from "rxjs"
+import { filter } from "rxjs/operators"
+
+range(1, 10)
+  .pipe(filter(n => n % 2 === 0))
+  .subscribe(even => console.log(even))
+```
 
 
 
@@ -12717,7 +16533,7 @@ fromEvent(button, 'click')
 
 ### take、takeWhile、takeUtil
 
-`take`：**获取数据流中前几个**
+`take`：**获取数据流中前几个**，然后结束流
 
 <img src="Angular.assets/image-20220111142006545.png" alt="image-20220111142006545" style="zoom:67%;" /> 
 
@@ -12728,7 +16544,7 @@ import { take } from 'rxjs/operators'
 range(1, 10).pipe(take(5)).subscribe(console.log)
 ```
 
-`takeWhile`：**根据条件**从数据源前面开始获取
+`takeWhile`：**根据条件**从数据源前面开始获取，如果遇到不匹配的，则结束流
 
 <img src="Angular.assets/image-20220111143854169.png" alt="image-20220111143854169" style="zoom:67%;" /> 
 
@@ -12755,6 +16571,71 @@ fromEvent(document, "mousemove").pipe(
 	takeUntil(fromEvent(button, "click"))
 ).subscribe(console.log)
 ```
+
+
+
+### first
+
+获取数据流中的**第一个值或者查找数据流中第一个符合条件的值**，类似数组中的 `find` 方法，获取到值以后终止流
+
+<img src="Angular.assets/image-20231029211206615.png" alt="image-20231029211206615" style="zoom:45%;" /> 
+
+```typescript
+import { interval } from "rxjs"
+import { first } from "rxjs/operators"
+
+interval(1000)
+  .pipe(first())
+  .subscribe(n => console.log(n))
+
+interval(1000)
+  .pipe(first(n => n === 3))
+  .subscribe(n => console.log(n))
+```
+
+
+
+### every
+
+查看数据流中的每个值是否都符合条件
+
+<img src="Angular.assets/image-20231029211626679.png" alt="image-20231029211626679" style="zoom:80%;" /> 
+
+```typescript
+import { range } from "rxjs"
+import { every, map } from "rxjs/operators"
+
+of(1, 2, 3, 4, 5, 6)
+  .pipe(every(x => x < 5))
+  .subscribe(x => console.log(x)); // -> false
+```
+
+
+
+### delay、delayWhen
+
+`delay`：对上一环节的操作整体进行延迟，只执行一次。
+
+<img src="Angular.assets/image-20231029211951357.png" alt="image-20231029211951357" style="zoom:45%;" /> 
+
+```typescript
+import { from } from "rxjs"
+import { delay, map, tap } from "rxjs/operators"
+
+from([1, 2, 3])
+  .pipe(
+    delay(1000),
+    tap(n => console.log("已经延迟 1s", n)),
+    map(n => n * 2),
+    delay(1000),
+    tap(() => console.log("又延迟了 1s"))
+  )
+  .subscribe(console.log)
+```
+
+`delayWhen`：对上一环节的操作进行延迟，上一环节发出多少数据流，传入的回调函数就会执行多次
+
+
 
 
 
@@ -12789,6 +16670,454 @@ fromEvent(document, 'click')
 .pipe(debounceTime(1000))
 .subscribe(x => console.log(x))
 ```
+
+
+
+### distinctUntilChanged
+
+检测数据源当前发出的数据流是否和上次发出的相同，如相同，跳过，不相同，发出
+
+ **默认使用 `===` 进行比较**
+
+<img src="Angular.assets/image-20231029174958344.png" alt="image-20231029174958344" style="zoom:67%;" /> 
+
+```typescript
+import { of } from "rxjs"
+import { distinctUntilChanged } from "rxjs/operators"
+
+of(1, 1, 2, 2, 2, 1, 1, 2, 3, 3, 4)
+  .pipe(distinctUntilChanged())
+  .subscribe(x => console.log(x))
+// 1, 2, 1, 2, 3, 4
+```
+
+可以传入**比较函数**
+
+```typescript
+import { of } from 'rxjs';
+import { distinctUntilChanged } from 'rxjs/operators';
+of(
+  { number: 2, name: 'zhangsan'},
+  { number: 3, name: 'lisi'},
+  { number: 5, name: 'lisi'},
+  { number: 3, name: 'zhaoliu'},
+)
+  .pipe(distinctUntilChanged((p: any, q: any) => p.name === q.name))
+  .subscribe(x => console.log(x))
+//  { number: 2, name: 'zhangsan'}, { number: 3, name: 'lisi'},{ number: 3, name: 'zhaoliu'},
+```
+
+
+
+## 异常处理
+
+### Observable 错误处理
+
+- RxJS 中，**任何给定的流只能出错一次**，需要注意的是，流的完成和错误是互斥的，两种情况只能发生一种，不能同时发生
+
+  一个流完成意味着：流已结束其生命周期，没有报任何错误，完成后，流将不再发出任何其他值
+
+  一个流报错意味着：流带着错误结束了生命周期，当错误抛出后，流将不再发出任何其他值
+
+  如果一个流已经完成了，它不可能在之后报错；如果一个流报错了，它不可能在之后完成
+
+- 错误回调函数
+
+  ```typescript
+  const http$ = this.http.get<Course[]>('/api/courses'); 
+  http$.subscribe(
+    res => console.log('HTTP response', res),
+    err => console.log('HTTP Error', err),	// 只有在发生错误时才调用该函数，此处理函数本身接收一个错误
+    () => console.log('HTTP request completed.')
+  );
+  ```
+
+
+
+### catchError 操作符
+
+接收错误并将其传递给错误处理函数，错误处理函数将返回一个 `Observable`，替代刚刚出错的流并返回给下游
+
+这个替换的 `Observable` 随后将被订阅，它的值将被用来代替出错的输入 `Observable`
+
+<img src="Angular.assets/catch.png" alt="catch marble diagram" style="zoom: 33%;" /> 
+
+- 捕获和**替换策略**
+
+  ```typescript
+  const http$ = this.http.get<Course[]>('/api/courses');
+  http$
+    .pipe(catchError(err => of([])))	// 出现错误时，才会调用错误处理函数，返回新构建的 Observable 对象
+    .subscribe(
+      res => console.log('HTTP response', res),	// 如果出错，替换的 Observable 被用来为 http$ 的订阅者提供一个默认的回退值[]
+      err => console.log('HTTP Error', err),	// 将不再报错
+      () => console.log('HTTP request completed.')
+  ); 
+  ```
+
+- 捕获和**再抛出策略**
+
+  ```typescript
+  const http$ = this.http.get<Course[]>('/api/courses');
+  http$
+    .pipe(
+      catchError(error => {
+        // 可以添加任何想要的错误处理逻辑，比如向用户展示错误信息
+        console.log('Handling error locally and rethrowing it...', error);
+        // 返回一个替换的 Observable，使用 throwError 创建
+        return throwError(error);		// 在本地处理错误后重新抛出 catchError 捕获的错误
+      })
+  	)
+    .subscribe(
+      res => console.log('HTTP response', res),
+      error => console.log('HTTP Error', error),	// 处理后的错误
+      () => console.log('HTTP request completed.')
+  );
+  ```
+
+- 多次使用 `catchError`
+
+  ```typescript
+  const http$ = this.http.get<Course[]>('/api/courses');
+  http$
+    .pipe(
+      map(res => res['payload']),
+      catchError(err => {
+        // 捕捉到一个错误，在本地处理并重新抛出
+        console.log('caught mapping error and rethrowing', err);
+        return throwError(err);
+      }
+      ),
+      catchError(err => {
+        // 再次捕获相同的错误，这一次提供一个回退值
+        console.log('caught rethrown error, providing fallback value');
+        return of([]);
+      })
+  )
+    .subscribe(
+      res => console.log('HTTP response', res),	// 回退值 [] 按预期发出
+      err => console.log('HTTP Error', err),	// 未到达 subscribe 错误处理
+      () => console.log('HTTP request completed.')
+  );
+  ```
+
+  错误会抛出，同时发出默认值
+
+  <img src="Angular.assets/v2-c89e413740b4d3e22d27db760a9c5e25_720w.webp" alt="img" style="zoom: 80%;" /> 
+
+
+
+### finalize 操作符
+
+当源在 `complete` 或 `error` 上终止时将调用指定的函数
+
+```typescript
+const http$ = this.http.get<Course[]>('/api/courses');
+http$
+  .pipe(
+    map(res => res['payload']),
+    catchError(err => {
+      console.log('caught mapping error and rethrowing', err);
+      return throwError(err);
+    }),
+    finalize(() => console.log("first finalize() block executed")),		// 处理异常
+    catchError(err => {
+      console.log('caught rethrown error, providing fallback value');
+      return of([]);
+    }),
+    finalize(() => console.log("second finalize() block executed"))		// 处理完成
+)
+  .subscribe(
+    res => console.log('HTTP response', res),
+    err => console.log('HTTP Error', err),
+    () => console.log('HTTP request completed.')
+);
+```
+
+![img](Angular.assets/v2-031a446f217da89669477c84d55b8f19_720w.webp) 
+
+
+
+### retryWhen 操作符
+
+`retryWhen` 直接创建一个通知流，通知流决定何时重试，将一个可观察的错误作为输入参数，它将发出可观察输入的错误作为值
+
+`retryWhen` 在**每次通知流发出一个值时都会重试输入流**
+
+<img src="Angular.assets/v2-f3a17a0f845e89eda8e04041edaaba49_720w.webp" alt="img" style="zoom: 67%;" /> 
+
+> - `Observable` 1-2 流被订阅，它的值立即反应在 `retryWhen` 返回流的输出
+> - 即使 `Observable` 1-2 流已经完成，但是它仍然可以被重试
+> - 通知流在 `Observable` 1-2 流完成后发出 r 值
+> - 通知流可以发出任何值，在此示例中发出了 r
+> - 重要的是 r 值发出的时刻，将触发 1-2 `Observable` 重试
+> - `Observable` 1-2 将会被 `retryWhen` 再次订阅，它的值反应在 `retryWhen` 的输出 `Observable` 中
+> - 通知 `Observable` 继续发出另一个 r 值，同样会触发 1-2 `Observable` 重试
+> - 但是此时通知 `Observable` 完成了
+> - 此时，1-2 `Observable` 正在进行的重试尝试也提前完成，所以只发出了值1，值 2 还未发出
+
+- 立即重试策略： `retryWhen ` 发出值时将触发重试尝试
+
+  ```typescript
+  // HTTP 请求最初失败，但随后尝试重试，第二次请求成功通过
+  const http$ = this.http.get<Course[]>('/api/courses');
+  http$.pipe(
+    tap(() => console.log("HTTP request executed")),
+    map(res => Object.values(res["payload"]) ),
+    shareReplay(),
+    retryWhen(errors => {
+      return errors
+        .pipe(
+        	tap(() => console.log('retrying...'))
+      );
+    })
+  ).subscribe(
+    res => console.log('HTTP response', res),
+    err => console.log('HTTP Error', err),
+    () => console.log('HTTP request completed.')
+  );
+  ```
+
+  ![img](Angular.assets/v2-55914b044fee1e58321ab83f616fbaa9_720w.webp) 
+
+
+
+### delayWhen 操作符
+
+**延迟发出值，延迟时间由提供的持续时间选择器函数决定**，持续时间选择器函数将**返回一个流**，这个流**决定每个输入值的延迟何时结束**
+
+<img src="Angular.assets/v2-ac90d64af5cba4ac3772b999c8d1a1f0_720w.webp" alt="img" style="zoom:67%;" /> 
+
+> 假设源 `Observable` a-b-c 是发出错误的流，它会随着时间的推移发出失败的 HTTP 错误
+>
+> 每一个输入错误的流都会被延迟，最后出现在输出的 `Observable` 中，把错误的 `Observable` 的值传递给 `delayWhen`  的时间选择器函数
+>
+> 持续时间选择器函数将返回一个 `Observable`，这个 `Observable` 决定每个输入值的延迟何时结束
+>
+> a-b-c 都有其的持续时间选择器 `Observable`，当这些持续时间选择器中的每一个都发出值时，相应的输入值 a-b-c 将出现在 `delayWhen` 的输出中
+>
+> c 在 b 之前出现是因为 b 持续时间选择器 `Observable` 是在 c 的持续时间选择器 `Observable` 之后发出它的值
+
+- 延迟重试策略：在短时间延迟后重试同一个请求，例如由于服务器高流量而导致失败的网络请求
+
+  `retryWhen` 定义的通知 `Observable` 的函数只被调用一次，在该函数中返回一个 `Observable`，它将在需要重试时发出值
+
+  当有错误发生 `delayWhen` 操作符将会通过调用 `timer` 函数创建一个持续时间选择器的 `Observable`
+
+  持续时间选择器 `Observable` 将会在一定延迟时间后发出值，发出后并完成
+
+  这时 `retryWhen ` 的通知 `Observable` 将会发出一个值，将执行一次重试尝试
+
+  ```typescript
+  // 每次错误发生2秒后连续重试失败的 HTTP 请求
+  const http$ = this.http.get<Course[]>('/api/courses');
+  http$.pipe(
+    tap(() => console.log("HTTP request executed")),
+    map(res => Object.values(res["payload"]) ),
+    shareReplay(),
+    retryWhen(errors => {
+      return errors
+        .pipe(
+          delayWhen(() => timer(2000)),
+          tap(() => console.log('retrying...'))
+      );
+    })
+  ).subscribe(
+    res => console.log('HTTP response', res),
+    err => console.log('HTTP Error', err),
+    () => console.log('HTTP request completed.')
+  );
+  ```
+
+  ![img](Angular.assets/v2-701c18e1942d78b4aa898e28a6a94583_720w.webp) 
+
+
+
+### delay 操作符
+
+
+
+
+
+## 自定义操作符
+
+- 一个管道的操作符是一个**以 `Observable` 作为输入并返回另一个 `Observable` 的纯函数**，之前的 `Observable` 保持不变
+
+  ```typescript
+  function log<T>(source$: Observable<T>): Observable<T> {
+    return source$.pipe(tap(v => console.log(`log: ${v}`)));
+  }
+  const results$ = source$.pipe(log);
+  ```
+
+- 使用 `MonoTypeOperatorFunction`  或 `OperatorFunction`**来简化返回类型声明**
+
+  - `MonoTypeOperatorFunction` 接受一个类型为 `T` 的 `Observable` 并返回另一个相同类型的 `Observable `
+
+    ```typescript
+    interface MonoTypeOperatorFunction<T> {
+      (source: Observable<T>): Observable<T>;
+    }
+    ```
+
+  - `OperatorFunction` 接受类型为 `T` 的 `Observable` 并返回类型为 `R` 的 `Observable`
+
+    ```typescript
+    interface OperatorFunction<T, R> {
+      (source: Observable<T>): Observable<R>;
+    }
+    ```
+
+- 可以定义一个**返回操作符的工厂函数**，为自定义操作符提供上下文
+
+  ```typescript
+  function logWithTag<T>(tag: string): (source$: Observable<T>) => Observable<T> {
+    return source$ => source$.pipe(tap(v => console.log(`logWithTag(${tag}): ${v}`)));
+  }
+  ```
+
+  利用**静态 `pipe` 函数**的方式定义操作符
+
+  ```typescript
+  import { MonoTypeOperatorFunction, pipe } from "rxjs";
+  ```
+
+  ```typescript
+  function logWithTag<T>(tag: string): MonoTypeOperatorFunction<T> {
+    return pipe(tap(v => console.log(`logWithTag(${tag}): ${v}`)));
+  }
+  ```
+
+  ```typescript
+  interval(1000).pipe(
+    take(3),
+    logWithTag("RxJS"),
+  ).subscribe(console.log);
+  ```
+
+- 操作符的**工厂函数仅在流定义的时刻被调用一次**，因此，**所有观察者之间存在共享的词法作用域**
+
+  如果**需要每个观察者获取独立的词法作用域**，可以**使用 `defer` 函数**
+
+  ```typescript
+  function tapOnce<T>(job: Function): MonoTypeOperatorFunction<T> {
+    let isFirst = true;
+    return pipe(
+      tap(v => {
+        if (!isFirst) return;
+        job(v);
+        isFirst = false;
+      })
+    );
+  }
+  function tapOnceUnique<T>(job: Function): MonoTypeOperatorFunction<T> {
+    return source$ => defer(() => {
+      let isFirst = true;
+      return source$.pipe(
+        tap(v => {
+          if (!isFirst) return;
+          job(v);
+          isFirst = false;
+        })
+      );
+    });
+  }
+  ```
+
+  ```typescript
+  const source$ = interval(1000).pipe(take(3));
+  const results$ = source$.pipe(tapOnce(() => console.log("First value emitted")));
+  results$.subscribe(console.log);
+  results$.subscribe(console.log);
+  // console output: First value emitted, 0, 0, 1, 1, 2, 2
+  ```
+
+  ```typescript
+  const source$ = interval(1000).pipe(take(3));
+  const results$ = source$.pipe(tapOnceUnique(() => console.log("First value emitted")));
+  results$.subscribe(console.log);
+  results$.subscribe(console.log);
+  // console output: First value emitted, 0, First value emitted, 0, 1, 1, 2, 2
+  ```
+
+- 常见的操作符组合可以被提取到自定义操作符中
+
+  ```typescript
+  function liveSearch<R>(time: number, dataProducer: (q: string) => ObservableInput<T>): OperatorFunction<string, R> {
+    return pipe(
+      debounceTime(time),
+      distinctUntilChanged(),
+      switchMap(dataProducer)
+    );
+  }
+  ```
+
+  ```typescript
+  const source3$ = of("politics", "sport");
+  const result3$ = source3$.pipe(liveSearch(500, (q: string) => of(`Data fetched for ${q}`).pipe(delay(2000))));
+  result3$.subscribe(console.log);
+  // console output: Data fetched for sport
+  ```
+
+- 常用自定义操作符封装
+
+  > ##### 过滤  `null` 和 `undefined `
+  >
+  > ```typescript
+  > function filterNil<T>(): OperatorFunction<T, NonNullable<T>> {
+  >     return filter((v): v is NonNullable<T> => v !== undefined && v !== null)
+  > }
+  > ```
+
+  > ##### 缓存 HTTP 请求
+  >
+  > ```typescript
+  > function cache<T>(ttl: number = Infinity): MonoTypeOperatorFunction<T> {
+  >   return share({
+  >     connector: () => new ReplaySubject(1),
+  >     resetOnComplete: () => timer(ttl)
+  >   })
+  > }
+  > ```
+  >
+  > ```typescript
+  > const response$ = defer(() => {
+  >   console.log('response$ subscribed')
+  >   return timer(1000).pipe(map() => 'mock response'))
+  > })
+  > const result$ = response$.pipe(cache(7000))
+  > 
+  > result$.subscribe({
+  >   next: v => console.log(`[result1]: ${v}]`),
+  >   complete: () => console.log(`[result1]: completed`)
+  > })
+  > // response$ subscribed
+  > // [result1]: mock response
+  > // [result1]: completed
+  > 
+  > setTimeout(() => {
+  >   result$.subscribe({
+  >     next: v => console.log(`[result2]: ${v}]`),
+  >     complete: () => console.log(`[result2]: completed`)
+  >   })
+  > }, 5000)
+  > // [result2]: mock response
+  > // [result2]: completed
+  > 
+  > setTimeout(() => {
+  >   result$.subscribe({
+  >     next: v => console.log(`[result3]: ${v}]`),
+  >     complete: () => console.log(`[result3]: completed`)
+  >   })
+  > }, 10000)
+  > // response$ subscribed
+  > // [result3]: mock response
+  > // [result3]: completed
+  > ```
+
+
+
+
 
 
 
@@ -12909,17 +17238,17 @@ fromEvent(document, 'click')
   const button = document.getElementById('btn')
   
   fromEvent(button, 'click')
-  .pipe(
-      // 先去获取token
-      // concatMap 合并可观察对象
-  	concatMap(event => 
-                from(axios.get("http://localhost:3005/token"))
-                .pipe(pluck("data", "token"))),
-      // 再根据token去获取用户信息
-      concatMap(token => from(axios.get("http://localhost:3005/userInfo"))
-               .pipe(pluck("data")))
+    .pipe(
+    // 先去获取token
+    // concatMap 合并可观察对象
+    concatMap(event => 
+              from(axios.get("http://localhost:3005/token"))
+              .pipe(pluck("data", "token"))),
+    // 再根据token去获取用户信息
+    concatMap(token => from(axios.get("http://localhost:3005/userInfo"))
+              .pipe(pluck("data")))
   )
-  .subscribe()
+    .subscribe()
   ```
 
 
