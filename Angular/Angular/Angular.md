@@ -874,6 +874,35 @@ export class AppComponent {
 
 
 
+## 其他
+
+### 缩短导入
+
+```typescript
+import { Offer } from '../../../offers/models/offer.model';
+import { Receipt } from '../../../booking/models/receipt.model';
+import { StoreUtil } from '../../../shared/utils/store.util';
+
+import { Offer } from '@offer/models';
+import { Receipt } from '@booking/models';
+import { StoreUtil } from '@shared/utils';
+```
+
+```json
+// tsconfig
+// TypeScript 配置中的路径映射，允许使用简化的模块导入路径
+"compilerOptions": {
+  "paths": {
+    "@offers/*": ["src/app/offers/*"],
+    "@booking/*": ["src/app/booking/*"],
+    "@basket/*": ["src/app/basket/*"],
+    "@shared/*": ["src/app/shared/*"]
+  }
+}
+```
+
+
+
 # 组件 Component
 
 ## 创建组件
@@ -2320,6 +2349,13 @@ Angular 引入 Zone.js 以处理变更检测
 
   如果子组件设置了 `OnPush` 策略，**子组件所有的状态的改变，都依赖于父组件的 `@Input`**
 
+  > 只有在以下情况下才会**触发重新渲染**：
+  >
+  > - **输入引用发生变化**：当组件的输入属性（`@Input()`）的引用变化时
+  > - **事件处理程序被触发**：当组件自身或其子组件的事件处理程序被触发时
+  > - **手动触发变化检测**：使用 `ChangeDetectorRef` 手动触发变化检测
+  > - **异步管道发出新值**：使用 `async` pipe 时，如果它发出了新值
+  
   ```typescript
   @Component({
     selector: 'app-parent',
@@ -2354,6 +2390,8 @@ Angular 引入 Zone.js 以处理变更检测
   ```typescript
   this.cd.detectChanges();
   ```
+
+<img src="Angular.assets/1K-TnkwmD5zTJmnl-s4xZ2A.png" alt="img" style="zoom:150%;" /> 
 
 
 
@@ -2796,62 +2834,109 @@ export class CdkPortalOverviewExample implements AfterViewInit {
 
 ## 数据绑定
 
-- 使用**方括号 `[]` 是数据绑定**，如果带方括号，等号后面就是一个对象或表达式
+> - 使用**方括号 `[]` 是数据绑定**，如果带方括号，等号后面就是一个对象或表达式
+>
+>
+> - **不使用方括号是字符串**，但如果此时**在等号后使用 `{{}}` 就是和方括号等效的**
+>
+>   （如果绑定的数据有 `.` 如 `class.active` 则不能使用 `{{}}` ）
+
+### 插值表达式
+
+```html
+<h1>{{ title }}</h1>
+<h1>{{ 'Hello World' }}</h1>
+<h1>{{ getInfo() }}</h1>
+<h1>{{ a == b ? '相等' : '不等' }}</h1>
+```
 
 
-- 不使用方括号是字符串，但如果此时在等号后使用 `{{}}` 就是和方括号等效的
 
-  （如果绑定的数据有 `.` 如 `class.active` 则不能使用 `{{}}` ）
+### html 绑定
 
-- 插值表达式
+```typescript
+this.h="<h2>这是一个h2 用[innerHTML]来解析</h2>"
+```
+
+```html
+<div [innerHTML]="h"></div>
+```
+
+为了加强 **XSS 保护**，使用 `DomSanitizer` 服务来安全地处理 HTML 内容
+
+```typescript
+import { Component } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
+
+@Component({
+  selector: 'app-safe-html',
+  template: `
+    <div [innerHTML]="safeHtml"></div>
+  `,
+})
+export class SafeHtmlComponent {
+  safeHtml: any;
+  constructor(private sanitizer: DomSanitizer) {
+    this.safeHtml = this.sanitizer.bypassSecurityTrustHtml(`<p>Hello, <strong>Angular</strong> is awesome!</p>`);
+  }
+}
+```
+
+
+
+### 数据绑定容错处理
+
+```html
+<!-- 
+interface Task {
+	person?:{ name: string }
+}
+-->
+<span *ngIf="task.person">{{ task.person.name }}</span>
+<span>{{ task.person?.name }}</span>
+```
+
+
+
+### 模板绑定方法
+
+> - 直接在**模板中调用方法可能会导致性能问题**
+> - 通过使用**纯管道**和 **RxJS 的 Observable**，可以有效地优化变更检测，提高应用的响应速度和性能
+
+- 在模板中直接调用一个方法，Angular **会在每次变更检测时调用该方法**，因为 Angular **不会跟踪这个方法的返回值**，导致每次变更检测都需要重新计算。这种做法可能会影响性能，尤其是在频繁触发变更检测的情况下
+
+  如果方法**不是一个纯函数**，Angular 就必须在每次变更检测时调用它，即使输入没有变化，方法也会被重复调用
 
   ```html
-  <h1>{{ title }}</h1>
-  <h1>{{ 'Hello World' }}</h1>
-  <h1>{{ getInfo() }}</h1>
-  <h1>{{ a == b ? '相等' : '不等' }}</h1>
+  <p>{{getTotalCosts(journey.days)}}</p>
   ```
 
-- html 绑定
+- 使用纯管道解决，纯管道只会在输入值发生变化时触发计算
 
   ```typescript
-  this.h="<h2>这是一个h2 用[innerHTML]来解析</h2>"
-  ```
-
-  ```html
-  <div [innerHTML]="h"></div>
-  ```
-
-  为了加强 **XSS 保护**，使用 `DomSanitizer` 服务来安全地处理 HTML 内容
-
-  ```typescript
-  import { Component } from '@angular/core';
-  import { DomSanitizer } from '@angular/platform-browser';
-  
-  @Component({
-    selector: 'app-safe-html',
-    template: `
-      <div [innerHTML]="safeHtml"></div>
-    `,
-  })
-  export class SafeHtmlComponent {
-    safeHtml: any;
-    constructor(private sanitizer: DomSanitizer) {
-      this.safeHtml = this.sanitizer.bypassSecurityTrustHtml(`<p>Hello, <strong>Angular</strong> is awesome!</p>`);
-    }
+  @Pipe({ name: 'totalCosts', pure: true })
+  export class TotalCostsPipe implements PipeTransform {
+      transform(days: number, pricePerDay: number): number {
+          return days * pricePerDay;
+      }
   }
   ```
 
-- 数据绑定容错处理
+  ```html
+  <p>{{ journey.days | totalCosts: pricePerDay }}</p>
+  ```
+
+- 使用 `async` 管道自动订阅并获取最新的值
+
+  ```typescript
+  totalCosts$ = this.journey$.pipe(
+    map((journey) => journey.days),
+    distinctUntilChanged(),
+    map((days) => this.pricePerDay * days));
+  ```
 
   ```html
-  <!-- 
-  interface Task {
-  	person?:{ name: string }
-  }
-  -->
-  <span *ngIf="task.person">{{ task.person.name }}</span>
-  <span>{{ task.person?.name }}</span>
+  <p>{{totalCosts$ | async}}</p>
   ```
 
 
@@ -8208,6 +8293,106 @@ import { HTTP_INTERCEPTORS } from '@angular/common/http';
 
 
 
+## 应用程序初始化器
+
+> - 应用程序初始化器 (App Initializer) 是在**应用程序启动前执行的函数**，使用名为 `APP_INITIALIZER` 的依赖标记来提供这些函数
+> - 可以提供多个函数，**在根应用程序模块的提供程序中提供**，这些函数将在启动应用程序前执行
+> - 函数返回一个 `Promise` / `Observable`，并且仅当此 `Promise` 被解析时，应用程序才会引导
+>
+> ![None](Angular.assets/1VmF6Pq8PGB71ntYeZM-7Tg.png) 
+>
+> - 应用程序初始化器可用于许多功能：
+>   - 加载配置设置： 从服务器获取某些配置设置。例如，API 端点、语言设置或任何其他运行时配置
+>   - 初始化服务： 在应用程序准备就绪前执行初始化逻辑。例如，初始化日志记录器服务
+>   - 身份验证和授权：检查用户是否通过身份验证并获得应用程序的授权
+
+-  创建工厂函数
+
+  ```typescript
+  import { ConfigService } from './config.service';
+  
+  export function initializeApp(configService: ConfigService): () => Promise<any> {
+    return () => configService.loadConfig();
+  }
+  ```
+
+- 使用 `APP_INITIALIZER` Token 在根模块上注册创建的函数
+
+  ```typescript
+  @NgModule({
+    providers: [
+      ConfigService,
+      {
+        provide: APP_INITIALIZER,
+        useFactory: initializeApp,
+        deps: [ConfigService],
+        multi: true
+      }
+    ],
+    bootstrap: [AppComponent]
+  })
+  export class AppModule { }
+  ```
+
+> 注意：`APP_INITIALIZER` 不会阻止 `AppModule` 的初始化
+>
+> 当 `imports` 数组中有一个具有 `forRoot()` 方法的模块，并且想要向其中传递一些在 `APP_INITIALIZER` 中加载的数据时，
+>
+> 例如：`APP_INITIALIZER` 中提供用于加载 API 端点函数，导入的其他模块又需要 `APP_INITIALIZER` 提供的当前环境的 API URL
+>
+> **在 `APP_INITIALIZER` 结束之前， `AppModule` 中导入模块的实例化不会被阻止**。所以无法为这些模块提供依赖于环境的变量
+>
+> 解决方案：
+>
+> - main.ts 文件中使用 `platformBrowserDynamic` 函数传递额外的 `provider`
+>
+>   ```typescript
+>   import { enableProdMode } from '@angular/core';
+>   import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+>   import { environment } from './environments/environment';
+>   import { AppConfig, APP_CONFIG } from '...';
+>   import { AppModule } from './app/app.module';
+>   
+>   fetch('<your-config-json-or-url>')
+>     .then((res) => res.json())
+>     .then((config) => {
+>     if (environment.production) {
+>       enableProdMode();
+>     }
+>     platformBrowserDynamic([{ provide: APP_CONFIG, useValue: config }])
+>       .bootstrapModule(AppModule)
+>       .catch((err) => console.error(err));
+>   });
+>   ```
+>
+>   ```typescript
+>   export const APP_CONFIG = new InjectionToken<AppConfig>('app.config');
+>   ```
+>
+> - 放弃使用 `forRoot()` 方法来处理应用启动解析的数据，通过提供 `InjectionToken`，在需要的地方依赖注入获取使用
+>
+>   ```typescript
+>   constructor(@Inject(APP_CONFIG) config: AppConfig) {
+>     // use your config
+>   }
+>   ```
+>
+>   ```typescript
+>   @NgModule({
+>     providers: [
+>       {
+>         provide: APP_INSIGHTS_CONFIG,
+>         useFactory: (config: AppConfig) => config.applicationInsights,
+>         deps: [APP_CONFIG],
+>       },
+>     ],
+>     bootstrap: [AppComponent],
+>   })
+>   export class AppModule {}
+>   ```
+
+
+
 
 ## 代理
 
@@ -8259,6 +8444,36 @@ import { HTTP_INTERCEPTORS } from '@angular/common/http';
      }
    }
    ```
+
+
+
+## 事件服务
+
+> **Angular是如何管理事件**：
+>
+> 当使用以下方法之一添加事件时：
+>
+> 1. 通过使用 Angular 事件绑定将其注册到模板中
+> 2. 使用 `HostListener()` 装饰器
+>
+> Angular 会调用 `Renderer` 的 `listen()` 方法
+>
+> ```typescript
+> listen(target, event, callback) {
+>   if (typeof target === 'string') {
+>     return this.eventManager.addGlobalEventListener(
+>       target, event, decoratePreventDefault(callback));
+>   }
+>   return this.eventManager.addEventListener(
+>     target, event, decoratePreventDefault(callback));
+> }
+> ```
+>
+> 实际上是将事件注册委托给了一个称为 `eventManager` 的服务
+>
+> `EventManager` 是一个可注入的服务，通过浏览器插件为 Angular **提供事件管理**
+
+
 
 
 
@@ -9051,19 +9266,75 @@ export class AppComponent {
 
 
 
+# 库 library
+
+## 创建库
+
+- 在现有 Angular 应用程序中生成库项目
+
+  ```bash
+  ## 创建一个名为 my-library 的新 Angular 库项目，并带有前缀 mylib
+  ## my-library 项目将在应用程序的 projects/ 目录中创建
+  ng generate library my-library --prefix=mylib
+  ```
+
+- 创建单独库项目
+
+  ```bash
+  ## 创建一个库，而不是一个应用程序
+  ng new project-lib --no-create-application 
+  cd project-lib
+  ## 生成实际库项目
+  ng generate library shared-lib
+  ```
+
+  ```bash
+  ## 库中生成虚拟 Angular 应用程序来测试库
+  ng g application testing
+  ```
+
+- 在 Angular 库中，`public-api.ts` 文件作为库的入口，**用于导出库的公共 API，确保外部应用能够访问所需的功能**
+
+  ```typescript
+  // public-api.ts
+  export * from './module-name.module';
+  export * from './component-name.component';
+  export * from './service-name.service';
+  ```
+
+- 构建并打包库
+
+  ```bash
+  ## 构建库并在 dist/my-library 目录中创建可分发包
+  ng build my-library
+  ```
+
+
+
+## 引用库
+
+- 添加应用程序 `package.json` 文件的依赖项，在应用程序中导入并使用库
+
+  ```json
+  "my-library": "file:dist/my-library",
+  ```
+
+- 应该只在项目的根目录中有一个 `node_modules` 目录，而不是在库的目录中，如果库需要第 3 方包，应该将它们添加到根 `package.json` 的依赖项中
+- 在库的 `package.json` 中，应该只添加 `peerDependencies`，这些依赖项告诉库的用户如果想要安装则需要哪些软件包
+
+
+
 # 路由 Route
 
-
-
-路由本质上是切换视图的一种机制
-
-通过**路由插座** `<router-oulet></router-oulet>`
-
-**切换页面的时候，路由显示的内容是插入到 `router-outlet` 的同级的下方节点**，而不是在 `router-outlet` 中包含
-
-Angular 是单页程序，路由显示的路径不过是一种保存路由状态的机制，这个**路径在 web 服务器上不存在**，如果**刷新服务器可能会找不到，需要重定向对应**
-
-**路由是以模块为单位**的，每个模块都可以有自己的路由
+> 路由本质上是切换视图的一种机制
+>
+> 通过**路由插座** `<router-oulet></router-oulet>`
+>
+> **切换页面的时候，路由显示的内容是插入到 `router-outlet` 的同级的下方节点**，而不是在 `router-outlet` 中包含
+>
+> Angular 是单页程序，路由显示的路径不过是一种保存路由状态的机制，这个**路径在 web 服务器上不存在**，如果**刷新服务器可能会找不到，需要重定向对应**
+>
+> **路由是以模块为单位**的，每个模块都可以有自己的路由
 
 ## 路由配置
 
@@ -11300,7 +11571,7 @@ it('should create', () => {
   >   class UserComponent { 
   >     public userName: string;
   >     public order: number;
-  >                                   
+  >                                       
   >     public getUserName(): Promise<string> {
   >       return new Promise((resolve) => {
   >         setTimeout(() => {
@@ -11308,7 +11579,7 @@ it('should create', () => {
   >         }, 1000);
   >       });
   >     }
-  >                                   
+  >                                       
   >     public getUserOrders(userName: string): Promise<number> {
   >       return new Promise<number>((resolve) => {
   >         setTimeout(() => {
@@ -11316,7 +11587,7 @@ it('should create', () => {
   >         }, 2000);
   >       });
   >     }
-  >                                   
+  >                                       
   >     public getData(): void {
   >       this.getUserName().then((name) => {
   >         this.userName = name;
@@ -11331,11 +11602,11 @@ it('should create', () => {
   >   ```typescript
   >   it('should get data', fakeAsync(() => {
   >     component.getData();
-  >                                   
+  >                                       
   >     tick(1000);
   >     expect(component.userName).toBe('jack');
   >     expect(component.order).toBe(undefined);
-  >                                   
+  >                                       
   >     tick(2000);
   >     expect(component.order).toBe(3);
   >   }));
@@ -11601,7 +11872,7 @@ it('should create', () => {
 
 ### 匹配器
 
-spy  有自己的匹配器，分别是 `toHaveBeenCalled`、`toHaveBeenCalledTimes`、`toHaveBeenCalledWith` 等
+`spy`  有自己的匹配器，分别是 `toHaveBeenCalled`、`toHaveBeenCalledTimes`、`toHaveBeenCalledWith` 等
 
 - `toHaveBeenCalled()` 函数是否调用，函数需要被 `spy` 跟踪
 
@@ -12425,6 +12696,64 @@ Angular 提供了用于测试 `HttpClient` 的测试模块 `HttpClientTestingMod
   requests[0].flush({ success: true });
   requests[1].flush({ success: true });
   ```
+
+
+
+### 自动 Mock 服务
+
+实现一个通用的 `autoMock` 方法，接受服务并返回 mock 填充的服务
+
+```typescript
+export function autoMock<T>(obj: new (...args: any[]) => T): T {
+  const res = {} as any;
+
+  const keys = Object.getOwnPropertyNames(obj.prototype);
+
+  const allMethods = keys.filter((key) => {
+    try {
+      return typeof obj.prototype[key] === 'function';
+    } catch (error) {
+      return false;
+    }
+  });
+
+  const allProperties = keys.filter((x) => !allMethods.includes(x));
+
+  allMethods.forEach((method) => (res[method] = jasmine.createSpy(`mock_${method}`)));
+
+  allProperties.forEach((property) => {
+    Object.defineProperty(res, property, {
+      get: function () {
+        return '';
+      },
+      configurable: true,
+    });
+  });
+
+  return res;
+}
+```
+
+```typescript
+export function provideMock<T>(type: new (...args: any[]) => T): Provider {
+  const mock = autoMock(type);
+  return { provide: type, useValue: mock };
+}
+```
+
+```typescript
+describe('XyzService with service mock', () => {
+  let service: MyService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [ provideMock(MyService)]
+    });
+
+    service = TestBed.inject(MyService);
+  });
+});
+```
 
 
 
@@ -16312,6 +16641,296 @@ const subscribe = example.subscribe(val => console.log(val));
 
 
 
+#### isEmpty 是否为空流
+
+<img src="Angular.assets/isEmpty.png" alt="isEmpty marble diagram" style="zoom:45%;" /> 
+
+- `isEmpty` 用于检查一个上游 `Observable` 对象是不是空 `Observable`
+
+  ```typescript
+  const source = new Subject<string>();
+  const result = source.pipe(isEmpty());
+  source.subscribe(x => console.log(x));
+  result.subscribe(x => console.log(x));
+  source.next('a');
+  source.next('b');
+  source.next('c');
+  source.complete();
+  // Outputs
+  // 'a'
+  // false
+  // 'b'
+  // 'c'
+  ```
+
+- 空 `Observable` 是指**没有吐出任何数据就完结的 `Observable` 对象**
+
+  > 如果源 `Observable` 发出了任何值，它会发出 `false`，表示源 `Observable` 不为空
+  >
+  > 如果源 `Observable` 在完成时没有发出任何值，它会发出 `true`，表示源 `Observable` 是空的
+
+- 使用 `count` 操作符也可以达到类似的效果，但是 `isEmpty` 可以更快地发出 `false` 值
+
+
+
+#### defaultIfEmpty 空流默认值
+
+<img src="Angular.assets/defaultIfEmpty.png" alt="defaultIfEmpty marble diagram" style="zoom:45%;" /> 
+
+- 如果源 `Observable` 是空的，`defaultIfEmpty` 操作符会发出指定的默认值，否则会发出源 `Observable` 发出的值
+
+  ```typescript
+  const clicks = fromEvent(document, 'click');
+  const clicksBeforeFive = clicks.pipe(takeUntil(interval(5000)));
+  const result = clicksBeforeFive.pipe(defaultIfEmpty('no clicks'));
+  result.subscribe(x => console.log(x));
+  ```
+
+- 如果 `defaultIfEmpty` 不提供任何参数，遇到上游为空的情况，会吐出 `null`
+
+
+
+### 过滤操作符
+
+> - 过滤类操作符会产生一个新的 `Observable` 对象，新产生的 `Observable` 对象中数据源自上游 `Observable`
+> - 几乎所有的过滤类操作符都有判定函数参数，判定函数返回 `true` 代表可以进入下游，否则就抛弃掉
+> - 有的过滤类操作符还可以接受一个结果选择器函数，用来定制传给下游的数据
+
+
+
+#### filter 过滤上游数据
+
+<img src="Angular.assets/image-20231029180315428.png" alt="image-20231029180315428" style="zoom: 40%;" /> 
+
+- `filter` 操作符用于根据指定的条件**过滤源 `Observable` 中的值，并仅发出满足条件的值**
+
+  ```typescript
+  from([
+    { name: 'Joe', age: 31 },
+    { name: 'Bob', age: 25 }
+  ]).pipe(filter(person => person.age >= 30))
+    .subscribe(val => console.log(`Over 30: ${val.name}`));
+  ```
+
+- `filter` 产生的 `Observable` 对象，产生数据的时机和上游是一致的
+
+
+
+#### first 获取首值
+
+<img src="Angular.assets/image-20231029211206615.png" alt="image-20231029211206615" style="zoom:45%;" /> 
+
+- 获取数据流中的**第一个值或者查找数据流中第一个符合条件的值**，**获取到值后终止流**
+
+- `first` 可以**没有判定函数**，没有判定函数时相当于**只获取上游 `Observable` 吐出的第一个数据**
+
+  ```typescript
+  interval(1000).pipe(first())
+    .subscribe(n => console.log(n))
+  ```
+
+  ```typescript
+  interval(1000).pipe(first(n => n === 3))
+    .subscribe(n => console.log(n))
+  ```
+
+- 如果 `first` 的上游 `Observable` 到**完结时依然没有满足判定条件的数据**，那么 `first` 会**向下游抛出一个 `error`**
+
+  ```typescript
+  of(3, 1, 4, 1, 5, 9).pipe(first(x => x < 0))
+    .subscribe(data => console.log())
+  // EmptyError: no elements in sequence
+  ```
+
+- `first` 允许指定一个**默认值**，作为第二个参数传入，在源 `Observable` 不发出任何值时发出
+
+  ```typescript
+  const source = from([1, 2, 3, 4, 5]);
+  const example = source.pipe(first(val => val > 5, 'Nothing'));
+  const subscribe = example.subscribe(val => console.log(val));
+  ```
+
+
+
+#### last 获取末值
+
+<img src="Angular.assets/last.png" alt="last marble diagram" style="zoom:45%;" /> 
+
+- `last` 操作符用于从上游 `Observable` 中找到**最后一个满足给定条件的值**，并将其发出
+
+  ```typescript
+  from([1, 2, 3, 4, 5]).pipe(last()).subscribe(console.log)
+  ```
+
+  ```typescript
+  interval(1000).pipe(
+    take(5),
+    last(num => num % 2 === 0)
+  ).subscribe(console.log)
+  // 尽管第3秒钟出现了符合条件的2，但是last要第4秒钟才能推出数据2，因为last只有在完结的时候才能确定
+  ```
+
+- `last` 无论如何都要**等到上游 `Observable` 完结的时候才吐出数据**
+
+- 如果**没有找到匹配项**， `last` 操作符会在上游 `Observable` **完成时发出错误通知**
+
+  ```typescript
+  of(3, 1, 4, 1, 5, 9).pipe(last(x => x < 0))
+    .subscribe(data => console.log())
+  // EmptyError: no elements in sequence
+  ```
+
+- `last` 操作符可以提供一个**默认值参数**，如果没有找到匹配项，则会发出此默认值而不是发出错误
+
+  ```typescript
+  const source = from([1, 2, 3, 4, 5]);
+  const exampleTwo = source.pipe(last(v => v > 5, 'Nothing!'));
+  const subscribeTwo = exampleTwo.subscribe(val => console.log(val));
+  ```
+
+
+
+#### take 获取指定数量首值
+
+<img src="Angular.assets/image-20220111142006545.png" alt="image-20220111142006545" style="zoom: 80%;" /> 
+
+- `take` 操作符从上游 `Observable` 中**仅取出指定数量的值，然后完成**
+
+- `take` 只支持一个参数 `count`，也就是限定拿上游 `Observable` 的数据数量
+
+  ```typescript
+  fromEvent(document, 'click').pipe(
+    take(1),
+    tap(v => {
+      document.getElementById('locationDisplay').innerHTML = `Your first click was on location ${v.screenX}:${v.screenY}`;
+    })
+  ).subscribe();
+  ```
+
+- 如果 `take` 指定的数量超过了上游 `Observable` 发出的值的数量，并不会等待更多的值，而是在已经收到的值后立即完成
+
+- `take` 操作符通常用于限制 `Observable` 流中的数据量，可以**控制订阅的生命周期**
+
+- 使用 `take` 和 `filter` 的组合来获得上游 `Observable` 满足条件的前 N 个数据
+
+  ```typescript
+  // 自定义管道
+  const takeCountWhile = (count, predicate) => pipe(
+    filter(predicate),
+    take(count)
+  );
+  // // 只取前两个偶数
+  of(1, 2, 3, 4, 5).pipe(
+    takeCountWhile(2, x => x % 2 === 0)
+  ).subscribe(console.log);
+  ```
+
+
+
+#### takeLast 获取指定数量末值
+
+<img src="Angular.assets/takeLast.png" alt="takeLast marble diagram" style="zoom:45%;" /> 
+
+- `takeLast` 操作符从上游 `Observable` 中**仅发出最后指定数量的值**，并**在源 `Observable` 完成时发出**
+
+-  `takeLast` 操作符只接收一个参数 `count`，指定要发出的最后值的数量
+
+  ```typescript
+  interval(1000).pipe(
+    take(5),
+    takeLast(3)
+  ).subscribe(console.log)
+  // 2, 3, 4
+  ```
+
+- `takeLast` 只有**在上游数据完结的时候才能决定最后的数据是哪些**，而且是**一次性产生所有数据**
+
+- 如果上游 `Observable` 不会完成，`takeLast` 将永远不会发出任何值
+
+
+
+#### takeWhile 获取值直至条件不满足
+
+<img src="Angular.assets/image-20220111143854169.png" alt="image-20220111143854169" style="zoom:67%;" /> 
+
+- `takeWhile` 接受一个**判定函数作为参数**，`takeWhile` 会**持续吐出上游数据，直到判定函数返回 `false`**
+
+  ```typescript
+  of(1, 2, 3, 4, 5).pipe(
+    takeWhile(val => val <= 4)
+  ).subscribe(console.log)
+  // 1, 2, 3, 4
+  ```
+
+- 如果判定函数返回 `true`，`takeWhile` 会继续发射，一旦遇到**第一个使判定函数返回 `false`** 的数据，`takeWhile` 生成的 `Observable` 就**会立即完成**
+
+- 判定函数有两个参数，分别代表上游的数据和对应的序号
+
+- 第二个可选参数 `inclusive`，当设置为 `true` 时，导致判定函数返回 `false` 的那个值也会被发射出去，然后立即完成
+
+  ```typescript
+  of(1, 2, 3, 4, 5).pipe(
+    takeWhile(value => value <= 3, true)
+  ).subscribe(console.log)
+  // 1, 2, 3, 4
+  ```
+
+- `takeWhile` 更适用于需要根据特定条件获取 `Observable` 值的情况，并在不满足条件时立即停止获取的场景
+
+- `takeWhile` 和 `filter` 操作符都可以根据指定条件筛选源 `Observable` 中的值，但是之间有关键性区别
+
+  > - `filter` 仅仅过滤源 `Observable` 中的值，不会影响 `Observable` 的完成状态
+  > - `takeWhile` 当遇到第一个不满足条件的值时，会立即完成，不再发射任何值
+
+
+
+#### takeUtil 停止获取当接到通知
+
+<img src="Angular.assets/image-20220111144614754.png" alt="image-20220111144614754" style="zoom: 55%;" /> 
+
+- `takeUntil` 操作符是**用一个 `Observable` 对象  `notifier` 来控制另一个 `Observable` 对象的数据产生**
+
+  > 1. 参数是另一个 `Observable` 对象 `notifier`，**由这个 `notifier` 来控制什么时候结束从上游 `Observable` 拿数据**
+  > 2. 使用 `takeUntil`，上游的数据直接转手给下游，**直到参数 `notifier` 吐出一个数据或者完结**，就会**停止订阅上游 `Observable`**
+  > 3. `notifier` 对象**吐出数据或者完结可以是异步**的，可以利用 `takeUntil` **灵活操控上下游通道的关闭时机**
+  > 4. `notifier` 参数如果在吐出数据或者完结之前抛出了错误，那 `takeUntil` 也会把这个错误抛给下游
+
+  ```typescript
+  fromEvent(document, "mousemove").pipe(
+  	takeUntil(fromEvent(document.getElementById("btn"), "click"))
+  ).subscribe(console.log)
+  ```
+
+- `takeUntil` 操作符常用于处理取消订阅的场景，有效管理资源和避免内存泄漏
+
+  ```typescript
+  export class ExampleComponent {
+  
+    private destroy$ = new Subject<void>();
+  
+    ngOnInit() {
+      this.service.getData()
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(data => console.log(data));
+    }
+  
+    ngOnDestroy() {
+      this.destroy$.next();
+      this.destroy$.complete();
+    }
+  }
+  ```
+
+
+
+#### skip 
+
+<img src="Angular.assets/skip.png" alt="skip marble diagram" style="zoom:45%;" /> 
+
+
+
+
+
 ### 辅助操作符
 
 #### repeat 重复订阅
@@ -16472,21 +17091,6 @@ interval(1000)
 
 
 
-### filter
-
-对数据流进行过滤
-
-<img src="Angular.assets/image-20231029180315428.png" alt="image-20231029180315428" style="zoom: 40%;" /> 
-
-```typescript
-import { range } from "rxjs"
-import { filter } from "rxjs/operators"
-
-range(1, 10)
-  .pipe(filter(n => n % 2 === 0))
-  .subscribe(even => console.log(even))
-```
-
 
 
 ### pluck
@@ -16530,85 +17134,6 @@ fromEvent(button, 'click')
 ```
 
 
-
-### take、takeWhile、takeUtil
-
-`take`：**获取数据流中前几个**，然后结束流
-
-<img src="Angular.assets/image-20220111142006545.png" alt="image-20220111142006545" style="zoom:67%;" /> 
-
-```typescript
-import { range } from 'rxjs'
-import { take } from 'rxjs/operators'
-
-range(1, 10).pipe(take(5)).subscribe(console.log)
-```
-
-`takeWhile`：**根据条件**从数据源前面开始获取，如果遇到不匹配的，则结束流
-
-<img src="Angular.assets/image-20220111143854169.png" alt="image-20220111143854169" style="zoom:67%;" /> 
-
-```typescript
-import { range } from 'rxjs'
-import { takeWhile } from 'rxjs/operators'
-
-range(1, 10)
-.pipe(takeWhile(n => n < 8))
-.subscribe(console.log)
-```
-
-`takeUntil`：接受可观察对象，**当可观察对象发出值时，终止主数据源**
-
-<img src="Angular.assets/image-20220111144614754.png" alt="image-20220111144614754" style="zoom:67%;" /> 
-
-```typescript
-import { fromEvent } from 'rxjs'
-import { takeUntil } from 'rxjs/operators'
-
-const button = document.getElementById("btn")
-
-fromEvent(document, "mousemove").pipe(
-	takeUntil(fromEvent(button, "click"))
-).subscribe(console.log)
-```
-
-
-
-### first
-
-获取数据流中的**第一个值或者查找数据流中第一个符合条件的值**，类似数组中的 `find` 方法，获取到值以后终止流
-
-<img src="Angular.assets/image-20231029211206615.png" alt="image-20231029211206615" style="zoom:45%;" /> 
-
-```typescript
-import { interval } from "rxjs"
-import { first } from "rxjs/operators"
-
-interval(1000)
-  .pipe(first())
-  .subscribe(n => console.log(n))
-
-interval(1000)
-  .pipe(first(n => n === 3))
-  .subscribe(n => console.log(n))
-```
-
-
-
-### every
-
-查看数据流中的每个值是否都符合条件
-
-<img src="Angular.assets/image-20231029211626679.png" alt="image-20231029211626679" style="zoom:80%;" /> 
-
-```typescript
-import { range } from "rxjs"
-import { every, map } from "rxjs/operators"
-
-of(1, 2, 3, 4, 5, 6)
-  .pipe(every(x => x < 5))
-  .subscribe(x => console.log(x)); // -> false
-```
 
 
 

@@ -12157,8 +12157,6 @@ ev.dispatchEvent(eve);
 
 
 
-
-
 # 浏览器渲染
 
 ## 浏览器渲染过程
@@ -12241,7 +12239,7 @@ ev.dispatchEvent(eve);
 
      当到达一定数量或者时间时，浏览器才会统一执行队列中的操作
 
-     当查询这些属性时，浏览器就会强制刷新队列，如果不立马执行队列中的操作，有可能得到的结果是错误的
+     当**查询这些属性时，浏览器就会强制刷新队列**，如果不立马执行队列中的操作，有可能得到的结果是错误的
 
      如果之前没有改变几何元素，获取 `offset` 等属性也不会产生重排
 
@@ -12320,6 +12318,147 @@ ev.dispatchEvent(eve);
     console.log(div.offsetLeft);
     console.log(div.offsetLeft);
     ```
+
+
+
+## 重绘回调
+
+`requestAnimationFrame` 回调是在**浏览器将 DOM 转换为屏幕上的图像之前执行的最后一段代码**，浏览器在**浏览器在重绘 DOM 之前立即执行回调**
+
+- 回调是在前一帧完全完成时被调用的——**回调可以快速地读取所有页面元素的尺寸和坐标，而无需同步重排**
+
+  > 工作中的典型例子是显示一个巨大的表单，其中每个文本区域的全部内容都是可见的
+  >
+  > 如果在文本区域被绘制之前调整其高度，整个页面会因为不及时的布局计算而在几秒钟后才被绘制
+
+  `requestAnimationFrame` 指示浏览器**在重绘 DOM 之前立即执行一个回调**，该方法**确保回调引入的任何对 DOM 的更改将在下一个帧中显示**
+
+  ```html
+  <div id="root"></div>
+  ```
+
+  同一线程执行 JavaScript 并渲染 DOM，**浏览器不能同时执行 JavaScript 和绘制**
+
+  **为了让用户看到 DOM 中的任何更改，JavaScript 代码执行必须有中断**
+
+  ```javascript
+  // 看不到任何内容
+  while (true){
+  root.innerHTML='Timeout'
+  }
+  ```
+
+  可以看到插入到 DOM 中的消息，因为**浏览器在通过 `setTimeout()` 插入到任务队列的回调之间有机会进行绘制**
+
+  安排代码在延迟后执行是 `setTimeout()` 的一个次要功能，主要功能是将任务添加到与其他任务共享的队列中，以便浏览器保持响应
+
+  ```javascript
+  function timeout() {
+  root.innerHTML='Timeout'
+  setTimeout(timeout);
+  }
+  ```
+
+- `requestAnimationFrame` **回调执行之间的时间大概是 17 毫秒**
+
+  浏览器在用户屏幕上重绘 DOM 的速率不超过每秒 60 帧，并且只有在有内容需要重绘时才会进行
+
+  这意味着 `requestAnimationFrame()` 的回调不会频繁于每秒 60 次，换句话说，不会频繁于每 1/60=17 毫秒
+
+- **`setTimeout` 的回调比 `requestAnimationFrame` 的回调执行得更频繁**
+
+  `setTimeout` 的回调频率是 `requestAnimationFrame` 回调的三倍
+
+  ```html
+  <div id="root"></div>
+  ```
+
+  ```javascript
+  let previous = {};
+  function log(method) {
+  const now = Date.now();
+  console.log(method,now - previous[method]);
+  previous[method] = now;
+  }
+  function frame() {
+  log("frame");
+  root.innerHTML='Frame'
+  requestAnimationFrame(frame);
+  }
+  function timeout() {
+  log("timeout");
+  root.innerHTML='Timeout'
+  setTimeout(timeout);
+  }
+  timeout();
+  frame();
+  ```
+
+  <img src="JavaScript.assets/1RjmaTVBon7jKmw1lVdvyrQ.png" alt="img" style="zoom: 50%;" />  最多可以**在每秒 60 帧的最大速率下，在两次重绘之间会插入三个 `setTimeout` 回调**
+
+- **`requestAnimationFrame`** 的回调函数会接收一个参数  `timestamp`，表示自网页加载以来经过的时间（毫秒）
+
+  可以**利用这个时间戳来计算动画的进度**，从而实现平滑的动画效果
+
+  通过**比较当前的 `timestamp` 和初始的时间戳，可以确定动画应该进行到哪个位置**
+
+  > `requestAnimationFrame` 并不保证 60FPS 动画，它只是一种避免丢帧和提高效率的方法
+
+  ```javascript
+  var element = document.getElementById('box');
+  var startTime;
+  var duration = 1000; // 1 second or 1000ms
+  var distance = 60; // 60FPS
+  
+  var rAFCallback = function(timestamp){
+    startTime = startTime || timestamp; // set startTime is null
+  
+    var timeElapsedSinceStart = timestamp - startTime;
+    var progress = timeElapsedSinceStart / 1000;
+  
+    // 1 == 100%
+    var safeProgress = Math.min(progress.toFixed(2), 1); // 2 decimal points
+  
+    // 计算在时间上取得了多少 progress，并将其乘以 60px，得到 DOM 元素在下一次绘制操作时应该有多少像素
+    var newPosition = safeProgress * distance;
+  
+    element.style.transform = 'translateX('+ newPosition + 'px)';
+  
+    // we need to progress to reach 100%
+    if (safeProgress != 1){
+      requestAnimationFrame(rAFCallback);
+    }
+  }
+  
+  // request animation frame on render
+  requestAnimationFrame(rAFCallback);
+  ```
+
+-  `requestAnimationFrame` 相比 `setInterval` 或 `setTimeout` 的优点
+
+  - `setInterval` 不能保证在给定的延迟 `n` 时被调用，回调函数总是阻塞的，如果网页正忙于做其他事情，那么这个回调必须等到**堆栈为空**
+
+    回调函数的执行时间可能会超过指定的延迟
+
+    ```javascript
+    var element = document.getElementById('box');
+    var left = 0;
+    
+    var animateCallback = function() {
+      element.style.marginLeft = (++left) + 'px';
+      // clear interval after 60 frame is moved
+      if (left == 60) {
+        clearInterval(interval);
+      }
+    }
+    // 回调函数的执行时间可能会超过指定的 16.7ms 延迟
+    // 动画运行 1 秒以上（但回调执行 60 次），但不会达到 60FPS
+    var interval = setInterval(animateCallback, (1000 / 60));
+    ```
+
+  - 当浏览器标签页处于**非活动状态时，`requestAnimationFrame` 会暂停动画，阻止回调函数的执行**，这样可以节省系统电池并保持动画的状态
+
+  -  `requestAnimationFrame` 唯一限制是其非确定性
 
 
 
