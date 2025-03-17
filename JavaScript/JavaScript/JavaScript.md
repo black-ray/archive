@@ -30,7 +30,7 @@
 
 - `<script>` 标签
 
-  JavaScript 默认遵循 HTML 文档的加载顺序，即自上而下的加载顺序，推荐代码位置放在 `<body>` 子元素的最后一行
+  JavaScript 默认遵循 HTML 文档的加载顺序，即自上而下的加载顺序，**推荐代码位置放在 `<body>` 子元素的最后一行**
 
   ```html
   <body>
@@ -60,6 +60,12 @@
     </noscript>
   </body>
   ```
+
+- JavaScript 代码放在 `<head>` 标签内部和放在 `<body>` 标签内部的区别
+  - 加载顺序：放在 `<head>` 里会在页面加载之前执行 JavaScript 代码，而放在 `<body>` 里会在页面加载后执行
+  - 页面渲染：如果 JavaScript 代码影响了页面的布局或样式，放在 `<head>` 里可能会导致页面渲染延迟，而放在 `<body>` 里可以减少这种影响
+  - 代码依赖：如果 JavaScript 代码依赖其他元素，放在 `<body>` 里可以确保这些元素已经加载。
+  - 全局变量和函数：放在 `<head>` 里的 JavaScript 代码中的全局变量和函数在整个页面生命周期内都可用
 
 
 
@@ -93,9 +99,8 @@ JavaScript 一共有 8 种数据类型
 
 `number` 类型代表整数和浮点数
 
-- 特殊数值
+- 最大正数值：`Number.MAX_VALUE`：`1.7976931348623157e+308`
 
-  - 最大正数值：`Number.MAX_VALUE`：`1.7976931348623157e+308`
 
 
   - 最小正数值：`Number.MIN_VALUE`：`5e-32`，小于这个的数字会被转化为 `0`
@@ -109,7 +114,7 @@ JavaScript 一共有 8 种数据类型
 
   - 非数值，代表一个计算错误：`NaN`
 
-- 二进制、八进制、十六进制写法（ES6）
+- 二进制、八进制、十六进制写法
 
   ```javascript
   const num1 = 100;	// 十进制
@@ -127,18 +132,19 @@ JavaScript 一共有 8 种数据类型
 
 - 浮点数**最高精度是 17 位小数**，在算术计算时其精度远远不如整数
 
-  **不要直接判断两个浮点数是否相等** 
-
-  > 计算机用二进制存储数据，整数用二进制没有误差，如 `9` 表示为 `1001` 
+  > ##### 不要直接判断两个浮点数是否相等 
   >
-  > 而**有的小数无法用二进制表示**，如 `0.2` 用二进制表示就是 `1.10011001100...`
+  > - 计算机用二进制存储数据，整数用二进制没有误差，如 `9` 表示为 `1001` 
+  >
+  > - 而**有的小数无法用二进制表示**，如 `0.2` 用二进制表示就是 `1.10011001100...`
+  >
   >
   > 所以，累加小数时会出现误差
-
-  ```javascript
-  var result = 0.1 + 0.2; // 结果不是 0.3，而是：0.30000000000000004
-  console.log(0.07 * 100); // 结果不是 7， 而是：7.000000000000001
-  ```
+  >
+  > ```javascript
+  > var result = 0.1 + 0.2; // 结果不是 0.3，而是：0.30000000000000004
+  > console.log(0.07 * 100); // 结果不是 7， 而是：7.000000000000001
+  > ```
 
 - 比较浮点数是否相等
 
@@ -172,9 +178,7 @@ JavaScript 一共有 8 种数据类型
   console.log(1.335.toFixed(2)); // 1.34
   ```
   
-- 大数值连接符（ES12）
-
-  数字过长时，可以使用 `_` 作为连接符
+- 大数值连接符：数字过长时，可以使用 `_` 作为连接符
 
   ```javascript
   const num = 100_000_000;
@@ -241,6 +245,17 @@ console.log(bigInt + BigInt(num))	// 900719925474099200n
 const smallNum = Number(bigInt)
 console.log(smallNum)				// 900719925474099100
 ```
+
+> 可以使用第三方的 JavaScript 库，如 **big.js 或 bignumber.js** ，处理任意精度的数值
+>
+> ```javascript
+> // 使用 big.js 库可以将两个超过 Number.MAX_VALUE 的数相加
+> const big = require('big.js');
+> const x = new big('9007199254740993'); 
+> const y = new big('100000000000000000');
+> const result = x.plus(y);
+> console.log(result.toString()); // 输出：100009007194925474093
+> ```
 
 
 
@@ -348,7 +363,7 @@ console.log(smallNum)				// 900719925474099100
 
 `Set` 是 ES6 中新增的数据结构，可以用来保存数据，类似于数组，但是和数组的区别是**元素不能重复**
 
-`Set` 是无序结构，数组是有序结构
+`Set` 是**无序结构**，数组是有序结构
 
 创建 `Set` 需要通过 **`Set` 构造函数**
 
@@ -398,7 +413,7 @@ console.log(set);	// { 10，{} }
   console.log(newArr);	// [33, 10, 26, 30]
   ```
 
-常见方法
+**常见方法**
 
 - `size`：返回 `Set` 中元素的个数
 
@@ -468,67 +483,72 @@ console.log(set);	// { 10，{} }
 
 `WeakSet` 是和 `Set` 类似的另外一个数据结构，也是内部元素**不能重复**的数据结构
 
-`WeakSet` 和 `Set` 的区别
+`WeakSet` 主要用于内存中临时存储对象，无法持久化或同步存储其内容
 
-1. `WeakSet` 中**只能存放对象类型**，不能存放基本数据类型
-2. `WeakSet` 对元素的**引用是弱引用**，如果没有其他引用对某个对象进行引用，那么 **GC 可以对该对象进行回收**
+> ##### `WeakSet` 和 `Set` 的区别
+>
+> 1. `WeakSet` 中**只能存放对象类型**，不能存放基本数据类型
+> 2. `WeakSet` 对元素的**引用是弱引用**，如果没有其他引用对某个对象进行引用，那么 **GC 可以对该对象进行回收**
+> 3. `WeakSet` 不支持迭代，因此不能使用 `for...of` 循环或其他迭代方法
+> 4. `WeakSet` 仅提供 `add`、`delete` 和 `has` 方法，不支持 `get` 等方法
+>
+> ```javascript
+> let obj = { 
+>   name: "jack"
+> }
+> const set = new Set();
+> // 建立的是强引用
+> set.add(obj);
+> ```
+>
+> ```javascript
+> let obj = { 
+>   name: "jack"
+> }
+> const weakSet = new WeakSet();
+> // 建立的是弱引用
+> weakSet.add(obj);
+> ```
+>
+> <img src="JavaScript.assets/image-20220502002719098.png" alt="image-20220502002719098" style="zoom:67%;" /> 
 
-```javascript
-let obj = { 
-  name: "jack"
-}
-const set = new Set();
-// 建立的是强引用
-set.add(obj);
-```
+> ##### `WeakSet` 的方法
+>
+> - `add(value)`：添加某个元素，返回 `WeakSet` 对象本身
+> - `delete(value)`：从 `WeakSet` 中删除和这个值相等的元素，返回 `boolean` 类型
+> - `has(value)`：判断 `WeakSet` 中是否存在某个元素，返回 `boolean` 类型
 
-```javascript
-let obj = { 
-  name: "jack"
-}
-const weakSet = new WeakSet();
-// 建立的是弱引用
-weakSet.add(obj);
-```
+> ##### `WeakSet` 不能遍历
+>
+> - 因为 `WeakSet` 只是对对象的弱引用，如果遍历获取到其中的元素，那么有可能造成对象不能正常的销毁
+> - 所以**存储到 `WeakSet` 中的对象是没办法获取的**，不支持通过键获取值，因此**没有 `get` 方法**
 
-<img src="JavaScript.assets/image-20220502002719098.png" alt="image-20220502002719098" style="zoom:67%;" /> 
-
-常见方法
-
-- `add(value)`：添加某个元素，返回 `WeakSet` 对象本身
-- `delete(value)`：从 `WeakSet` 中删除和这个值相等的元素，返回 `boolean` 类型
-- `has(value)`：判断 `WeakSet` 中是否存在某个元素，返回 `boolean` 类型
-
-`WeakSet` **不能遍历**
-
-- 因为 `WeakSet` 只是对对象的弱引用，如果遍历获取到其中的元素，那么有可能造成对象不能正常的销毁
-- 所以**存储到 `WeakSet` 中的对象是没办法获取的**
-
-`WeakSet` 的应用场景
-
-```javascript
-// 如果使用 Set，创建出来的对象会被强引用，即使 p = null，Set 中的对象 p 也不会销毁
-const personSet = new WeakSet();
-class Person {
-  constructor() {
-    // 构造器中每次创建出来的对象都添加到 Set
-    personSet.add(this);
-  }
-  running() {
-    // 在每次调用方法的时候，去判断当前的调用是不是通过构造器创建出来的
-    if (!personSet.has(this)) {
-      throw new Error("不能通过非构造方法创建出来的对象调用running方法");
-    }
-    console.log('running', this);
-  }
-}
-const p = new Person();
-p.running();
-p = null;
-
-// 不允许通过其他的对象对方法调用
-p.running.call({name: "jack"});		// Error: 不能通过非构造方法创建出来的对象调用running方法
-```
+> ##### `WeakSet` 的应用场景
+>
+> ```javascript
+> // 如果使用 Set，创建出来的对象会被强引用，即使 p = null，Set 中的对象 p 也不会销毁
+> const personSet = new WeakSet();
+> class Person {
+>   constructor() {
+>     // 构造器中每次创建出来的对象都添加到 Set
+>     personSet.add(this);
+>   }
+>   running() {
+>     // 在每次调用方法的时候，去判断当前的调用是不是通过构造器创建出来的
+>     if (!personSet.has(this)) {
+>       throw new Error("不能通过非构造方法创建出来的对象调用running方法");
+>     }
+>     console.log('running', this);
+>   }
+> }
+> const p = new Person();
+> p.running();
+> p = null;
+> 
+> // 不允许通过其他的对象对方法调用
+> p.running.call({name: "jack"});		// Error: 不能通过非构造方法创建出来的对象调用running方法
+> ```
+>
 
 
 
@@ -5259,9 +5279,9 @@ const tree = [
 
 ## 唯一值集合 Set
 
-`Set `是唯一值的集合。不能提供索引。
+`Set` 是唯一值的集合，不能提供索引
 
-- ##### 创建`Set`数据结构
+- 创建 `Set` 数据结构
 
   `const s = new Set();`
 
@@ -5269,33 +5289,33 @@ const tree = [
 
   `const set = new Set([1, 2, 3, 4, 4]);`
 
-- ##### 元素个数 `set.size`
+- 元素个数 `set.size`
 
-- ##### 添加元素 `set.add(value)`
+- 添加元素 `set.add(value)`
 
   如果已有重复，则不产生效果
 
   返回集合本身
 
-- ##### 删除元素 `set.delete(value)`
+- 删除元素 `set.delete(value)`
 
   如果并不存在，则不产生效果
 
   返回集合本身
 
-- ##### 是否含有指定元素 `set.has(value)`
+- 是否含有指定元素 `set.has(value)`
 
   返回布尔值
 
-- ##### 清空集合`set.clear()`
+- 清空集合`set.clear()`
 
   没有返回值
 
-- ##### 遍历 `forEach`
+- 遍历 `forEach`
 
   `set.forEach(callback)`
 
-- ##### 数组去重
+- 数组去重
 
   ```javascript
   function do(array) {
@@ -5313,7 +5333,7 @@ const tree = [
 
 ## Object 对象
 
-- ##### 获取所有的value值 Object.values（ES8）
+- 获取所有的 value 值 Object.values（ES8）
 
   ```javascript
   const obj = {
@@ -5331,7 +5351,7 @@ const tree = [
   console.log(Object.values("abc"));					// ['a', 'b', 'c']
   ```
 
-- ##### Object.entries 获取到一个数组，数组中会存放可枚举属性的键值对数组（ES8）
+- Object.entries 获取到一个数组，数组中会存放可枚举属性的键值对数组（ES8）
 
   ```javascript
   const obj = {
@@ -6964,10 +6984,13 @@ console.log(generator.next())
 
 ## 预解析
 
-**js 引擎运行 js 分为两步：1. 预解析 2. 代码执行**
+> js 引擎运行 js 分为两步：1. 预解析 2. 代码执行
+>
 
-1. js 引擎会把 js 里面所有的 `var` 还有 `function` 提升到当前作用域的最前面
+1. js 引擎会把 js 里面**所有的 `var` 还有 `function` 提升到当前作用域的最前面**
 2. 之后按照书写的顺序代码从上往下执行
+
+
 
 ### 变量提升
 
@@ -8478,12 +8501,10 @@ person1.obj.foo2().call(person2)
 
 - 异步任务
 
-  异步是通过**回调函数**实现的
-
-  异步任务有以下三种类型:
+  异步是通过**回调函数**实现的，异步任务有以下三种类型:
 
   1. 普通**事件**，如 `click`、`resize` 等
-  
+
   2. **资源加载**，如 `load`、`error` 等
   
      ```javascript
@@ -8535,30 +8556,30 @@ person1.obj.foo2().call(person2)
 
   ```javascript
   console.log(1);
-  setTimeout(function(){							// 宏任务 进入事件队列
-  console.log(2);
-  new Promise(function(resovle){
-    console.log(3);
-    resolve();
-  }).then(function(){								// 在宏任务中有微任务，先执行完所有微任务，再去执行下一个宏任务
-    console.log(4);
-  })
+  setTimeout(function() {							// 宏任务 进入事件队列
+    console.log(2);
+    new Promise(function(resovle) {
+      console.log(3);
+      resolve();
+    }).then(function() {								// 在宏任务中有微任务，先执行完所有微任务，再去执行下一个宏任务
+      console.log(4);
+    })
   }, 0)
-  new Promise(function(resolve){			// 微任务 进入事件队列
-  console.log(5);
-  resolve();
-  }).then(function(){
-  console.log(6);
+  new Promise(function(resolve) {			// 微任务 进入事件队列
+      console.log(5);
+      resolve();
+    }).then(function() {
+      console.log(6);
   })
-  setTimeout(function(){							// 宏任务 进入事件队列
-  console.log(7);
-  new Promise(function(resolve){
-    console.log(8);
-    resolve();
-  }).then(function(){
-    console.log(9);
-  })
-  console.log(10);
+  setTimeout(function() {							// 宏任务 进入事件队列
+    console.log(7);
+    new Promise(function(resolve) {
+      console.log(8);
+      resolve();
+    }).then(function(){
+      console.log(9);
+    })
+    console.log(10);
   }, 0)
   console.log(11);
   // 执行顺序
@@ -9854,27 +9875,6 @@ document.getElementById('btn').onclick = async () => {
   let res = await axios();
   console.log('结果', res);
 }
-```
-
-
-
-## RxJs
-
-```javascript
-getRxjsData(){
-  return new Observable((observer) => {
-    setTimeOut(()=>{
-      var username = "张三";
-      observer.next(username); 
-      // observer.error();
-    }, 1000);
-  });
-}
-
-let rxjsData = getRxjsData();
-rxjsData.subscribe((data) => {
-  console.log(data); 
-});
 ```
 
 
@@ -11971,7 +11971,7 @@ ev.dispatchEvent(eve);
 
    <img src="JavaScript.assets/image-20211206171357043.png" alt="image-20211206171357043" style="zoom:50%;" /> 
 
-   - `window`：包括全局属性、方法，控制浏览器窗口相关的属性、方法**
+   - `window`：包括全局属性、方法，控制浏览器窗口相关的属性、方法
    - `document`：当前窗口操作文档的对象
    - `location`：浏览器连接到的对象的位置（URL）
    - `navigator`：浏览器信息
@@ -12157,21 +12157,29 @@ ev.dispatchEvent(eve);
 
 
 
+# 浏览器函数
+
+> requestIdleCallback 允许开发者请求浏览器在主线程空闲时执行一些低
+> 优先级的后台任务，这对于执行如分析、整理状态和数据等不紧急的任务是理想的。这种方法可以提
+> 高用户的响应性和页面的整体性能。
+
+
+
 # 浏览器渲染
 
 ## 浏览器渲染过程
 
 1. 构建 DOM 树
 
-   渲染引擎解析 HTML 文档，首先将**标签**转换成 DOM 树中的 **DOM 节点**（包括 js 生成的标签）生成**内容树**(content tree / DOM tree)
+   渲染引擎解析 HTML 文档，首先将**标签**转换成 DOM 树中的 **DOM 节点**（包括 js 生成的标签）生成**内容树** (content tree / DOM tree)
 
 2. 构建渲染树
 
-   解析对应的 **CSS 样式**信息（包括 js 生成的样式，外部 css 文件，带有样式的 HTML 标签）构建**渲染树**(rendering tree)
+   解析对应的 **CSS 样式**信息（包括 js 生成的样式，外部 css 文件，带有样式的 HTML 标签）构建**渲染树** (rendering tree)
 
    渲染树中每个节点都有自己的 `style`
 
-   渲染树**不包含隐藏的节点**( `display: none` 的节点) 和 `head` 节点，因为这些节点不会显现
+   渲染树**不包含隐藏的节点** ( `display: none` 的节点) 和 `head` 节点，因为这些节点不会显现
 
 3. 布局渲染树
 
@@ -14146,6 +14154,8 @@ SQL 命令插入到 Web 表单递交或输入域名或页面请求的查询字�
 
 3. 使用交叉观察器 `IntersectionObserver` 的 `intersectionRatio` 属性，检测图片是否进入可视区
 
+   使用 `IntersectionObserver` API 的优点是可以减少不必要的计算和事件监听，提高了性能
+
    `var io = new IntersectionObserver(callback, option)`
 
    - `callback`：可见性变化时的回调函数
@@ -14157,7 +14167,7 @@ SQL 命令插入到 Web 表单递交或输入域名或页面请求的查询字�
      如果同时有多个被观察的对象的可见性发生变化，`entries` 数组就会有多个成员
 
      `IntersectionObserverEntry` 对象属性：
-
+   
      ```javascript
      {
        // 可见性发生变化的时间, 毫秒
@@ -14207,7 +14217,7 @@ SQL 命令插入到 Web 表单递交或输入域名或页面请求的查询字�
      - 停止观察：`io.unobserve(element)`
 
      - 关闭观察器：`io.disconnect()`
-
+   
    - `IntersectionObserver` 是异步的，不随着目标元素的滚动同步触发
 
 ```javascript

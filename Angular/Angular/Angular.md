@@ -2010,6 +2010,48 @@ export class ChildComponent implements OnInit {
 
 
 
+### 子组件获取父组件实例
+
+如果一个组件需要依赖另一个组件，可以在其构造函数中声明该依赖项，Angular 会在组件树中找到该依赖项的实例并注入
+
+```typescript
+@Component({
+  selector: 'app-parent',
+  template: `<app-child></app-child>`
+})
+export class ParentComponent {
+  public value = 'Hello from Parent';
+}
+
+@Component({
+  selector: 'app-child',
+  template: `{{parent.value}}`
+})
+export class ChildComponent {
+  constructor(public parent: ParentComponent) {}
+}
+```
+
+
+
+### 父组件获取子组件实例
+
+```typescript
+@Component({
+  selector: 'app-parent',
+  template: `<app-child></app-child>`
+})
+export class ParentComponent {
+  @ViewChild(ChildComponent) child!: ChildComponent;
+  ngAfterViewInit() {
+    // 访问子组件的方法
+    this.child.someMethod();
+  }
+}
+```
+
+
+
 ### 父组件调用子组件方法
 
 ```typescript
@@ -7684,70 +7726,257 @@ export class RandomPlaceholderImagePipe implements PipeTransform {
 
 # 服务 Service
 
-组件之间没法相互调用，可以把公共的方法放到服务中，实现**方法的跨组件共享**
+> ##### 服务的核心特点，以及为什么需要服务
+>
+> - 服务是指一个可以被多个组件、指令或其他服务**共享和复用的类**，避免重复代码
+>
+> - 服务的主要目的是封装那些与应用业务逻辑、数据处理、网络请求等有关的功能，通常用于实现**可复用**、模块化的逻辑，而不与用户界面直接相关
+>
+> - 通过服务实现 **关注点分离**，组件专注于视图和交互，而服务专注于数据和业务逻辑，这样代码更加模块化，职责分明，便于维护
+>
+> - 通过服务可以实现代码复用、**状态共享、模块化管理**等，提升应用的可维护性和可扩展性
+>
+> - 使用依赖注入（DI）系统来创建和管理服务的实例，**服务通过 DI 系统注入到组件或其他服务中**
+>
+>   **依赖注入的核心概念是将对象的创建与其使用解耦**，使得组件不需要自己去创建服务的实例，而是通过 Angular 自动提供所需的服务实例
+>
+> - 服务逻辑可以独立于组件进行测试，简化了单元测试
 
-服务是由 `Injectable` 装饰器装饰的类
+
+
+## 创建服务
+
+**服务是由 `@Injectable` 装饰器装饰的类**
+
+创建服务
+
+```bash
+ng g service 文件夹名/服务名
+```
+
+`@Injectable` 装饰器告诉 Angular 依赖注入系统该类可以被注入到其他组件或服务中
+
+```typescript
+import { Injectable } from '@angular/core';
+@Injectable({
+  providedIn: 'root',  // 通过根注入器提供服务
+})
+export class DataService {
+  private data: string[] = ['Item1', 'Item2', 'Item3'];
+  getData() {
+    return this.data;
+  }
+  addItem(item: string) {
+    this.data.push(item);
+  }
+}
+```
+
+在组件中**通过依赖注入**将其注入进来，并使用其方法和属性
+
+在组件中通过构造函数注入一个服务时，Angular DI 系统会自动找到相应的服务实例并注入它
+
+```typescript
+import { Component } from '@angular/core';
+import { DataService } from './data.service';
+@Component({
+  selector: 'app-data-display',
+  template: `
+    <ul>
+      <li *ngFor="let item of items">{{ item }}</li>
+    </ul>
+  `,
+})
+export class DataDisplayComponent {
+  items: string[] = [];
+  constructor(private dataService: DataService) { }
+  ngOnInit() {
+    this.items = this.dataService.getData();
+  }
+}
+```
+
+
+
+## 服务生命周期
+
+服务的生命周期事件集中在服务的创建和销毁阶段
+
+> - 组件级服务的生命周期
+>
+>   在组件创建时生成，并且在组件销毁时销毁，该组件及其子组件共享这个服务实例
+>
+> - 模块级服务的生命周期
+>
+>   在模块加载时创建，并且在模块卸载或销毁时销毁，该模块及其子模块共享这个服务实例
+>
+> - 全局服务的生命周期
+>
+>   在应用启动时创建，通常会在整个应用程序的生命周期中保持活跃，整个应用程序共享这个服务实例
+
+- 创建阶段：可以在服务的构造函数中执行一些初始化工作
+
+  ```typescript
+  export class MyService {
+    constructor() {
+      console.log('Service created');
+      // 执行初始化操作
+    }
+  }
+  ```
+
+- 销毁阶段：`ngOnDestroy()` 是服务生命周期中的唯一钩子函数，适用于在服务销毁时执行清理操作
+
+  如果服务的**作用范围是某个组件或懒加载模块**，当这些**组件或模块销毁时，对应的服务也会销毁**，触发 `ngOnDestroy()`
+
+  ```typescript
+  export class DataService implements OnDestroy {
+    private dataSubscription: Subscription;
+    constructor() {
+      this.dataSubscription = someObservable.subscribe(data => {
+        console.log('Received data:', data);
+      });
+    }
+    ngOnDestroy() {
+      console.log('Service is being destroyed');
+      if (this.dataSubscription) {
+        this.dataSubscription.unsubscribe();
+      }
+    }
+  }
+  ```
+
+
+
+## 分层注入器
+
+
+
+
 
 ## 配置服务
 
-- ##### 创建服务
+模块配置
 
-  ```bash
-  ng g service 文件夹名/服务名
-  ```
+```typescript
+import { Injectable } from '@angular/core';
+
+// @Injectable()标记为可供注入的服务 
+@Injectable()
+export class StorageService {
+}
+```
+
+```typescript
+import { StorageService } from './services/storage.service';
+@NgModule({
+  declarations: [AppComponent,SearchComponent, TodolistComponent],
+  imports: [BrowserModule,FormsModule],
+  providers: [StorageService],			//引入并且配置服务
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+```
+
+```typescript
+import { StorageService } from '../../services/storage.service';
+export class TodolistComponent implements OnInit {
+    // 构造函数中直接声明 Angular框架帮助完成依赖注入
+	constructor(public storage: StorageService) {}
+}
+```
 
 
-- ##### 模块配置
 
-  ```typescript
-  import { Injectable } from '@angular/core';
-  
-  // @Injectable()标记为可供注入的服务 
-  @Injectable()
-  export class StorageService {
-  }
-  ```
+## 提供商
 
-  ```typescript
-  import { StorageService } from './services/storage.service';
-  @NgModule({
-    declarations: [AppComponent,SearchComponent, TodolistComponent],
-    imports: [BrowserModule,FormsModule],
-    providers: [StorageService],			//引入并且配置服务
-    bootstrap: [AppComponent]
-  })
-  export class AppModule { }
-  ```
+`providedIn` 允许**在服务类本身而不是模块  `providers` 数组中提供依赖项**
 
-  ```typescript
-  import { StorageService } from '../../services/storage.service';
-  export class TodolistComponent implements OnInit {
-      // 构造函数中直接声明 Angular框架帮助完成依赖注入
-  	constructor(public storage: StorageService) {}
-  }
-  ```
+在 `Module` 中声明，`import Module` 的时候都需要导入，不管有没有使用
 
-- `providedIn` 配置
+在服务上面声明，**直到真正注入了才会编译到 JS 中**，如果不使用该服务会最终从捆绑包中删除，有助于**摇树**
 
-  可以不在 `providers` 数组中声明，而是在服务上使用 `Injectable` 声明 
+```typescript
+import { Injectable } from '@angular/core';
 
-  优点：在 `Module` 中声明，`import Module` 的时候都需要导入，不管用还是没有，编译出来的 JS 大
+// @Injectable() 标记为可供注入的服务 
+@Injectable({
+  // 不需要再在模块中注册
+  providedIn: 'root'				// 根目录注册
+  // providedIn: HomeModule		// 注入到模块
+})
+export class StorageService { }
+```
 
-  **在服务上面声明，直到真正注入了，才会编译到 JS 中**
 
-  ```typescript
-  import { Injectable } from '@angular/core';
-  
-  // @Injectable()标记为可供注入的服务 
-  @Injectable({
-    // 不需要再在模块中注册
-    providedIn: 'root'				// 根目录注册
-    // providedIn: HomeModule		// 注入到模块
-  })
-  export class StorageService { }
-  ```
+`providedIn` 接受 `'root'`，`'any'`，`'platform'` 预定义的选项
 
-  
+> 无法通过 `providedIn` 来限定服务只在某个特定模块或组件中提供
+>
+> 如果希望将服务限定在某个特定模块或组件中使用，需要通过模块内的 `providers` 数组或者组件的 `providers` 数组来手动声明
+
+
+
+
+==`'root'`：默认值，服务在整个应用范围内可用==
+
+`root` 选项会将服务注册到模块注入器树中的**根模块注入器**（Root Module Injector）
+
+<img src="Angular.assets/https%3A%2F%2Fraw.githubusercontent.com%2FChristianKohler%2FHomepage%2Fmaster%2Fcontent%2Fposts%2F2019-12-15-ng9-providedin-any%2Fimages%2FprovidedInroot2.png" alt="providedinroot" style="zoom:50%;" /> 
+
+这使得该服务**对整个应用可用，不论该服务是通过延迟加载还是直接加载**
+
+如果**服务从未被使用，它将不会被添加到最终的构建中**（摇树优化）
+
+```typescript
+@Injectable({
+  providedIn: 'root'
+})
+export class MyService {}
+```
+
+
+
+==`'any'`：每个懒加载模块都会有服务的一个新实例==
+
+希望**每个延迟加载（懒加载）的模块拥有服务的独立实例**时，可以使用 `providedIn: 'any'`
+
+不同模块需要不同的状态或隔离的逻辑，彼此独立使用
+
+```typescript
+@Injectable({  
+   providedIn: 'any'
+})
+export class SomeService {}
+```
+
+<img src="Angular.assets/https%3A%2F%2Fraw.githubusercontent.com%2FChristianKohler%2FHomepage%2Fmaster%2Fcontent%2Fposts%2F2019-12-15-ng9-providedin-any%2Fimages%2FprovidedInany.png" alt="providedinany" style="zoom:50%;" /> 
+
+所有**预先加载的模块共享一个单例实例**（由根模块 injector 提供），但是**每个延迟加载的模块都有自己唯一的实例**
+
+<img src="Angular.assets/ib4Ku.png" alt="img" style="zoom:50%;" /> 
+
+
+==`'platform'`：在整个平台上提供服务，包括所有模块和懒加载模块也可以共享同一个服务实例==
+
+服务**在平台级别共享**，即服务在应用生命周期内只有一个实例，**跨应用和模块共享一个实例**
+
+当有多个应用或模块需要共享状态时，比 `'root'` 的作用范围更大，适合非常广泛的场景
+
+```typescript
+@Injectable({
+  providedIn: 'platform'
+})
+export class MyService {}
+```
+
+需要加载多个 Angular 平台实例，可能需要一个服务在整个平台（包括所有子应用和懒加载模块）中共享
+
+比如全局的配置服务、全局缓存服务等
+
+<img src="Angular.assets/https%3A%2F%2Fraw.githubusercontent.com%2FChristianKohler%2FHomepage%2Fmaster%2Fcontent%2Fposts%2F2019-12-15-ng9-providedin-any%2Fimages%2FprovidedInplatform.png" alt="providedinplatform" style="zoom:50%;" /> 
+
+
 
 ## 依赖注入
 
@@ -7765,125 +7994,331 @@ export class RandomPlaceholderImagePipe implements PipeTransform {
 
 服务**默认是单例模式**。这也是为什么**服务可以用来在组件之间共享数据和逻辑的原因**
 
-- 模块中注入
+模块中注入
 
-  在需要注入的服务上标记 `@Injectable()`
+在需要注入的服务上标记 `@Injectable()`
 
-  ```typescript
-  // @Injectable()标记为可供注入的服务
-  @Injectable()
-  class Product {
-    constructor(private name: string, private color: string) { }
-  }
-  @Injectable()
-  class PurchaseOrder {
-    constructor(private product: Product) { }
-  }
-  ```
+```typescript
+// @Injectable()标记为可供注入的服务
+@Injectable()
+class Product {
+  constructor(private name: string, private color: string) { }
+}
+@Injectable()
+class PurchaseOrder {
+  constructor(private product: Product) { }
+}
+```
 
-  标识符中注入
+标识符中注入
 
-  ```typescript
-  // 直接通过标识符
-  @NgModule( {
-    providers: [
-      // useClass模式的直接写入就可以
-      PurchaseOrder
-      // { provider: PurchaseOrder, useClass: PurchaseOrder }
-    ],
-  })
-  ```
-  
-  工厂模式注入
-  
-  ```typescript
-  // 工厂模式
-  @NgModule( {
-    providers: [ 
-  	{
-  		provide: Product,
-  		useFactory: () => {
-  		    return new Product( "大米手机" );
-  		  },
-  		deps: []
-  	}
-   ],
-  })
-  ```
-  
-  `Token` 注入
-  
-  ```typescript
-  // 使用Token作为标识
-  const token = new InjectionToken<string>('BaseUrl');
-  @NgModule( {
-    providers: [ 
-      {
-        provide: token,
-        useValue:'http://localhost'
-        // useValue 也可以是对象
-        /*
-          useValue: Object.freeze({
-          	APIKEY: "API123456",
-          	APISCRET: "100-222-333"
-      	})
-      	*/
-      }
-    ],
-  } )
-  
-  // 使用Token依赖注入
-  constructor(@Inject(token) private baseUrl:string){ }
-  ```
+```typescript
+// 直接通过标识符
+@NgModule( {
+  providers: [
+    // useClass模式的直接写入就可以
+    PurchaseOrder
+    // { provider: PurchaseOrder, useClass: PurchaseOrder }
+  ],
+})
+```
 
+工厂模式注入
 
-- ##### 使用 `Injector` 手动注入
+```typescript
+// 工厂模式
+@NgModule( {
+  providers: [ 
+	{
+		provide: Product,
+		useFactory: () => {
+		    return new Product( "大米手机" );
+		  },
+		deps: []
+	}
+ ],
+})
+```
 
-  ```typescript
-  import { Injector } from '@angular/core';
-  
-  // @Injectable()标记为可供注入的服务
-  @Injectable()
-  class Product {
-    constructor(private name: string, private color: string) { }
-  }
-  @Injectable()
-  class PurchaseOrder {
-    constructor(private product: Product) { }
-  }
-  
-  export class HomeGrandComponent implements OnInit {
-    ngOnInit() {
-      // 使用Injector依赖注入
-      // 默认是单例模式 所有的对象都已经创建好了
-      const injector = Injector.create({
-        // providers数组里去描述服务怎么去创建
-        providers: [
-          {
-            // provide 设置标识符 需要依赖这个服务的时候用来匹配到这里
-            provide: Product,
-            // useClass 直接new这个类
-            // useClass: Product,
-            // useExisting 使用现存的已经实例化的
-            // useValue 不想注入类，只想注入一个字符串等
-            // useFactory 工厂模式
-            useFactory: () => {
-              return new Product('大米手机', '黑色');
-            },
-            // deps 描述要创建的这个对象的依赖性
-            //（不是要完全实现对象的构造函数，而是如果还依赖providers里面的其他东西，则在这里去提供）
-            deps: []
-          },
-          { 
-            provide: PurchaseOrder,
-            deps: [Product]
-          }
-        ]
-      });
-      console.log(injector.get(PurchaseOrder).getProduct);
+`Token` 注入
+
+```typescript
+// 使用Token作为标识
+const token = new InjectionToken<string>('BaseUrl');
+@NgModule( {
+  providers: [ 
+    {
+      provide: token,
+      useValue:'http://localhost'
+      // useValue 也可以是对象
+      /*
+        useValue: Object.freeze({
+        	APIKEY: "API123456",
+        	APISCRET: "100-222-333"
+    	})
+    	*/
     }
+  ],
+} )
+
+// 使用Token依赖注入
+constructor(@Inject(token) private baseUrl:string){ }
+```
+
+使用 `Injector` 手动注入
+
+```typescript
+import { Injector } from '@angular/core';
+
+// @Injectable()标记为可供注入的服务
+@Injectable()
+class Product {
+  constructor(private name: string, private color: string) { }
+}
+@Injectable()
+class PurchaseOrder {
+  constructor(private product: Product) { }
+}
+
+export class HomeGrandComponent implements OnInit {
+  ngOnInit() {
+    // 使用Injector依赖注入
+    // 默认是单例模式 所有的对象都已经创建好了
+    const injector = Injector.create({
+      // providers数组里去描述服务怎么去创建
+      providers: [
+        {
+          // provide 设置标识符 需要依赖这个服务的时候用来匹配到这里
+          provide: Product,
+          // useClass 直接new这个类
+          // useClass: Product,
+          // useExisting 使用现存的已经实例化的
+          // useValue 不想注入类，只想注入一个字符串等
+          // useFactory 工厂模式
+          useFactory: () => {
+            return new Product('大米手机', '黑色');
+          },
+          // deps 描述要创建的这个对象的依赖性
+          //（不是要完全实现对象的构造函数，而是如果还依赖providers里面的其他东西，则在这里去提供）
+          deps: []
+        },
+        { 
+          provide: PurchaseOrder,
+          deps: [Product]
+        }
+      ]
+    });
+    console.log(injector.get(PurchaseOrder).getProduct);
   }
-  ```
+}
+```
+
+
+
+### inject 函数注入
+
+`inject()` 函数是在**运行时**动态获取依赖的工具，它**只能在注入上下文中使用**
+
+```typescript
+// 在类的构造函数中调用 `inject()` 是有效的
+export class MyService {
+  private readonly httpClient = inject(HttpClient);  // 这是有效的注入上下文
+  constructor() {
+    // 也可以在构造函数内使用 inject()
+  }
+}
+```
+
+
+如果在没有注入上下文的地方使用 `inject()`，会抛出错误
+
+```typescript
+export class MyComponent implements OnInit {
+  ngOnInit() {
+    const service = inject(SomeService);  // 错误：注入上下文不可用
+  }
+}
+```
+
+> 使用 `inject()` 赋值属性的优点：**减少构造函数参数的复杂性**
+>
+> 直接在类的属性中使用 `inject()` 可以避免构造函数中大量的参数声明，代码看起来更简洁，特别是在**继承导致的依赖问题**
+>
+> 通过 `inject()`，可以绕过构造函数注入，直接在类的属性上注入依赖
+>
+> 无需仅仅为了依赖注入而显式定义构造函数
+>
+> **继承关系中的子类不需要通过构造函数传递父类的依赖**，这让代码更简洁并避免了可能的错误
+>
+> ```typescript
+> export class BaseCarsComponent {
+> private readonly store = inject(StoreService);
+> public readonly luckyNumbers$ = this.store.luckyNumbers$;
+> }
+> ```
+>
+> ```typescript
+> // 无需将任何参数传递给 super 调用
+> export class CarsComponent extends BaseCarsComponent implements OnInit {
+> ngOnInit() {
+>  this.luckyNumbers$.subscribe(console.log);
+> }
+> }
+> ```
+
+
+
+使用 `inject()` 函数可以正确推断依赖项的类型
+
+```typescript
+export class AppComponent {
+  constructor(
+  @Inject(SECRET) private readonly secret, // inferred type: any
+  ) {}
+}
+export class AppComponent {
+  private readonly secret = inject(SECRET); // inferred type: string
+}
+```
+
+
+
+在**工厂模式注入中使用 `inject()`** 获取依赖项是有效的，这使得在提供服务时，可以轻松注入其他依赖
+
+```typescript
+export const SECRET = new InjectionToken<string>('SECRET');
+// 当 deps 数组中有多个条目时, 依赖的顺序要对应于工厂函数的参数列表，冗长、容易出错
+export function provideSecret(): FactoryProvider {
+  return {
+    provide: SECRET,
+    useFactory: ({ secret }: StoreService) => secret,
+    deps: [StoreService],
+  };
+}
+// 使用 inject 函数来获取给定注入令牌的值
+export function provideSecret(): FactoryProvider {
+  return {
+    provide: SECRET,
+    useFactory: () => inject(StoreService).secret,
+  };
+}
+```
+
+在**创建 `InjectionToken` 时使用 `inject()`** 来获取依赖
+
+```typescript
+export const SECRET = new InjectionToken<string>('SECRET', {
+  factory: () => inject(StoreService).secret,
+});
+```
+
+
+
+使用 `inject()` 函数的常规 JavaScript 函数可以称为 **DI 函数**，DI 函数可以封装一个需要访问**依赖注入机制的可重用逻辑**
+
+```typescript
+export function useMaskedSecret(): string {
+  const { secret } = inject(StoreService);
+  return secret.slice(0, secret.length / 2).padEnd(secret.length, '*');
+}
+export function useLuckyNumbers$(): Observable<string> {
+  return inject(StoreService).luckyNumbers$.pipe(
+    reduce((acc, next) => [...acc, next], [] as number[]),
+    map((luckyNumbers) => luckyNumbers.join(', ')),
+    takeUntilDestroyed()		// 允许注册 DestroyRef 服务，可以识别封闭上下文何时被销毁
+  );
+}
+export class AppComponent {
+  public readonly maskedSecret = useMaskedSecret();
+  public readonly luckyNumbers$ = useLuckyNumbers$();
+}
+```
+
+```typescript
+export const SECRET = new InjectionToken('SECRET', {
+  factory: () => 'root secret',
+});
+export function secretLogger() {
+  const secret = inject(SECRET);
+  console.log({ secret });
+}
+// 在子组件级别提供令牌也可以正确解析其依赖项
+@Component({
+  providers: [{ provide: SECRET, useValue: 'HomeComponent secret' }],
+})
+export class HomeComponent implements OnInit {
+  constructor() {
+    secretLogger();
+    // {secret: 'HomeComponent secret'}
+  }
+}
+```
+
+DI 函数同样也必须在注入上下文中调用，如果**需要在其他上下文中调用**它，可以**使用 `runInInjectionContext` 辅助函数**
+
+```typescript
+export class AppComponent implements OnInit {
+  private readonly injector = inject(Injector);
+  ngOnInit() {
+    // inject() must be called from an injection context
+    // const maskedSecret = useMaskedSecret();
+    const maskedSecret = runInInjectionContext(this.injector, useMaskedSecret);
+  }
+}
+```
+
+
+
+`inject()` 函数接受两个参数：注入的服务或依赖项的令牌，和解析修饰符配置对象
+
+```typescript
+export class AppComponent {
+  private readonly secret = inject(SECRET, {
+    host: false,
+    optional: false,
+    self: false,
+    skipSelf: false,
+  });
+}
+```
+
+> - `optional`：表示依赖项是可选的，如果无法找到这个服务，不会抛出错误，而是将该依赖解析为 `null`
+> - `self`：限定仅在当前的 `ElementInjector` 中查找依赖，如果当前注入器中没有该服务，不会继续向上查找父注入器
+> - `skipSelf`：跳过当前的 `ElementInjector`，从父注入器开始查找依赖，适用于希望避免当前级别注入器提供的服务
+> - `host`：将依赖查找限制在宿主元素的注入器中，如果在宿主元素的注入器中找不到，不会继续向上查找
+
+
+
+为了增强调试，提供了 `assertInInjectionContext(debugFn: Function)` 辅助函数，用来检查代码是否处于一个可以使用依赖注入的环境中
+
+```typescript
+// 有助于开发者更容易定位在非 DI 上下文中意外使用依赖注入时的错误
+export function useMaskedSecret(): string {
+  assertInInjectionContext(useMaskedSecret);
+  // without: inject() must be called from an injection context
+  // with: useMaskedSecret() can only be used within an injection context
+  const { secret } = inject(StoreService);
+  return secret.slice(0, secret.length / 2).padEnd(secret.length, '*');
+}
+```
+
+
+
+`TestBed` 提供了 `TestBed.runInInjectionContext` 方法，用于为  DI 函数模拟依赖注入上下文
+
+在某些情况下，测试代码可能不在 Angular 的依赖注入上下文中直接运行，因此无法使用 `inject()` 函数
+
+`TestBed.runInInjectionContext` 提供了一种方式来手动创建这个上下文，使得可以在测试中使用依赖注入
+
+```typescript
+// 确保调用的 DI 函数运行在 Angular 的依赖注入上下文中
+it('should return masked secret', () => {
+  TestBed.runInInjectionContext(() => {
+    const maskedSecret = useMaskedSecret();
+    expect(maskedSecret).toBe('****');
+  });
+});
+```
 
 
 
@@ -9052,6 +9487,10 @@ Service Workers 能够处理推送通知并将其传送到用户的设备，即�
 
 
 
+## 模拟响应
+
+
+
 
 
 # 模块 Module
@@ -9064,13 +9503,13 @@ Angular 应用中至少需要一个根模块，用于启动
 
 ## 内置模块
 
-- ##### 需要在**每个需要的模块中进行导入的模块**
+- 需要在**每个需要的模块中进行导入的模块**
 
   1. `CommonModule`：提供绑定。`*ngIf` 和 `*ngFor` 等基础指令，基本上每个模块都需要导入它。
   2. `FormsModule` / `ReactiveFormsModule`：表单模块需要在每个需要的模块导入
   3. 提供组件，指令，管道的模块
 
-- ##### 只需要的在**根模块导入一次的模块**
+- 只需要的在**根模块导入一次的模块**
 
   1. `HttpClientModule` / `BrowserAnimationsModule` / `NoopAnimationsModule` / `BrowserModule`
 
@@ -10024,7 +10463,7 @@ export class AppModule { }
 
 ## 创建动画
 
-- ##### 动画模块 `BrowserAnimationsModule`
+- 动画模块 `BrowserAnimationsModule`
 
   ```typescript
   import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
@@ -10035,7 +10474,7 @@ export class AppModule { }
   export class AppModule {}
   ```
 
-- ##### 创建动画
+- 创建动画
 
   ```typescript
   @Component({
@@ -10098,7 +10537,7 @@ export class AppModule { }
     ])
     ```
 
-- ##### 创建可重用动画
+- 创建可重用动画
 
   动画的定义放置在单独的文件中，方便多组件调用
 
@@ -10151,7 +10590,7 @@ export class AppModule { }
   })
   ```
 
-- ##### 调用动画
+- 调用动画
 
   ```html
   <div class="form-group">
@@ -11571,7 +12010,7 @@ it('should create', () => {
   >   class UserComponent { 
   >     public userName: string;
   >     public order: number;
-  >                                       
+  >                                                                         
   >     public getUserName(): Promise<string> {
   >       return new Promise((resolve) => {
   >         setTimeout(() => {
@@ -11579,7 +12018,7 @@ it('should create', () => {
   >         }, 1000);
   >       });
   >     }
-  >                                       
+  >                                                                         
   >     public getUserOrders(userName: string): Promise<number> {
   >       return new Promise<number>((resolve) => {
   >         setTimeout(() => {
@@ -11587,7 +12026,7 @@ it('should create', () => {
   >         }, 2000);
   >       });
   >     }
-  >                                       
+  >                                                                         
   >     public getData(): void {
   >       this.getUserName().then((name) => {
   >         this.userName = name;
@@ -11602,11 +12041,11 @@ it('should create', () => {
   >   ```typescript
   >   it('should get data', fakeAsync(() => {
   >     component.getData();
-  >                                       
+  >                                                                         
   >     tick(1000);
   >     expect(component.userName).toBe('jack');
   >     expect(component.order).toBe(undefined);
-  >                                       
+  >                                                                         
   >     tick(2000);
   >     expect(component.order).toBe(3);
   >   }));
@@ -13191,6 +13630,8 @@ describe('XyzService with service mock', () => {
 
 - `never` 类型是穷尽了所有可能的类型，也没有对应的类型
 
+  函数抛异常的时候，返回值就是 `never`
+
   ```typescript
   function dataFlowAnalysisWithNever(data: number | string) {
     if (typeof data === 'string') {
@@ -13204,14 +13645,14 @@ describe('XyzService with service mock', () => {
   }
   ```
 
-- `any` 和 `unknown` 可以是任何类的父类，所以任何类型的变量都可以赋值给 `any` 或 `unknown` 类型的变量（左父右子）
+- `any` 和 `unknown` 可以是任何类的父类，所以任何类型的变量都可以赋值给 `any` 或 `unknown` 类型的变量（左父右子）（除了 `never`）
 
   ```typescript
   let num: number = 2
   let data: any = num
   ```
 
-- `any` 也可以是任何类的子类，但 `unknown` 不可以，所以 `any` 类型的变量都可以赋值给其他类型的变量
+- `any` 也可以是任何类的子类，但 `unknown` 不可以，所以 `any` 类型的变量都可以赋值给其他类型的变量，但是 `unknown` 不可以赋值给别的类型
 
   ```typescript
   let array: any = ['a', 'b']
@@ -13244,7 +13685,11 @@ describe('XyzService with service mock', () => {
   }
   ```
 
+- `void` 代表空，可以是 `undefined` 或 `never`
+
 - 元祖条件：在定义时每个元素的类型都确定，元素值的数据类型必须是当前元素定义的类型，元素值的个数必须和定义时个数相同
+
+  元素个数和类型固定的数组类型
 
   ```typescript
   let salary = [string, number, number] = ['jack', 2000, 1]
@@ -13307,6 +13752,13 @@ describe('XyzService with service mock', () => {
   let obj: { username: string } & { age: number } = { username: 'jack', age: 23 }
   ```
 
+- 同一类型可以合并，不同的类型没法合并
+
+  ```typescript
+  type res = 'aaa' & 222;
+  // type res = never
+  ```
+  
 - 通用交叉方法
 
   ```typescript
@@ -13322,17 +13774,70 @@ describe('XyzService with service mock', () => {
 
 ### 字面量类型
 
+字符串的字面量类型有两种，一种是普通的字符串字面量，比如 `'aaa'`
+
+另一种是模版字面量，比如 `aaa${string}`，它的意思是以 aaa 开头，后面是任意 string 的字符串字面量类型
+
 ```typescript
 let num: 1 | 2 | 3 = 1
+```
+
+```typescript
+function func(str: `#${string}`) {}
 ```
 
 
 
 ## 接口 interface
 
-- 接口是另一种定义对象类型的类型
 
-- 接口中定义的方法只有声明没有具体实现
+
+### 接口定义
+
+**接口可以用来描述函数、构造器、索引类型（对象、class、数组）等复合类型**
+
+接口中定义的**方法只有声明没有具体实现**
+
+==对象==
+
+```typescript
+interface IPerson {
+  name: string;
+  age: number;
+}
+class Person implements IPerson {
+  name: string;
+  age: number;
+}
+const obj: IPerson = {
+  name: 'xx',
+  age: 18
+}
+```
+
+==函数==
+
+```typescript
+interface SayHello {
+  (name: string): string;
+}
+const func: SayHello = (name: string) => {
+  return 'hello,' + name
+}
+```
+
+==构造器==
+
+```typescript
+interface PersonConstructor {
+  new (name: string, age: number): IPerson;
+}
+function createPerson(ctor: PersonConstructor): IPerson {
+  return new ctor('xx', 18);
+}
+```
+
+
 
 ### 接口继承
 
@@ -13351,11 +13856,11 @@ interface Dog extends Pet {
 }
 ```
 
-- `interface` 可以 `extends` 一个或多个接口或类，也可以继承 `type`
+`interface` 可以 `extends` 一个或多个接口或类，也可以继承 `type`
 
-  ```typescript
-  interface TextNode extends Node, TemplateNode {}
-  ```
+```typescript
+interface TextNode extends Node, TemplateNode {}
+```
 
 
 
@@ -13399,55 +13904,61 @@ interface Product {
 
 ### 索引签名
 
-- 索引签名定义
+> 对象类型、class 类型在 TypeScript 里也叫做索引类型，也就是索引了多个元素的类型的意思
+>
+> 对象可以动态添加属性，如果不知道会有什么属性，可以用可索引签名
 
-  ```typescript
-  interface Product {
-    name: string;
-    price: number;
-    account: number;
-    [x: string]: any;
-    // [x: string]: string; 与其他属性重合不可以
-  }
-  ```
+索引签名定义
 
-  ```typescript
-  const product: Product = {
-    name: 'phone',
-    price: 1000,
-    account: 1,
-    color: 'red',
-    // 指定 string 的情况，属性名不仅限于 string，其他类型也可以
-    [Symbol('stockNo')]: 10,
-    100: 'ok'
-  }
-  ```
+```typescript
+interface Product {
+  name: string;
+  price: number;
+  account: number;
+  [x: string]: any;
+  // [x: string]: string; 与其他属性重合不可以
+}
+```
 
-- 索引签名访问
+```typescript
+const product: Product = {
+  name: 'phone',
+  price: 1000,
+  account: 1,
+  color: 'red',
+  // 指定 string 的情况，属性名不仅限于 string，其他类型也可以
+  [Symbol('stockNo')]: 10,
+  100: 'ok'
+}
+```
 
-  ```typescript
-  const symbolId = new Symbol('productNo')
-  interface Product {
-    [symbolId]: string | number;
-    name: string;
-    price: number;
-    account: number;
-    buy(): void;
-  }
-  ```
 
-  ```typescript
-  type Buy = Product['buy']
-  type NameOrPrice = Product['name' | 'price']
-  type No = Product[typeof symbolId]
-  
-  // 获取接口中属性的所有类型
-  type PKeys = keyof Product // 等同于 'name' | 'price' | 'account' | 'buy' | typeof symbolId
-  
-  // 将所有的类型迭代出来，获取的类型为 'name' | 'price' | 'account' | 'buy' | typeof symbolId
-  type AllKeys<T> = T extends any ? T : any
-  type PKeys2 = AllKeys<keyof Product>	// ‘name' | 'price' | 'account' | 'buy' | typeof symbolId
-  ```
+
+索引签名访问
+
+```typescript
+const symbolId = new Symbol('productNo')
+interface Product {
+  [symbolId]: string | number;
+  name: string;
+  price: number;
+  account: number;
+  buy(): void;
+}
+```
+
+```typescript
+type Buy = Product['buy']
+type NameOrPrice = Product['name' | 'price']
+type No = Product[typeof symbolId]
+
+// 获取接口中属性的所有类型
+type PKeys = keyof Product // 等同于 'name' | 'price' | 'account' | 'buy' | typeof symbolId
+
+// 将所有的类型迭代出来，获取的类型为 'name' | 'price' | 'account' | 'buy' | typeof symbolId
+type AllKeys<T> = T extends any ? T : any
+type PKeys2 = AllKeys<keyof Product>	// ‘name' | 'price' | 'account' | 'buy' | typeof symbolId
+```
 
 
 
@@ -13627,37 +14138,53 @@ function isRef(r: any): r is Ref {
 
 ## 条件类型
 
-- 使用条件类型简化泛型约束代码
+TypeScript 里的条件判断是 `extends ? :`，叫做条件类型，是 TypeScript 类型系统里的 `if else`
 
-  ```typescript
-  // 原始写法
-  function cross<T extends object, U extends object>(obj1: T, obj2: U): T & U
-  // 简化写法，且便于维护
-  type CrossType<T> = T extends object ? T : never
-  function cross<T, U>(obj1: CrossType<T>, obj2: CrossType<U>): T & U
-  // Extract 写法
-  type ExtractType<T> = Extract<T, object>
-  function cross<T, U>(obj1: ExtractType<T>, obj2: ExtractType<U>): T & U
-  ```
+```typescript
+type res = 1 extends 2 ? true : false;
+```
 
-- 泛型为联合类型时的条件类型比较
+类型运算逻辑都是用来做一些动态的类型的运算的，也就是对类型参数的运算，这种类型也叫做**高级类型**
 
-  ```typescript
-  // 一次性比较，string | number | boolean 当成整体去比较
-  type Test = string | number | boolean extends string | number ? string : never
-  // 类型结果为 never
-  ```
+**高级类型的特点是传入类型参数，经过一系列类型运算逻辑后，返回新的类型**
 
-  ```typescript
-  // 泛型比较是迭代比较，逐个类型去匹配
-  type CondType<T> = T extends string | number ? T : never
-  type TestCondType = CondType<string | number | boolean>
-  // 类型结果为 string | number
-  ```
+```typescript
+type isTwo<T> = T extends 2 ? true: false;
+type res = isTwo<1>;
+type res2 = isTwo<2>;
+```
+
+==使用条件类型简化泛型约束代码==
+
+```typescript
+// 原始写法
+function cross<T extends object, U extends object>(obj1: T, obj2: U): T & U
+// 简化写法，且便于维护
+type CrossType<T> = T extends object ? T : never
+function cross<T, U>(obj1: CrossType<T>, obj2: CrossType<U>): T & U
+// Extract 写法
+type ExtractType<T> = Extract<T, object>
+function cross<T, U>(obj1: ExtractType<T>, obj2: ExtractType<U>): T & U
+```
+
+==泛型为联合类型时的条件类型比较==
+
+```typescript
+// 一次性比较，string | number | boolean 当成整体去比较
+type Test = string | number | boolean extends string | number ? string : never
+// 类型结果为 never
+```
+
+```typescript
+// 泛型比较是迭代比较，逐个类型去匹配
+type CondType<T> = T extends string | number ? T : never
+type TestCondType = CondType<string | number | boolean>
+// 类型结果为 string | number
+```
 
 
 
-## keyof 操作符
+## 索引查询 keyof
 
 - `keyof` 获取对象中的所有 key
 
@@ -13775,6 +14302,10 @@ function isRef(r: any): r is Ref {
 
 - 在类型映射中，`in` 只能接 `string`、`number`、`symbol` 三种基本类型
 
+  > 索引类型（对象、class 等）可以用 `string`、`number` 和 `symbol` 作为 key
+  >
+  > 这里 `keyof T` 取出的索引就是 `string | number | symbol` 的联合类型
+
   ```typescript
   type Copy<T extends Record<string, any>> = {
     [K in keyof T]: T[K]
@@ -13784,6 +14315,42 @@ function isRef(r: any): r is Ref {
   //   [x: string]: any
   // }  
   ```
+
+  映射类型就相当于把一个集合映射到另一个集合
+
+  ```typescript
+  type MapType<T> = {
+      [Key in keyof T]: [T[Key], T[Key], T[Key]]
+  }
+  type res = MapType<{a: 1, b: 2}>;
+  // 结果为 type res = {
+  //    a: [1, 1, 1];
+  //    b: [2, 2, 2];
+  // }
+  ```
+
+- 除了值可以变化，索引也可以做变化，用 `as` 运算符，叫做**重映射**
+
+  ```typescript
+  // 用 as 把索引做了修改
+  type MapType<T> = {
+      [Key in keyof T as `${Key & string}${Key & string}${Key & string}`]: [T[Key], T[Key], T[Key]]
+  }
+  ```
+
+  ```typescript
+  type res = MapType<{a: 1, b: 2}>;
+  // 结果为 type res = {
+  //    aaa: [1, 1, 1];
+  //    bbb: [2, 2, 2];
+  // }
+  ```
+
+  > `Key & string` 的意思是和 `string` 取交叉部分
+  >
+  > 由于 Key 只能是 `string`、`number`、`symbol` 三种基本类型，**交叉类型会把同一类型做合并，不同类型舍弃**
+  >
+  > 最终交叉部分就只剩下 `string`
 
 - 使用 `in ... as` 来剔除属性
 
@@ -13887,78 +14454,141 @@ function isRef(r: any): r is Ref {
 
 ## 推断类型 infer
 
-- `infer` 表示**在 `extends` 条件语句中，以占位符出现**的，等到**使用时才推断出来的数据类型**
+`infer` 表示**在 `extends` 条件语句中，以占位符出现**的，等到**使用时才推断出来的数据类型**
 
-  `infer` 关键字只允许存在于 `extends` 语句中
 
-- 获取函数参数类型
 
-  `infer` 出现在 `extends` 条件语句后的函数类型中的参数类型位置上
+**`infer` 关键字只允许存在于 `extends` 语句中**
 
-  ```typescript
-  // User 为对象类型
-  type FuncType = (params: User) => string
-  ```
+> Typescript 类型的模式匹配是**通过 `extends` 对类型参数做匹配**，**结果保存到通过 `infer` 声明的局部类型变量里**
+>
+> 如果匹配就能从该局部变量里拿到提取出的类型
 
-  ```typescript
-  // infer 推断，P 就是占位符
-  // 使用该类型的时候，P 就会匹配到实际的类型
-  type FuncParaType<T> = T extends (params: infer P) => any ? P : never
-  ```
+```typescript
+// 提取数组的第一个元素类型
+// 类型体操中经常用 unknown 接受和匹配任何类型
+// 对 Arr 做模式匹配，把要提取的第一个元素的类型放到通过 infer 声明的 First 局部变量里，后面的元素可以是任何类型，用 unknown 接收
+// 然后把局部变量 First 返回
+type GetFirst<Arr extends unknown[]> = Arr extends [infer First, ...unknown[]] ? First : never;
+type res = GetFirst<[1,2,3]>;
+// 结果为 1
+```
 
-  ```typescript
-  // 获取到类型结果为 User
-  type ParaType = FuncParaType<FuncType>	// User
-  ```
 
-- 获取函数返回值类型
 
-  `infer` 出现在 `extends` 条件语句后的函数类型中的返回值类型上
+==字符串类型模式匹配==
 
-  ```typescript
-  type FuncType = (params: User) => string
-  ```
+```typescript
+// 判断字符串是否以某个前缀开头
+type StartsWith<Str extends string, Prefix extends string> = Str extends `${Prefix}${string}` ? true : false;
+```
 
-  ```typescript
-  type FuncRtnType<T> = T extends (params: any) => infer R ? R : never
-  ```
+```typescript
+// 字符串匹配一个模式类型，提取想要的部分，用这些再构成一个新的类型
+// 声明要替换的字符串 Str、待替换的字符串 From、替换成的字符串 To 3 个类型参数
+// 用 Str 去匹配模式串，模式串由 From 和之前之后的字符串构成，把之前之后的字符串放到通过 infer 声明的局部变量 Prefix、Suffix 里
+// 用 Prefix、Suffix 加上替换到的字符串 To 构造成新的字符串类型返回
+type ReplaceStr<Str extends string, From extends string, To extends string> 
+	= Str extends `${infer Prefix}${From}${infer Suffix}` ? `${Prefix}${To}${Suffix}` : Str;
+type ReplaceResult = ReplaceStr<"my best friend is ?", "?", "dog">
+// 结果为 type ReplaceResult = "my best friend is dog"
+```
 
-  ```typescript
-  type RtnType = FuncRtnType<FuncType>	// string
-  ```
+```typescript
+// Trim 去掉空白字符
+// 需要递归，因为不知道有多少个空白字符，所以只能一个个匹配和去掉
+// TrimRight
+type TrimStrRight<Str extends string> = Str extends `${infer Rest}${' ' | '\n' | '\t'}` ? TrimStrRight<Rest> : Str;
+// TrimLeft
+type TrimStrLeft<Str extends string> = Str extends `${' ' | '\n' | '\t'}${infer Rest}` ? TrimStrLeft<Rest> : Str;
+// Trim
+type TrimStr<Str extends string> =TrimStrRight<TrimStrLeft<Str>>;
+type trimType = TrimStr<'   dog   '>;
+```
 
-- 获取泛型的类型
 
-  `infer` 出现在类型的泛型具体化类型上
-  
-  ```typescript
+
+==获取函数参数类型==
+
+**`infer` 出现在 `extends` 条件语句后的函数类型中的参数类型位置上**
+
+```typescript
+type FuncType = (params: User) => string
+// Func 和模式类型做匹配，参数类型放到用 infer 声明的局部变量 Args 里
+type GetParameters<Func extends Function> = Func extends (...args: infer Args) => unknown ? Args : never;
+// 获取到类型结果为 User
+type ParaType = GetParameters<FuncType>	// User
+```
+
+
+
+==获取函数返回值类型==
+
+`infer` 出现在 `extends` 条件语句后的函数类型中的返回值类型上
+
+```typescript
+type FuncType = (params: User) => string
+// Func 和模式类型做匹配，提取返回值到通过 infer 声明的局部变量 ReturnType 里返回
+// 参数类型可以是任意类型，也就是 any[]，但是这里不能用 unknown，这里涉及到参数的逆变性质
+type GetReturnType<Func extends Function> = Func extends (...args: any[]) => infer ReturnType ? ReturnType : never;
+type RtnType = GetReturnType<FuncType>	// string
+```
+
+
+
+==获取构造器返回值类型==
+
+```typescript
+interface Person {
+  name: string;
+}
+interface PersonConstructor {
+  new(name: string): Person;
+}
+```
+
+
+
+==获取泛型的类型==
+
+**`infer` 出现在类型的泛型具体化类型上**
+
+```typescript
+// 通过 extends 对传入的类型参数 T 做模式匹配
+// 通过 infer 声明一个局部变量 P 来保存
+// 如果匹配，就返回匹配到的 P，否则就返回 never 代表没匹配到
 type ElementOfArray<T> = T extends Array<infer P> ? P : never
-  ```
-  
-  ```typescript
-  type ArrayItemType = ElementOfArray<Array<{ name: string, age: number }>>
+```
+
+```typescript
+type ArrayItemType = ElementOfArray<Array<{ name: string, age: number }>>
 // 类型输出为 { name: string, age: number }
-  ```
+```
 
-- 函数中使用
 
-  ```typescript
-  function unref<T>(ref: T): T extends Ref<infer V> ? V : T {
-    // 参数可以是 Ref 对象，也可以是其他对象
-    return isRef(ref) ? (ref.value as any) : ref
-  }
-  ```
-  
-  ```typescript
-  unref(ref(3))									//返回值类型为 number
-  unref(ref('jack'))						// 返回值类型为 string
-  unref(ref({ name: 'jack' }))	// 返回值类型为 { name: string }
-  unref({ age: 29 })						// 返回值类型为 { age: number }
-  ```
 
-- `infer` 构建带参数的工厂实例方法
-  - `infer` 获取构造器参数
-  - `infer` 获取构造
+==函数中使用==
+
+```typescript
+function unref<T>(ref: T): T extends Ref<infer V> ? V : T {
+  // 参数可以是 Ref 对象，也可以是其他对象
+  return isRef(ref) ? (ref.value as any) : ref
+}
+```
+
+```typescript
+unref(ref(3))									//返回值类型为 number
+unref(ref('jack'))						// 返回值类型为 string
+unref(ref({ name: 'jack' }))	// 返回值类型为 { name: string }
+unref({ age: 29 })						// 返回值类型为 { age: number }
+```
+
+
+
+`infer` 构建带参数的工厂实例方法
+
+- `infer` 获取构造器参数
+- `infer` 获取构造
 
 
 
@@ -14509,8 +15139,14 @@ createFactoryConstructor(User)
 ### 观察者模式
 
 > - 观察者模式要解决的问题，就是在一个持续产生事件的系统中，分割功能，让不同模块只处理一部分逻辑
+>
 > - 观察者模式将逻辑分为 **发布者** 和 **观察者**，发布者只负责产生事件，会通知所有注册的观察者，观察者只接收事件后处理，不关心数据是怎样产生的
+>
+>   > - 发布者维护一个订阅者的列表，并在每次有更新时通知他们或传播更改
+>   > - 订阅者每收到发布者的通知时都会执行更新或执行副作用
+>
 > - Rsjs 中 `Observable` 对象就是一个发布者，通过 `subscribe` 函数把发布者和观察者连接起来
+>
 > - Rxjs 中 `subscribe` 的参数就是一个观察者
 
 - 可观察对象 `Observable`
@@ -14882,35 +15518,35 @@ setTimeout(() => {
 >
 > 最后 `Observer` 只需要处理能够走到终点的数据
 
-- 数据流
+==数据流==
 
-  从可观察对象内部输出的数据就是数据流，可观察对象内部可以向外部源源不断的输出数据
+从可观察对象内部输出的数据就是数据流，可观察对象内部可以向外部源源不断的输出数据
 
-- 操作符
+==操作符==
 
-  用于**操作数据流**，可以**将对象数据流进行转换，过滤等操作**，对于每一个操作符，连接的就是上游和下游
+用于**操作数据流**，可以**将对象数据流进行转换，过滤等操作**，对于每一个操作符，连接的就是上游和下游
 
-  **操作符是返回一个 `Observable` 对象的函数**
+**操作符是返回一个 `Observable` 对象的函数**
 
-  <img src="Angular.assets/v2-e733fa3e169d2cec2c57cedf064c3e2d.jpg" alt="img" style="zoom: 33%;" /> <img src="Angular.assets/v2-3b0a6951eaee3335c69df64d91d7b5f7.jpg" alt="img" style="zoom: 33%;" />
+<img src="Angular.assets/v2-e733fa3e169d2cec2c57cedf064c3e2d.jpg" alt="img" style="zoom: 33%;" /> <img src="Angular.assets/v2-3b0a6951eaee3335c69df64d91d7b5f7.jpg" alt="img" style="zoom: 33%;" />
 
-- 弹珠图
+==弹珠图==
 
-  <img src="Angular.assets/v2-b5f951c38d1a907357b4f24c12c192d7.jpg" alt="img" style="zoom: 50%;" /> 
+<img src="Angular.assets/v2-b5f951c38d1a907357b4f24c12c192d7.jpg" alt="img" style="zoom: 50%;" /> 
 
-  <img src="Angular.assets/v2-69fa904c6cbac629fae91bdd87472c92.jpg" alt="img" style="zoom: 50%;" /> 
+<img src="Angular.assets/v2-69fa904c6cbac629fae91bdd87472c92.jpg" alt="img" style="zoom: 50%;" /> 
 
-  - 符号 `|` 代表的是数据流的完结，对应调用 `complete` 函数
+- 符号 `|` 代表的是数据流的完结，对应调用 `complete` 函数
 
-  - 符号 `×` 代表数据流中的异常，对应于调用 `error` 函数
+- 符号 `×` 代表数据流中的异常，对应于调用 `error` 函数
 
-  <img src="Angular.assets/v2-598eb2840881223746a3f035d94cc65e.jpg" alt="img" style="zoom:50%;" /> 
+<img src="Angular.assets/v2-598eb2840881223746a3f035d94cc65e.jpg" alt="img" style="zoom:50%;" /> 
 
-  - 多条时间轴代表上下游的数据流，根据上游数据流产生下游数据流
+- 多条时间轴代表上下游的数据流，根据上游数据流产生下游数据流
 
-  主要的操作符的弹珠图：https://rxmarbles.com/
+主要的操作符的弹珠图：https://rxmarbles.com/
 
-  产生弹珠图：[https://rxviz.com/](http://rxviz.com/)
+产生弹珠图：[https://rxviz.com/](http://rxviz.com/)
 
 
 
@@ -17819,3 +18455,12 @@ angular.json
 npm run ivy
 ```
 
+
+
+## 类型体操
+
+> TypeScript 是支持类型编程的类型系统
+>
+> 对传入的类型参数（泛型）做各种逻辑运算，产生新的类型，这就是类型编程
+>
+> **TypeScript 的类型系统是**图灵完备的，也就是能描述各种可计算逻辑。简单点来理解就是循环、条件等各种 JS 里面有的语法它都有，JS 能写的逻辑它都能写。
